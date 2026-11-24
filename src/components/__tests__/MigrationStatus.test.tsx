@@ -239,9 +239,9 @@ describe('MigrationStatus', () => {
 
       render(<MigrationStatus />);
 
-      // Warning ring is amber (255 178 36)
+      // Warning ring is PePo yellow (250 221 21)
       const alert = screen.getByRole('alert');
-      expect(alert.className).toContain('rgb(255_178_36');
+      expect(alert.className).toContain('rgb(250_221_21');
     });
 
     it('should use success styling for success notifications', () => {

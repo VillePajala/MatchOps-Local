@@ -61,7 +61,7 @@ const PlayerDevelopmentRadar: React.FC<PlayerDevelopmentRadarProps> = ({ axes, m
             key={ri}
             points={axes.map((_, i) => { const [x, y] = at(RADIUS * f, angleFor(i)); return `${x.toFixed(1)},${y.toFixed(1)}`; }).join(' ')}
             fill="none"
-            stroke="#334155"
+            stroke="#4a2850"
             strokeWidth={0.5}
           />
         ))}
@@ -71,14 +71,14 @@ const PlayerDevelopmentRadar: React.FC<PlayerDevelopmentRadarProps> = ({ axes, m
           const anchor = lx > CENTER + 2 ? 'start' : lx < CENTER - 2 ? 'end' : 'middle';
           return (
             <g key={ax.key}>
-              <line x1={CENTER} y1={CENTER} x2={x} y2={y} stroke="#334155" strokeWidth={0.5} />
+              <line x1={CENTER} y1={CENTER} x2={x} y2={y} stroke="#4a2850" strokeWidth={0.5} />
               <text x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" className="fill-slate-400" style={{ fontSize: LABEL_FONT_SIZE }}>
                 {ax.label}
               </text>
             </g>
           );
         })}
-        <polygon points={polygon((a) => a.baseline)} fill="rgba(148,163,184,0.10)" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 2" />
+        <polygon points={polygon((a) => a.baseline)} fill="rgba(183,154,185,0.10)" stroke="#b79ab9" strokeWidth={1} strokeDasharray="3 2" />
         <polygon points={polygon((a) => a.current)} fill="rgba(56,189,248,0.25)" stroke="#38bdf8" strokeWidth={1.5} />
       </svg>
       <div className="flex gap-4 text-xs mt-1 text-slate-300">

@@ -35,9 +35,9 @@ const toastIcon: Record<Toast['type'], React.ReactNode> = {
 };
 
 const toastStyle: Record<Toast['type'], string> = {
-  error: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_107_107/0.45),0_16px_32px_-8px_rgb(2_6_23/0.9)]',
-  success: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(63_224_140/0.4),0_16px_32px_-8px_rgb(2_6_23/0.9)]',
-  info: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]',
+  error: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_107_107/0.45),0_16px_32px_-8px_rgb(12_4_13/0.9)]',
+  success: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(63_224_140/0.4),0_16px_32px_-8px_rgb(12_4_13/0.9)]',
+  info: 'bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(12_4_13/0.9)]',
 };
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {

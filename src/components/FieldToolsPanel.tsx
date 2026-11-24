@@ -88,14 +88,14 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
       {/* Backdrop */}
       <div
         data-testid="field-tools-backdrop"
-        className="fixed inset-0 bg-[rgb(2_6_23/0.6)] z-40"
+        className="fixed inset-0 bg-[rgb(12_4_13/0.6)] z-40"
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
         ref={panelRef}
-        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 s1-canvas rounded-[28px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_20px_40px_-12px_rgb(2_6_23/0.9)] p-4 animate-slide-up"
+        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 s1-canvas rounded-[28px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_20px_40px_-12px_rgb(12_4_13/0.9)] p-4 animate-slide-up"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3">

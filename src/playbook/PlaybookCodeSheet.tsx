@@ -81,7 +81,7 @@ export default function PlaybookCodeSheet({ onClose, onRedeem, onUnlocked }: Pla
   );
 
   return (
-    <div className="fixed inset-0 z-[61] flex items-end justify-center bg-[rgb(2_6_23/0.6)] sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[61] flex items-end justify-center bg-[rgb(12_4_13/0.6)] sm:items-center" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
@@ -137,7 +137,7 @@ export default function PlaybookCodeSheet({ onClose, onRedeem, onUnlocked }: Pla
                 enterKeyHint="go"
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? 'playbook-code-error' : undefined}
-                className={`h-14 w-full rounded-[14px] border bg-[#0b1222] px-4 text-center font-mono text-[20px] uppercase tracking-[0.12em] text-ink placeholder:text-ink-3/60 focus:outline-none ${
+                className={`h-14 w-full rounded-[14px] border bg-[#100611] px-4 text-center font-mono text-[20px] uppercase tracking-[0.12em] text-ink placeholder:text-ink-3/60 focus:outline-none ${
                   error ? 'border-red-400/70' : 'border-white/[0.08] focus:border-action/60'
                 }`}
                 data-testid="playbook-code-input"

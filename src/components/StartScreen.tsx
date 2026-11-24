@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
@@ -477,9 +478,17 @@ const StartScreen: React.FC<StartScreenProps> = ({
               <HomeIcon name="back" className="h-5 w-5" strokeWidth={2} />
             </button>
           )}
-          <h1 className="truncate font-[family-name:var(--font-rajdhani)] text-[28px] font-bold leading-none tracking-[0.01em] text-action">
-            MatchOps
-          </h1>
+          {/* PePo club preview: the club crest (public/club/pepo-logo.png, from
+              pepofutis.net) and the club-branded wordmark. */}
+          <Image src="/club/pepo-logo.png" alt="" width={38} height={45} unoptimized draggable={false} className="h-[45px] w-[38px] flex-shrink-0 select-none" />
+          <div className="min-w-0">
+            <h1 className="truncate font-display text-[30px] font-bold leading-none tracking-[0.01em] text-action">
+              PePo Ops
+            </h1>
+            <p className="mt-0.5 truncate text-[13px] leading-tight text-ink-2">
+              {t('startScreen.clubSubtitle', 'For PePo juniors')}
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2">
@@ -1062,7 +1071,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
             {/* Which build this is, and where the app lives. */}
             <div className="mt-2 flex flex-wrap items-center gap-x-1.5 px-1 text-[13px] text-ink-3" data-testid="gear-footer">
-              <span>MatchOps {APP_VERSION}</span>
+              <span>PePo Ops {APP_VERSION}</span>
               <span aria-hidden="true">·</span>
               <a
                 href="https://www.match-ops.com"

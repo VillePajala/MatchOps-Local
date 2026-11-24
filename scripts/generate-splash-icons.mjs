@@ -41,27 +41,30 @@ import { fileURLToPath } from 'url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pub = (p) => join(root, 'public', p);
 /** Must equal manifest background_color and the --color-carbon token. */
-const CANVAS = '#0f172a';
+const CANVAS = '#170a18';
 
-/** Each master with the viewBox that crops to the badge's outer edge (r240 / r244). */
-const MASTERS = {
-  full: { svg: readFileSync(pub('logos/matchops-badge.svg'), 'utf8'), crop: '16 16 480 480' },
-  small: { svg: readFileSync(pub('logos/matchops-badge-small.svg'), 'utf8'), crop: '12 12 488 488' },
-};
+/*
+ * PePo club preview (branch club/pepo-preview only - never merged): every icon
+ * is the club crest, public/club/pepo-logo.png, downloaded from the club's own
+ * site (https://www.pepofutis.net/wp-content/uploads/2024/08/pepo-logo.png),
+ * trimmed to its edge. It is fitted (aspect kept, never recoloured) into the
+ * square the MatchOps badge used to fill.
+ */
+const CREST = readFileSync(pub('club/pepo-logo.png'));
 
-/** The badge alone (no margin), rasterised straight from the vector at `size` px. */
-function badge(size, master = 'full') {
-  const { svg, crop } = MASTERS[master];
-  const sized = svg.replace(/<svg([^>]*?)viewBox="[^"]*"([^>]*?)width="\d+" height="\d+"/, `<svg$1viewBox="${crop}"$2width="${size}" height="${size}"`);
-  if (sized === svg) throw new Error(`Could not resize the ${master} master: expected viewBox, width and height on <svg>`);
-  return sharp(Buffer.from(sized)).png().toBuffer();
+/** The crest alone, fitted into a transparent `size` px square. */
+function badge(size) {
+  return sharp(CREST)
+    .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 }, kernel: 'lanczos3' })
+    .png()
+    .toBuffer();
 }
 
 /** `width` x `height` canvas (transparent unless `fill`), badge of `badgeSize` px centred. */
-async function compose(width, height, badgeSize, { fill, master = 'full' } = {}) {
+async function compose(width, height, badgeSize, { fill } = {}) {
   const background = fill ?? { r: 0, g: 0, b: 0, alpha: 0 };
   const layered = await sharp({ create: { width, height, channels: 4, background } })
-    .composite([{ input: await badge(badgeSize, master), left: Math.round((width - badgeSize) / 2), top: Math.round((height - badgeSize) / 2) }])
+    .composite([{ input: await badge(badgeSize), left: Math.round((width - badgeSize) / 2), top: Math.round((height - badgeSize) / 2) }])
     .png()
     .toBuffer();
   // Filled images are written without an alpha channel (iOS and launchers treat them as opaque).
@@ -106,7 +109,7 @@ async function main() {
   write('icons/apple-touch-icon.png', await compose(180, 180, 156, { fill: CANVAS }), 'canvas fill, badge 156px');
 
   const fav = {};
-  for (const size of [16, 32, 48]) fav[size] = await compose(size, size, size, { master: 'small' });
+  for (const size of [16, 32, 48]) fav[size] = await compose(size, size, size, );
   write('icons/favicon-16x16.png', fav[16], 'small cut');
   write('icons/favicon-32x32.png', fav[32], 'small cut');
   write('favicon.png', fav[32], 'small cut, 32px');

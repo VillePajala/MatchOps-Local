@@ -265,7 +265,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                 <p className="font-ui text-sm text-ink-3 -mt-1">
                   {t(
                     'rulesDirectory.seriesHelp',
-                    'Player count, playing time and pitch size are set per league, and the app does not know which league your team plays in - MatchOps is not connected to Palloliitto\'s system. Find your league in the list and open Info > Rules.',
+                    'Player count, playing time and pitch size are set per league, and the app does not know which league your team plays in - PePo Ops is not connected to Palloliitto\'s system. Find your league in the list and open Info > Rules.',
                   )}
                 </p>
                 {/* One grouped list: hairline-separated rows, not a card per row. */}

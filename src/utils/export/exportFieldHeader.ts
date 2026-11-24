@@ -118,7 +118,7 @@ export const drawHeader = (
   ctx.save();
 
   // Dark background for header
-  ctx.fillStyle = '#1e293b'; // Slate-800
+  ctx.fillStyle = '#361a3c'; // Slate-800
   ctx.fillRect(0, 0, width, headerHeight);
 
   // === LOGOS on left and right ===
@@ -179,7 +179,7 @@ export const drawHeader = (
   }
 
   ctx.font = `${fontSize}px Rajdhani, sans-serif`;
-  ctx.fillStyle = '#94a3b8'; // Slate-400
+  ctx.fillStyle = '#b79ab9'; // Slate-400
   ctx.textAlign = 'center';
 
   if (primaryMeta.length > 0) {
@@ -228,12 +228,12 @@ export const drawFooter = (
   ctx.save();
 
   // Dark background
-  ctx.fillStyle = '#0f172a'; // Slate-900
+  ctx.fillStyle = '#170a18'; // Slate-900
   ctx.fillRect(0, yOffset, width, footerHeight);
 
   // Watermark
   ctx.font = `${fontSize}px Rajdhani, sans-serif`;
-  ctx.fillStyle = '#475569'; // Slate-600
+  ctx.fillStyle = '#634068'; // Slate-600
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('MatchOps', width / 2, yOffset + footerHeight / 2);

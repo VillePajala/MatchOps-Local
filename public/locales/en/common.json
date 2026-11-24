@@ -221,7 +221,7 @@
     "storageFull": "Not enough storage for voice notes.",
     "saveFailed": "Could not save the note.",
     "firstRunTitle": "Voice notes",
-    "firstRunBody": "Hold the button and speak - one observation per note. Recordings stay on this phone. MatchOps will now ask for microphone access.",
+    "firstRunBody": "Hold the button and speak - one observation per note. Recordings stay on this phone. PePo Ops will now ask for microphone access.",
     "firstRunConfirm": "Continue",
     "inboxTitle": "Voice notes to review",
     "inboxHint": "Listen, write what you said, check the player, save.",
@@ -906,7 +906,7 @@
     "openAtPage": "Open the rulebook - page {{n}}",
     "pageHint2": "The rule opens straight at the right page. Only the pages you read are downloaded.",
     "seriesTitle": "League-specific rules",
-    "seriesHelp": "Player count, playing time and pitch size are set per league, and the app does not know which league your team plays in - MatchOps is not connected to Palloliitto's system. Find your league in the list and open Info > Rules.",
+    "seriesHelp": "Player count, playing time and pitch size are set per league, and the app does not know which league your team plays in - PePo Ops is not connected to Palloliitto's system. Find your league in the list and open Info > Rules.",
     "seriesRules": "Browse leagues (Tulospalvelu)",
     "rulebooksTitle": "Laws of the game",
     "lookupTitle": "Find a rule",
@@ -1430,7 +1430,8 @@
     "clubRulesSub": "Game and league rules",
     "clubMaterialsSub": "Finnish FA coaching materials",
     "rowPlaybook": "Playbook",
-    "clubPlaybookSub": "Animated game situations"
+    "clubPlaybookSub": "Animated game situations",
+    "clubSubtitle": "For PePo juniors"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -2008,7 +2009,7 @@
     "copyAppInfoButton": "Copy",
     "copyAppInfoSuccess": "App info copied",
     "copyAppInfoFailed": "Could not copy app info",
-    "appInfoTitle": "MatchOps app info",
+    "appInfoTitle": "PePo Ops app info",
     "appInfoVersion": "Version",
     "appInfoLanguage": "Language",
     "appInfoMode": "Mode",
@@ -2322,7 +2323,7 @@
     "dismissButton": "Dismiss"
   },
   "installPrompt": {
-    "message": "Install MatchOps Local for a faster, offline experience!",
+    "message": "Install PePo Ops for a faster, offline experience!",
     "installButton": "Install",
     "dismissButton": "Not now"
   },
@@ -3599,7 +3600,7 @@
     "signingOut": "Signing out...",
     "loadingYourData": "Loading your data...",
     "alreadyOpen": "Already Open",
-    "alreadyOpenDesc": "MatchOps is already open in another tab. Please close this tab or the other one to continue.",
+    "alreadyOpenDesc": "PePo Ops is already open in another tab. Please close this tab or the other one to continue.",
     "connectionTimeout": "Connection Timeout",
     "connectionTimeoutDesc": "Unable to connect to the server. This can happen after the app has been in the background for a while.",
     "tryAgain": "Try Again",
@@ -3661,7 +3662,7 @@
     "archiveInstead": "Archive Instead"
   },
   "recommendedSetup": {
-    "title": "Get the most out of MatchOps",
+    "title": "Get the most out of PePo Ops",
     "subtitle": "A quick setup unlocks player, team, and competition stats.",
     "stepPlayers": "Add your players",
     "stepCompetition": "Create a competition (league or tournament)",
@@ -4252,7 +4253,7 @@
       "formats": "Format",
       "phases": "Phase of play",
       "playbooks": "Collection",
-      "builtInName": "MatchOps: 8v8 basics",
+      "builtInName": "PePo Ops: 8v8 basics",
       "steps_one": "{{count}} step",
       "steps_other": "{{count}} steps",
       "loading": "Loading your club's collections…",

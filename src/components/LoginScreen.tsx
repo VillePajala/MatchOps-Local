@@ -152,7 +152,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
                 className="mx-auto mb-2 select-none"
               />
               <p className="font-[family-name:var(--font-rajdhani)] font-bold leading-none tracking-[0.01em] text-action text-[clamp(2rem,9vw,2.5rem)]">
-                MatchOps
+                PePo Ops
               </p>
               <h1 className="mt-3 font-display font-bold tracking-[0.01em] text-ink text-[clamp(1.75rem,8.5vw,2.25rem)] leading-tight">
                 {t('auth.introHeadline', 'Plan, rotate, record.')}
@@ -213,7 +213,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
             {/* Small logo above the form's title (Onboarding v3). */}
             <Image
               src="/icons/icon-512x512.png"
-              alt="MatchOps"
+              alt="PePo Ops"
               width={52}
               height={52}
               unoptimized

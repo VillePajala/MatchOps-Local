@@ -68,7 +68,7 @@ describe('WelcomeScreen', () => {
         />
       );
 
-      expect(screen.getByText('MatchOps')).toBeInTheDocument();
+      expect(screen.getByText('PePo Ops')).toBeInTheDocument();
       // Welcome message and instruction
       expect(screen.getByText('Welcome!')).toBeInTheDocument();
       expect(screen.getByText('Choose how you want to get started')).toBeInTheDocument();

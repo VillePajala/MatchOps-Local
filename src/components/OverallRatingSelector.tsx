@@ -17,7 +17,7 @@ export function ratingSegmentClass(selected: boolean, untouched: boolean): strin
     return `${segmentBase} font-bold text-ink bg-action/[0.12] shadow-[inset_0_0_0_1.5px_var(--color-action)]`;
   }
   if (selected) {
-    return `${segmentBase} font-medium text-ink-3 shadow-[inset_0_0_0_1.5px_rgb(148_163_184/0.45)]`;
+    return `${segmentBase} font-medium text-ink-3 shadow-[inset_0_0_0_1.5px_rgb(183_154_185/0.45)]`;
   }
   return `${segmentBase} font-medium text-ink-3 bg-white/[0.04] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:bg-white/[0.08]`;
 }

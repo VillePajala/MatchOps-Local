@@ -183,9 +183,9 @@ describe('PlaybookLibrary', () => {
   it('switches playbooks; the built-in one is named by the app', () => {
     render(<PlaybookLibrary isOpen onClose={jest.fn()} />);
     act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'MatchOps: 8v8 basics' }));
+      fireEvent.click(screen.getByRole('button', { name: 'PePo Ops: 8v8 basics' }));
     });
-    expect(screen.getByTestId('playbook-playbook-name')).toHaveTextContent('MatchOps: 8v8 basics');
+    expect(screen.getByTestId('playbook-playbook-name')).toHaveTextContent('PePo Ops: 8v8 basics');
     expect(cardTitles()).toEqual(['Title demo']);
     // One phase only: no phase chips.
     expect(screen.queryByRole('button', { name: 'All' })).not.toBeInTheDocument();

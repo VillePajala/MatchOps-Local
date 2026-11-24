@@ -606,7 +606,7 @@ export function FieldContainer({
           aria-hidden="true"
         >
           <span
-            className={`inline-flex items-center px-3 py-[7px] rounded-full bg-[rgb(15_23_42/0.86)] font-ui text-[13px] font-semibold text-white shadow-[0_10px_18px_-10px_rgb(2_6_23/0.8)] transition-opacity duration-300 motion-reduce:transition-none ${planPill === 'fading' ? 'opacity-0' : 'opacity-100'}`}
+            className={`inline-flex items-center px-3 py-[7px] rounded-full bg-[rgb(23_10_24/0.86)] font-ui text-[13px] font-semibold text-white shadow-[0_10px_18px_-10px_rgb(12_4_13/0.8)] transition-opacity duration-300 motion-reduce:transition-none ${planPill === 'fading' ? 'opacity-0' : 'opacity-100'}`}
           >
             {planViewLabel}
           </span>

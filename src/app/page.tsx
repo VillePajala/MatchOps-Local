@@ -2096,13 +2096,13 @@ export default function Home() {
           // Multi-tab block: another tab is already running the app
           <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
-              <h1 className="font-[family-name:var(--font-rajdhani)] text-6xl font-bold tracking-[0.01em] text-action mb-4">MatchOps</h1>
+              <h1 className="font-[family-name:var(--font-rajdhani)] text-6xl font-bold tracking-[0.01em] text-action mb-4">PePo Ops</h1>
               <div className="max-w-sm text-center">
                 <h2 className="font-display text-3xl font-bold text-ink mb-2">
                   {t('page.alreadyOpen', 'Already Open')}
                 </h2>
                 <p className="text-ink-2 mb-6">
-                  {t('page.alreadyOpenDesc', 'MatchOps is already open in another tab. Please close this tab or the other one to continue.')}
+                  {t('page.alreadyOpenDesc', 'PePo Ops is already open in another tab. Please close this tab or the other one to continue.')}
                 </p>
                 <button
                   onClick={() => window.location.reload()}
@@ -2136,7 +2136,7 @@ export default function Home() {
           <ErrorBoundary>
             <div className="s1-canvas relative flex flex-col min-h-screen min-h-[100dvh] font-ui text-ink overflow-hidden">
               <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-8 pb-safe">
-                <h1 className="font-[family-name:var(--font-rajdhani)] text-6xl font-bold tracking-[0.01em] text-action mb-4">MatchOps</h1>
+                <h1 className="font-[family-name:var(--font-rajdhani)] text-6xl font-bold tracking-[0.01em] text-action mb-4">PePo Ops</h1>
                 <div className="max-w-sm text-center">
                   <h2 className="font-display text-3xl font-bold text-ink mb-2">
                     {t('page.connectionTimeout', 'Connection Timeout')}
@@ -2203,7 +2203,7 @@ export default function Home() {
                 data-testid="cloud-data-pending"
                 className="fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top,0px))] z-[25] flex justify-center px-4 pointer-events-none"
               >
-                <span className="pointer-events-auto rounded-2xl bg-surface-2 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)] pl-4 pr-2 py-2 min-h-12 text-[15px] text-ink flex items-center gap-3">
+                <span className="pointer-events-auto rounded-2xl bg-surface-2 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(12_4_13/0.9)] pl-4 pr-2 py-2 min-h-12 text-[15px] text-ink flex items-center gap-3">
                   {/* After a few failed tries, say so and offer a manual retry. */}
                   {pendingCloudPull.failures >= 3
                     ? t('page.couldNotCheckCloudData', 'Could not check cloud data. Your data will load automatically.')

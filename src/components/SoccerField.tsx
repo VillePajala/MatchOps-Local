@@ -329,7 +329,7 @@ function paintEmptyRailSlot(
   ctx.save();
   ctx.beginPath();
   ctx.arc(spot.x, spot.y, spot.r, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
+  ctx.fillStyle = 'rgba(23, 10, 24, 0.14)';
   ctx.fill();
   ctx.setLineDash([4 * scale, 3.5 * scale]);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
@@ -560,10 +560,31 @@ function roundedRectPath(
 // can never drift from the screen.
 // ---------------------------------------------------------------------------
 
-/** The navy of the app's chrome; names on light discs and label chips. */
-const DISC_NAVY = '#0f172a';
-/** Amber: selection only. */
-const DISC_ACTION = '#ffb224';
+/** PePo yellow: selection, keeper and position chips. */
+const DISC_ACTION = '#fadd15';
+/** PePo club preview: field discs are club violet, the keeper club yellow. */
+const DISC_VIOLET = '#822174';
+const DISC_VIOLET_HI = '#a6339a';
+const DISC_VIOLET_LO = '#5c1653';
+const DISC_YELLOW_HI = '#fff27a';
+const DISC_YELLOW_LO = '#f2b705';
+/** Text on PePo yellow. */
+const ON_YELLOW = '#2a0826';
+
+function violetFill(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): CanvasGradient {
+  const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.44, r * 0.1, x, y, r * 1.05);
+  g.addColorStop(0, DISC_VIOLET_HI);
+  g.addColorStop(0.55, DISC_VIOLET);
+  g.addColorStop(1, DISC_VIOLET_LO);
+  return g;
+}
+function yellowFill(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): CanvasGradient {
+  const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.44, r * 0.1, x, y, r * 1.05);
+  g.addColorStop(0, DISC_YELLOW_HI);
+  g.addColorStop(0.55, DISC_ACTION);
+  g.addColorStop(1, DISC_YELLOW_LO);
+  return g;
+}
 /**
  * The colour every disc used to default to. A player with no colour of their
  * own - or this legacy default stored on them - gets the new default look; a
@@ -622,9 +643,6 @@ interface PlayerDiscStyle {
   comingIn?: boolean;
 }
 
-/** Where the default white disc's gradient ends: a clean light grey. */
-const DISC_WHITE_END = '#e6e9ee';
-
 /**
  * One player disc: white with a navy name by default, navy with a white ring
  * for the keeper, or the coach's own colour with a white name. Returns the
@@ -649,21 +667,15 @@ function paintPlayerDisc(
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   if (isGoalie) {
-    const g = ctx.createLinearGradient(x, y - r, x, y + r);
-    g.addColorStop(0, '#2a3854');
-    g.addColorStop(1, DISC_NAVY);
-    ctx.fillStyle = g;
+    ctx.fillStyle = yellowFill(ctx, x, y, r);
   } else if (custom) {
     let base = tinycolor(color);
     if (sideline) base = base.desaturate(SIDELINE_DESATURATION_PERCENT);
     ctx.fillStyle = base.toString();
   } else if (restingWhite) {
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+    ctx.fillStyle = 'rgba(130, 33, 116, 0.82)';
   } else {
-    const g = ctx.createLinearGradient(x, y - r, x, y + r);
-    g.addColorStop(0, '#ffffff');
-    g.addColorStop(1, DISC_WHITE_END);
-    ctx.fillStyle = g;
+    ctx.fillStyle = violetFill(ctx, x, y, r);
     if (sideline) ctx.globalAlpha = 0.84;
   }
   ctx.fill();
@@ -680,23 +692,23 @@ function paintPlayerDisc(
 
   ctx.beginPath();
   if (isGoalie) {
-    // The keeper is the inverse of the field discs: navy inside a white ring.
-    ctx.arc(x, y, r - 1 * scale, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2 * scale;
+    // The keeper: PePo yellow inside a club-violet ring.
+    ctx.arc(x, y, r - 1.5 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = DISC_VIOLET;
+    ctx.lineWidth = 3 * scale;
   } else if (custom) {
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.lineWidth = 1.5 * scale;
   } else {
-    // A hairline edge so a white disc still has an outline on a light stripe.
-    ctx.arc(x, y, r - 0.5 * scale, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.18)';
-    ctx.lineWidth = 1 * scale;
+    // A light ring so a violet disc separates from the grass.
+    ctx.arc(x, y, r - 1 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 2 * scale;
   }
   ctx.stroke();
 
-  return isGoalie || custom ? '#ffffff' : DISC_NAVY;
+  return isGoalie ? ON_YELLOW : '#ffffff';
 }
 
 /**
@@ -757,13 +769,13 @@ function paintPositionChip(
   const h = (fontSize + 6) * scale;
   const cx = anchor === 'right' ? x - w / 2 : x;
   roundedRectPath(ctx, cx - w / 2, y - h / 2, w, h, h / 2);
-  ctx.fillStyle = DISC_NAVY;
+  ctx.fillStyle = DISC_ACTION;
   ctx.fill();
-  // A faint edge, so the pill still separates from a navy keeper disc.
+  // A faint edge, so the pill still separates from the yellow keeper disc.
   ctx.lineWidth = 1 * scale;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+  ctx.strokeStyle = 'rgba(42, 8, 38, 0.35)';
   ctx.stroke();
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = ON_YELLOW;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, cx, y + 0.5 * scale);
@@ -790,29 +802,23 @@ function paintTacticalDisc(
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   if (type === 'home') {
-    const g = ctx.createLinearGradient(x, y - r, x, y + r);
-    g.addColorStop(0, '#ffffff');
-    g.addColorStop(1, DISC_WHITE_END);
-    ctx.fillStyle = g;
+    ctx.fillStyle = violetFill(ctx, x, y, r);
   } else if (type === 'opponent') {
     ctx.fillStyle = '#DC2626'; // Red
   } else if (type === 'goalie') {
-    const g = ctx.createLinearGradient(x, y - r, x, y + r);
-    g.addColorStop(0, '#2a3854');
-    g.addColorStop(1, DISC_NAVY);
-    ctx.fillStyle = g;
+    ctx.fillStyle = yellowFill(ctx, x, y, r);
   }
   ctx.fill();
   ctx.restore();
 
   ctx.beginPath();
   if (type === 'home') {
-    ctx.arc(x, y, r - 0.5 * scale, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
-    ctx.lineWidth = 1 * scale;
+    ctx.arc(x, y, r - 0.75 * scale, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = 1.5 * scale;
   } else if (type === 'goalie') {
     ctx.arc(x, y, r - 1 * scale, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = DISC_VIOLET;
     ctx.lineWidth = 2 * scale;
   } else {
     ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -916,7 +922,7 @@ function drawPlannedChains(
     ctx.shadowBlur = 6;
     ctx.shadowOffsetY = 2;
     roundedRectPath(ctx, x, y, pillW, pillH, 6);
-    ctx.fillStyle = settled ? 'rgba(15, 23, 42, 0.62)' : 'rgba(15, 23, 42, 0.88)';
+    ctx.fillStyle = settled ? 'rgba(23, 10, 24, 0.62)' : 'rgba(23, 10, 24, 0.88)';
     ctx.fill();
     ctx.restore();
 
@@ -924,7 +930,7 @@ function drawPlannedChains(
     if (!settled) {
       roundedRectPath(ctx, x, y, pillW, pillH, 6);
       ctx.lineWidth = 1;
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+      ctx.strokeStyle = 'rgba(183, 154, 185, 0.4)';
       ctx.stroke();
     }
 
@@ -933,14 +939,14 @@ function drawPlannedChains(
     const headY = y + CHAIN_PAD + CHAIN_ROW_H / 2;
     ctx.textAlign = 'left';
     ctx.font = `700 12px ${chipFontFamily()}`;
-    ctx.fillStyle = settled ? 'rgba(148, 163, 184, 0.65)' : 'rgba(148, 163, 184, 0.95)';
+    ctx.fillStyle = settled ? 'rgba(183, 154, 185, 0.65)' : 'rgba(183, 154, 185, 0.95)';
     ctx.fillText(chain.positionLabel, x + CHAIN_PAD, headY);
     ctx.font = `700 14px ${discFontFamily()}`;
     ctx.fillStyle = chain.starterName
       ? settled
         ? 'rgba(255, 255, 255, 0.72)'
         : '#FFFFFF'
-      : 'rgba(148, 163, 184, 0.6)';
+      : 'rgba(183, 154, 185, 0.6)';
     ctx.fillText(chain.starterName ?? '-', x + CHAIN_PAD + tagW + 6, headY);
 
     if (settled) {
@@ -953,7 +959,7 @@ function drawPlannedChains(
     ctx.moveTo(x + CHAIN_PAD, divY);
     ctx.lineTo(x + pillW - CHAIN_PAD, divY);
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+    ctx.strokeStyle = 'rgba(183, 154, 185, 0.25)';
     ctx.stroke();
 
     chain.entries.forEach((entry, i) => {
@@ -1891,7 +1897,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         context.save();
         context.beginPath();
         context.arc(spot.x, spot.y, spot.r + 4, 0, Math.PI * 2);
-        context.shadowColor = 'rgba(255, 178, 36, 0.6)';
+        context.shadowColor = 'rgba(250, 221, 21, 0.6)';
         context.shadowBlur = 8;
         context.strokeStyle = DISC_ACTION;
         context.lineWidth = 3;

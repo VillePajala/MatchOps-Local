@@ -90,7 +90,7 @@ export default function WelcomeScreen({
           <div className="text-center mb-5">
             {/* App Name as Logo */}
             <h1 className="mb-3 font-[family-name:var(--font-rajdhani)] font-bold leading-none tracking-[0.01em] text-action text-[clamp(2.5rem,11vw,3.25rem)]">
-              MatchOps
+              PePo Ops
             </h1>
 
             {/* Welcome message */}

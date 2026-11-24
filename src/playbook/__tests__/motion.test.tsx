@@ -205,7 +205,7 @@ describe('PlaybookPitch motion', () => {
 
   it('the run arrow is drawn on the same curve the disc follows', () => {
     const { container } = render(board(0, null));
-    const run = container.querySelector('[data-arrow-kind="run"] path[stroke="#ffd27a"]') as SVGPathElement;
+    const run = container.querySelector('[data-arrow-kind="run"] path[stroke="#ffe97a"]') as SVGPathElement;
     const m = /M([\d.]+) ([\d.]+) Q([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)/.exec(run.getAttribute('d') ?? '');
     expect(m).not.toBeNull();
     const [sx, sy, , , ex, ey] = (m as RegExpExecArray).slice(1).map(Number);

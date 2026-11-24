@@ -127,7 +127,7 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
     <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] z-[25] flex justify-center px-4 pointer-events-none">
       <div
         role="status"
-        className="pointer-events-auto w-full max-w-md rounded-2xl bg-surface-2 font-ui p-4 flex flex-col gap-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]"
+        className="pointer-events-auto w-full max-w-md rounded-2xl bg-surface-2 font-ui p-4 flex flex-col gap-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(12_4_13/0.9)]"
       >
         <span className="text-[15px] leading-snug text-ink">
           {t("backupReminder.message", "It's been a while since your last backup. Keep your data safe with an off-device copy.")}

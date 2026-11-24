@@ -221,7 +221,7 @@
     "storageFull": "Tallennustila ei riitä äänimuistiinpanoille.",
     "saveFailed": "Muistiinpanoa ei voitu tallentaa.",
     "firstRunTitle": "Äänimuistiinpanot",
-    "firstRunBody": "Pidä painiketta pohjassa ja puhu - yksi havainto per muistiinpano. Tallenteet pysyvät tässä puhelimessa. MatchOps pyytää nyt mikrofonin käyttöoikeutta.",
+    "firstRunBody": "Pidä painiketta pohjassa ja puhu - yksi havainto per muistiinpano. Tallenteet pysyvät tässä puhelimessa. PePo Ops pyytää nyt mikrofonin käyttöoikeutta.",
     "firstRunConfirm": "Jatka",
     "inboxTitle": "Käsiteltävät äänimuistiinpanot",
     "inboxHint": "Kuuntele, kirjoita mitä sanoit, tarkista pelaaja, tallenna.",
@@ -766,7 +766,7 @@
     "openAtPage": "Avaa sääntökirja - sivu {{n}}",
     "pageHint2": "Sääntö avautuu suoraan oikealta sivulta. Vain luetut sivut ladataan.",
     "seriesTitle": "Sarjakohtaiset säännöt",
-    "seriesHelp": "Pelaajamäärä, peliaika ja kentän koko määritellään sarjoittain, eikä sovellus tiedä missä sarjassa joukkueesi pelaa - MatchOps ei ole yhteydessä Palloliiton järjestelmään. Etsi sarjasi listasta ja avaa Info > Säännöt.",
+    "seriesHelp": "Pelaajamäärä, peliaika ja kentän koko määritellään sarjoittain, eikä sovellus tiedä missä sarjassa joukkueesi pelaa - PePo Ops ei ole yhteydessä Palloliiton järjestelmään. Etsi sarjasi listasta ja avaa Info > Säännöt.",
     "seriesRules": "Selaa sarjoja (Tulospalvelu)",
     "rulebooksTitle": "Lajisäännöt",
     "lookupTitle": "Etsi sääntö",
@@ -1281,7 +1281,8 @@
     "clubRulesSub": "Laji- ja sarjasäännöt",
     "clubMaterialsSub": "Palloliiton valmentajamateriaalit",
     "rowPlaybook": "Pelikirja",
-    "clubPlaybookSub": "Animoidut pelitilanteet"
+    "clubPlaybookSub": "Animoidut pelitilanteet",
+    "clubSubtitle": "PePon junioreille"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -2008,7 +2009,7 @@
     "copyAppInfoButton": "Kopioi",
     "copyAppInfoSuccess": "Sovellustiedot kopioitu",
     "copyAppInfoFailed": "Sovellustietojen kopiointi epäonnistui",
-    "appInfoTitle": "MatchOps-sovellustiedot",
+    "appInfoTitle": "PePo Ops -sovellustiedot",
     "appInfoVersion": "Versio",
     "appInfoLanguage": "Kieli",
     "appInfoMode": "Tila",
@@ -2322,7 +2323,7 @@
     "dismissButton": "Sulje"
   },
   "installPrompt": {
-    "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",
+    "message": "Asenna PePo Ops saadaksesi nopeamman ja offline-toimivan kokemuksen!",
     "installButton": "Asenna",
     "dismissButton": "Ei nyt"
   },
@@ -3599,7 +3600,7 @@
     "signingOut": "Kirjaudutaan ulos...",
     "loadingYourData": "Ladataan tietojasi...",
     "alreadyOpen": "Jo avoinna",
-    "alreadyOpenDesc": "MatchOps on jo avoinna toisessa välilehdessä. Sulje tämä tai toinen välilehti jatkaaksesi.",
+    "alreadyOpenDesc": "PePo Ops on jo avoinna toisessa välilehdessä. Sulje tämä tai toinen välilehti jatkaaksesi.",
     "connectionTimeout": "Yhteys aikakatkaistiin",
     "connectionTimeoutDesc": "Palvelimeen ei saatu yhteyttä. Tämä voi tapahtua, kun sovellus on ollut taustalla pitkään.",
     "tryAgain": "Yritä uudelleen",
@@ -3661,7 +3662,7 @@
     "archiveInstead": "Arkistoi sen sijaan"
   },
   "recommendedSetup": {
-    "title": "Hyödynnä MatchOps täysin",
+    "title": "Hyödynnä PePo Ops täysin",
     "subtitle": "Nopea käyttöönotto avaa pelaaja-, joukkue- ja kilpailutilastot.",
     "stepPlayers": "Lisää pelaajasi",
     "stepCompetition": "Luo kilpailu (sarja tai turnaus)",
@@ -4252,7 +4253,7 @@
       "formats": "Pelimuoto",
       "phases": "Pelin vaihe",
       "playbooks": "Kokoelma",
-      "builtInName": "MatchOps: 8v8 perusteet",
+      "builtInName": "PePo Ops: 8v8 perusteet",
       "steps_one": "{{count}} vaihe",
       "steps_other": "{{count}} vaihetta",
       "loading": "Ladataan seuran kokoelmia…",

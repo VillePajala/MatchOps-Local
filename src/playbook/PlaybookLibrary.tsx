@@ -119,7 +119,7 @@ function ConceptCard({ concept, onOpen, pick }: { concept: Concept; onOpen: (c: 
         aria-hidden="true"
         data-testid="playbook-pick-mark"
         className={`pointer-events-none absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[15px] font-extrabold tabular-nums shadow-[0_2px_8px_rgb(0_0_0/0.35)] ${
-          picked ? 'bg-action text-on-action' : 'border-2 border-white/70 bg-[rgb(15_23_42/0.45)]'
+          picked ? 'bg-action text-on-action' : 'border-2 border-white/70 bg-[rgb(23_10_24/0.45)]'
         }`}
       >
         {picked ? pick.order : ''}
@@ -129,7 +129,7 @@ function ConceptCard({ concept, onOpen, pick }: { concept: Concept; onOpen: (c: 
         onClick={() => pick.onPreview(concept)}
         aria-label={t('playbook.themes.preview', 'Preview: {{title}}', { title: concept.title })}
         data-testid="playbook-preview"
-        className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(15_23_42/0.62)] text-ink backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+        className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(23_10_24/0.62)] text-ink backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
       >
         <HiOutlineEye className="h-5 w-5" aria-hidden="true" />
       </button>
@@ -191,7 +191,7 @@ export default function PlaybookLibrary({ isOpen, onClose, selection }: Playbook
     },
     [t],
   );
-  const playbookName = (p: Playbook) => (p.builtIn ? t('playbook.library.builtInName', 'MatchOps: 8v8 basics') : p.name);
+  const playbookName = (p: Playbook) => (p.builtIn ? t('playbook.library.builtInName', 'PePo Ops: 8v8 basics') : p.name);
 
   const closePresentation = useCallback(() => setOpen(null), []);
   // A code just unlocked a playbook: show it, unfiltered.
@@ -341,7 +341,7 @@ export default function PlaybookLibrary({ isOpen, onClose, selection }: Playbook
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('playbook.library.searchPlaceholder', 'Search situations…')}
-              className="h-12 w-full rounded-[14px] border border-white/[0.08] bg-[#0b1222] pl-11 pr-12 text-[16px] text-ink placeholder:text-ink-3 focus:border-action/60 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+              className="h-12 w-full rounded-[14px] border border-white/[0.08] bg-[#100611] pl-11 pr-12 text-[16px] text-ink placeholder:text-ink-3 focus:border-action/60 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
               data-testid="playbook-search"
             />
             {query && (
@@ -454,7 +454,7 @@ export default function PlaybookLibrary({ isOpen, onClose, selection }: Playbook
 
       {selection && !open && (
         <div
-          className="fixed inset-x-0 bottom-0 z-[60] border-t border-white/[0.06] bg-[rgb(2_6_23/0.92)] backdrop-blur-sm"
+          className="fixed inset-x-0 bottom-0 z-[60] border-t border-white/[0.06] bg-[rgb(12_4_13/0.92)] backdrop-blur-sm"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
         >
           <div className="mx-auto flex w-full max-w-[1040px] items-center gap-3 px-4 pt-3 sm:px-7">

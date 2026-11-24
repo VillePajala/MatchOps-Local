@@ -73,7 +73,7 @@ export const POSITION_ROLE = {
 
 /** Canvas and inline-style equivalents of POSITION_ROLE (the 400 weights). */
 export const POSITION_ROLE_HEX = {
-  gk: '#fbbf24',
+  gk: '#fadd15',
   def: '#38bdf8',
   mid: '#34d399',
   att: '#fb7185',

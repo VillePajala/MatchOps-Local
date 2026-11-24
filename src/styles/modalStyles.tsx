@@ -126,7 +126,7 @@ export const listRowStyle =
 
 /** The small actions popover opened by a row's "more" button. */
 export const popoverMenuStyle =
-  "absolute right-0 z-50 min-w-[190px] overflow-hidden rounded-2xl bg-surface-2 py-1 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]";
+  "absolute right-0 z-50 min-w-[190px] overflow-hidden rounded-2xl bg-surface-2 py-1 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(12_4_13/0.9)]";
 
 /** One entry of `popoverMenuStyle` (44px target); add `text-red-400` for destructive. */
 export const popoverItemStyle =
@@ -171,7 +171,7 @@ export const itemRowEditingStyle =
  * iOS Safari zooming in on focus). Focus draws an amber ring.
  */
 export const inputBaseStyle =
-  "block w-full min-h-[52px] rounded-[14px] border-0 bg-carbon px-3.5 py-3 font-ui text-base font-medium text-ink placeholder:font-normal placeholder:text-ink-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),inset_0_2px_4px_rgb(2_6_23/0.5)] transition-shadow focus:outline-none focus:shadow-[inset_0_0_0_1.5px_var(--color-action),0_0_0_4px_rgb(255_178_36/0.14)] disabled:opacity-50 disabled:cursor-not-allowed";
+  "block w-full min-h-[52px] rounded-[14px] border-0 bg-carbon px-3.5 py-3 font-ui text-base font-medium text-ink placeholder:font-normal placeholder:text-ink-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),inset_0_2px_4px_rgb(12_4_13/0.5)] transition-shadow focus:outline-none focus:shadow-[inset_0_0_0_1.5px_var(--color-action),0_0_0_4px_rgb(250_221_21/0.14)] disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const textareaStyle =
   `${inputBaseStyle} resize-none`;
@@ -211,7 +211,7 @@ export const chipStyle =
  *  "not selected"). Amber is the app's selection colour; the unselected chip
  *  stays an outlined ghost pill, so the two states differ in fill, not hue alone. */
 export const chipSelectedStyle =
-  `inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full font-ui text-sm font-semibold text-on-action bg-action shadow-[0_2px_6px_-2px_rgb(2_6_23/0.75)] hover:bg-action-hot disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
+  `inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full font-ui text-sm font-semibold text-on-action bg-action shadow-[0_2px_6px_-2px_rgb(12_4_13/0.75)] hover:bg-action-hot disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`;
 
 // ============================================================================
 // Segmented control, checkbox and field messages (form system)
@@ -322,7 +322,7 @@ export const badgeArchivedStyle =
   "inline-flex items-center h-[22px] px-2.5 rounded-full bg-white/[0.08] font-ui text-xs font-semibold text-ink-2";
 
 export const badgeAwardStyle =
-  "inline-flex items-center gap-1 h-[22px] px-2.5 rounded-full bg-action/[0.08] shadow-[inset_0_0_0_1px_rgb(255_178_36/0.45)] font-ui text-xs font-semibold text-action";
+  "inline-flex items-center gap-1 h-[22px] px-2.5 rounded-full bg-action/[0.08] shadow-[inset_0_0_0_1px_rgb(250_221_21/0.45)] font-ui text-xs font-semibold text-action";
 
 // ============================================================================
 // Header/Footer Styles
@@ -741,7 +741,7 @@ export const cloudDataDotStyle = "w-2 h-2 rounded-full bg-sky-400";
 
 // Alert boxes: a tinted well with a matching hairline ring.
 export const warningBoxStyle =
-  "rounded-2xl p-4 bg-action/[0.08] shadow-[inset_0_0_0_1px_rgb(255_178_36/0.35)]";
+  "rounded-2xl p-4 bg-action/[0.08] shadow-[inset_0_0_0_1px_rgb(250_221_21/0.35)]";
 
 export const errorBoxStyle =
   "rounded-2xl p-4 bg-loss/[0.08] shadow-[inset_0_0_0_1px_rgb(255_107_107/0.35)]";
@@ -865,11 +865,11 @@ export const matchCapsuleStyle =
  *  40px of light navy glass, with an invisible pad taking the touch target
  *  to 44px. */
 export const matchFieldToolStyle =
-  `relative inline-flex items-center justify-center w-10 h-10 rounded-full text-white bg-[rgb(15_23_42/0.7)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_6px_12px_-8px_rgb(2_6_23/0.7)] transition-colors hover:bg-[rgb(15_23_42/0.82)] active:scale-95 before:absolute before:-inset-0.5 before:rounded-full before:content-[''] ${focusRing}`;
+  `relative inline-flex items-center justify-center w-10 h-10 rounded-full text-white bg-[rgb(23_10_24/0.7)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_6px_12px_-8px_rgb(12_4_13/0.7)] transition-colors hover:bg-[rgb(23_10_24/0.82)] active:scale-95 before:absolute before:-inset-0.5 before:rounded-full before:content-[''] ${focusRing}`;
 
 /** The "on" state of a field tool: white disc, navy icon. */
 export const matchFieldToolOnStyle =
-  `relative inline-flex items-center justify-center w-10 h-10 rounded-full text-carbon bg-white shadow-[0_6px_12px_-8px_rgb(2_6_23/0.7)] active:scale-95 before:absolute before:-inset-0.5 before:rounded-full before:content-[''] ${focusRing}`;
+  `relative inline-flex items-center justify-center w-10 h-10 rounded-full text-carbon bg-white shadow-[0_6px_12px_-8px_rgb(12_4_13/0.7)] active:scale-95 before:absolute before:-inset-0.5 before:rounded-full before:content-[''] ${focusRing}`;
 
 /** A 44px round button inside the control capsule (44, not 48, so five of
  *  them plus the clock fit a 360px phone without the capsule scrolling). */

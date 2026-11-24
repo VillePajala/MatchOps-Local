@@ -40,7 +40,7 @@ const RecommendedSetupCard: React.FC<RecommendedSetupCardProps> = ({ progress, o
     <div className="mt-6 max-w-sm mx-auto w-full rounded-xl bg-slate-800/70 border border-slate-700 p-4 text-left">
       <div className="flex items-start justify-between mb-1">
         <h3 className="text-sm font-semibold text-white">
-          {t('recommendedSetup.title', 'Get the most out of MatchOps')}
+          {t('recommendedSetup.title', 'Get the most out of PePo Ops')}
         </h3>
         <button
           type="button"

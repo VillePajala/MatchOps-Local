@@ -2,7 +2,7 @@
  * LoadingScreen - the app's launch/transition screen.
  *
  * Continues the OS splash seamlessly: the same badge (/icons/icon-512x512.png,
- * the manifest's 'any' icon) on the same flat canvas (#0f172a = manifest
+ * the manifest's 'any' icon) on the same flat canvas (#170a18 = manifest
  * background_color = --color-carbon), centred in the full viewport at roughly
  * the size Android's splash draws it. An amber ring draws itself around the
  * badge over a soft glow (static badge under prefers-reduced-motion).
@@ -62,8 +62,8 @@ export function LoadingScreen({ message = 'Loading...', hideMessage = false, exi
         <svg className="loading-screen__ring" viewBox="0 0 100 100" aria-hidden="true">
           <defs>
             <linearGradient id="loading-screen-ring" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#ffb224" />
-              <stop offset="100%" stopColor="#ff8f1a" />
+              <stop offset="0%" stopColor="#fadd15" />
+              <stop offset="100%" stopColor="#f2b705" />
             </linearGradient>
           </defs>
           <circle className="loading-screen__track" cx="50" cy="50" r="48" />

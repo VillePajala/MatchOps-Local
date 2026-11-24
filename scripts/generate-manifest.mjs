@@ -33,7 +33,7 @@ async function generateManifest() {
     // = the app canvas (--color-carbon) and the maskable icons' fill
     // (scripts/generate-splash-icons.mjs), so the OS splash, LoadingScreen and Home
     // are one colour. theme_color stays per-branch (status bar).
-    "background_color": "#0f172a",
+    "background_color": "#170a18",
     "theme_color": config.themeColor,
     "categories": ["sports", "productivity", "utilities"],
     "lang": "fi",
@@ -77,7 +77,7 @@ async function generateManifest() {
         "sizes": "1200x628",
         "type": "image/png",
         "form_factor": "wide",
-        "label": "MatchOps — kokoonpanot, otteluseuranta, ajastin ja tilastot"
+        "label": "PePo Ops — kokoonpanot, otteluseuranta, ajastin ja tilastot"
       }
     ],
     "shortcuts": [

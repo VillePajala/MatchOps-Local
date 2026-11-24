@@ -203,10 +203,10 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   /** Quiet: an outline on near-nothing; disabled reads dimmer still. */
   const secondaryActionStyle = `${actionButtonBase} s1-ghost text-ink disabled:text-ink-3 disabled:bg-transparent disabled:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.09)]`;
   /** A light solid pill with dark text: the team's own goal. */
-  const lightActionStyle = `${actionButtonBase} bg-[#e6e9ee] text-carbon shadow-[inset_0_1px_0_rgb(255_255_255/0.6)] hover:bg-white`;
+  const lightActionStyle = `${actionButtonBase} bg-[#f0e4f0] text-carbon shadow-[inset_0_1px_0_rgb(255_255_255/0.6)] hover:bg-white`;
   /** Red outline: a result against us (or a live recording). */
   const dangerActionStyle = `${actionButtonBase} text-loss bg-[rgb(255_107_107/0.07)] shadow-[inset_0_0_0_1px_rgb(255_107_107/0.5)] hover:bg-[rgb(255_107_107/0.12)]`;
-  const stepperButtonStyle = `w-[46px] h-[46px] rounded-full flex items-center justify-center text-ink bg-surface-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.08),inset_0_0_0_1px_rgb(255_255_255/0.05)] hover:bg-[#26324a] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRingClass}`;
+  const stepperButtonStyle = `w-[46px] h-[46px] rounded-full flex items-center justify-center text-ink bg-surface-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.08),inset_0_0_0_1px_rgb(255_255_255/0.05)] hover:bg-[#3b2040] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${focusRingClass}`;
   
   // Kirjuri (PR 2): the first press explains + asks for the mic (the app's
   // first runtime permission) before any recording starts.
@@ -398,7 +398,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
     // a gesture bar.
     <div
       className="fixed inset-0 z-30 flex flex-col items-center px-4 pt-[30px] pb-[calc(81px+24px+env(safe-area-inset-bottom,0px))] overflow-y-auto font-ui text-ink backdrop-blur-lg"
-      style={{ background: 'radial-gradient(110% 38% at 50% -8%, rgb(30 41 59 / 0.7) 0%, transparent 72%), rgb(15 23 42 / 0.975)' }}
+      style={{ background: 'radial-gradient(110% 38% at 50% -8%, rgb(54 26 60 / 0.7) 0%, transparent 72%), rgb(23 10 24 / 0.975)' }}
     >
       <div className="w-full max-w-lg flex flex-col items-center">
         {/* Game Score Display - MOVED TO TOP ABOVE TIMER.
@@ -693,7 +693,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             data-due={shownSubDue ? 'true' : 'false'}
             className={`w-full mb-3 px-4 py-3 text-left rounded-[18px] ${
               shownSubDue
-                ? 'bg-[linear-gradient(180deg,rgb(255_178_36/0.16),rgb(255_178_36/0.07))] shadow-[inset_0_0_0_1.5px_rgb(255_178_36/0.75)]'
+                ? 'bg-[linear-gradient(180deg,rgb(250_221_21/0.16),rgb(250_221_21/0.07))] shadow-[inset_0_0_0_1.5px_rgb(250_221_21/0.75)]'
                 : 's1-list'
             }`}
           >
@@ -809,7 +809,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                   title={t('dictation.firstRunTitle', 'Voice notes')}
                   message={t(
                     'dictation.firstRunBody',
-                    'Hold the button and speak - one observation per note. Recordings stay on this phone. MatchOps will now ask for microphone access.',
+                    'Hold the button and speak - one observation per note. Recordings stay on this phone. PePo Ops will now ask for microphone access.',
                   )}
                   confirmLabel={t('dictation.firstRunConfirm', 'Continue')}
                   cancelLabel={t('common.cancel', 'Cancel')}

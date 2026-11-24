@@ -451,7 +451,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       {/* Pitch - the REAL field: the live game's grass + markings painted by
           the shared canvas painters (PlanFieldBackdrop), discs as DOM on top. */}
       <div
-        className="relative w-full max-w-sm mx-auto rounded-[18px] overflow-hidden shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_16px_26px_-18px_rgb(2_6_23/0.85)]"
+        className="relative w-full max-w-sm mx-auto rounded-[18px] overflow-hidden shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_16px_26px_-18px_rgb(12_4_13/0.85)]"
         style={{ aspectRatio: '3 / 4', background: '#427B44' }}
         onClick={handlePitchBackgroundClick}
       >
@@ -561,7 +561,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       slotSelected ? `${selectionRing} z-10` : '',
                     ].join(' ')}
                     style={{
-                      backgroundColor: filled ? fillFor(playerId) ?? '#1e293b' : 'rgba(15,23,42,0.7)',
+                      backgroundColor: filled ? fillFor(playerId) ?? '#361a3c' : 'rgba(23,10,24,0.7)',
                       backgroundImage: filled
                         ? 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%)'
                         : undefined,
@@ -591,7 +591,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                           subSelected ? `${selectionRing} z-10` : '',
                         ].join(' ')}
                         style={{
-                          backgroundColor: fillFor(sub.inPlayerId) ?? '#1e293b',
+                          backgroundColor: fillFor(sub.inPlayerId) ?? '#361a3c',
                           backgroundImage:
                             'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%)',
                           textShadow: '0 1px 2px rgba(0,0,0,0.5)',

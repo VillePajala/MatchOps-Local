@@ -229,7 +229,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const handleExportReport = useCallback(async () => {
     if (!player || !playerDevelopment) return;
     const hexFor: Record<TrendDirection, string> = {
-      rising: '#34d399', slipping: '#f87171', steady: '#94a3b8', insufficient: '#64748b',
+      rising: '#34d399', slipping: '#f87171', steady: '#b79ab9', insufficient: '#8a6a8d',
     };
     const toItem = (m: string) => {
       const dir = playerDevelopment.metrics[m].direction;

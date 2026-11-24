@@ -1240,7 +1240,7 @@ describe('Home dashboard view (opt-in)', () => {
     const settingsRow = within(sheet).getByRole('button', { name: 'Settings' });
     expect(settingsRow.querySelector('svg')).not.toBeNull();
     expect(within(sheet).getByRole('link', { name: 'User Guide' }).querySelector('svg')).not.toBeNull();
-    expect(screen.getByTestId('gear-footer')).toHaveTextContent(`MatchOps ${APP_VERSION}·match-ops.com`);
+    expect(screen.getByTestId('gear-footer')).toHaveTextContent(`PePo Ops ${APP_VERSION}·match-ops.com`);
     expect(within(sheet).getByRole('link', { name: 'match-ops.com' })).toHaveAttribute('href', 'https://www.match-ops.com');
   });
 });

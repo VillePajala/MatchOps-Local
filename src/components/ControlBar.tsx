@@ -66,10 +66,10 @@ const AddDiscIcon: React.FC<{ tone: 'home' | 'opponent'; className?: string }> =
       cy="13"
       r="8"
       fill={tone === 'home' ? '#ffffff' : '#DC2626'}
-      stroke={tone === 'home' ? 'rgb(15 23 42 / 0.25)' : 'rgb(255 255 255 / 0.55)'}
+      stroke={tone === 'home' ? 'rgb(23 10 24 / 0.25)' : 'rgb(255 255 255 / 0.55)'}
       strokeWidth="1"
     />
-    <circle cx="19" cy="5" r="4.5" fill="#0f172a" />
+    <circle cx="19" cy="5" r="4.5" fill="#170a18" />
     <path d="M19 3v4M17 5h4" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
   </svg>
 );
@@ -490,7 +490,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             >
               {/* Running: an amber pulse of light; stopped: a quiet dot. */}
               <span
-                className={`w-2 h-2 shrink-0 rounded-full ${isTimerRunning ? 'bg-action shadow-[0_0_0_3px_rgb(255_178_36/0.2),0_0_10px_rgb(255_178_36/0.7)]' : 'bg-ink-3'}`}
+                className={`w-2 h-2 shrink-0 rounded-full ${isTimerRunning ? 'bg-action shadow-[0_0_0_3px_rgb(250_221_21/0.2),0_0_10px_rgb(250_221_21/0.7)]' : 'bg-ink-3'}`}
                 aria-hidden="true"
               />
               {/* SteadyDigits boxes each digit, so the clock - and every
@@ -617,7 +617,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
 
       {/* Settings Menu Overlay */}
       {isSettingsMenuOpen && (
-        <div className="fixed inset-0 bg-[rgb(2_6_23/0.6)] z-40" onClick={handleOverlayClick} aria-hidden="true" />
+        <div className="fixed inset-0 bg-[rgb(12_4_13/0.6)] z-40" onClick={handleOverlayClick} aria-hidden="true" />
       )}
 
       {/* Settings Side Panel. Closed, it parks 64px further left than its own
@@ -628,7 +628,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         ref={settingsMenuRef}
         data-testid="settings-side-panel"
         aria-hidden={!isSettingsMenuOpen}
-        className={`fixed top-0 left-0 h-full ${DESIGN_TOKENS.MENU_WIDTH} max-w-[86vw] z-50 flex flex-col s1-canvas font-ui rounded-r-[28px] shadow-[20px_0_40px_-12px_rgb(2_6_23/0.8),inset_-1px_0_0_rgb(255_255_255/0.07)] overflow-hidden ${
+        className={`fixed top-0 left-0 h-full ${DESIGN_TOKENS.MENU_WIDTH} max-w-[86vw] z-50 flex flex-col s1-canvas font-ui rounded-r-[28px] shadow-[20px_0_40px_-12px_rgb(12_4_13/0.8),inset_-1px_0_0_rgb(255_255_255/0.07)] overflow-hidden ${
           isDragging ? '' : 'transition-transform duration-300 ease-in-out'
         } ${isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-[calc(100%+64px)]'}`}
         style={isDragging ? { transform: `translateX(${dragOffset}px)` } : {}}

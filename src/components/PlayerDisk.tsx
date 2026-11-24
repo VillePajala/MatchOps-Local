@@ -120,18 +120,20 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
   // A bench player is drawn hollow. The keeper keeps the keeper's look wherever
   // they are; a coach-chosen colour carries over into the hollow disc's ring.
   const isHollow = onBench && !isGoalie;
+  // PePo club preview: club-violet discs, the keeper in PePo yellow inside a
+  // violet ring (same as the pitch).
   const fill = isGoalie
-    ? 'linear-gradient(180deg, #2a3854, #0f172a)'
+    ? 'radial-gradient(circle at 35% 28%, #fff27a, #fadd15 55%, #f2b705)'
     : isHollow
       ? 'rgb(255 255 255 / 0.05)'
       : hasCustomColor
         ? color
-        : 'linear-gradient(180deg, #ffffff, #e6e9ee)';
-  const nameColorClass = isHollow ? 'text-[#e5e9f0]' : isGoalie || hasCustomColor ? 'text-white' : 'text-carbon';
-  // The disc's own ring (inset): the keeper's white ring, the hollow disc's
+        : 'radial-gradient(circle at 35% 28%, #a6339a, #822174 55%, #5c1653)';
+  const nameColorClass = isHollow ? 'text-[#e5e9f0]' : isGoalie ? 'text-[#2a0826]' : 'text-white';
+  // The disc's own ring (inset): the keeper's violet ring, the hollow disc's
   // light (or kit-coloured) ring, or none.
   const innerRing = isGoalie
-    ? 'inset 0 0 0 2px #ffffff'
+    ? 'inset 0 0 0 3px #822174'
     : isHollow
       ? `inset 0 0 0 2px ${hasCustomColor ? color : 'rgb(229 233 240 / 0.6)'}`
       : null;
@@ -143,7 +145,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
       ? '0 8px 12px -6px rgb(0 0 0 / 0.6)'
       : isHollow
         ? null
-        : '0 5px 9px -5px rgb(2 6 23 / 0.9)';
+        : '0 5px 9px -5px rgb(12 4 13 / 0.9)';
   const shadow = [innerRing, outer].filter(Boolean).join(', ') || undefined;
   const displayName = nickname || fullName;
   // Short names (5 letters or fewer) get a size up; longer ones keep 15px.
@@ -167,7 +169,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
       {isSelected && onToggleGoalie && (
         <button
           title={isGoalie ? "Unset Goalie" : "Set Goalie"}
-          className="absolute -top-[7px] -left-[7px] w-7 h-7 flex items-center justify-center rounded-full bg-surface-2 text-ink-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.18),0_3px_6px_rgb(2_6_23/0.6)] z-10 before:absolute before:-inset-2 before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          className="absolute -top-[7px] -left-[7px] w-7 h-7 flex items-center justify-center rounded-full bg-surface-2 text-ink-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.18),0_3px_6px_rgb(12_4_13/0.6)] z-10 before:absolute before:-inset-2 before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
           onClick={handleToggleGoalieClick}
           onTouchEnd={handleToggleGoalieClick}
         >

@@ -72,14 +72,14 @@ describe('PlayerBar', () => {
   it('indicates goalies correctly', () => {
     render(<PlayerBar {...defaultProps} />);
     
-    // The goalie (Jane) is the inverse of the field discs: a navy fill
-    // (gradient) inside a white ring - not the default white disc.
+    // PePo preview: the goalie (Jane) is PePo yellow (gradient) inside a
+    // club-violet ring - not the default violet disc.
     const janeDisk = screen.getByText('Jane').closest('div');
     expect(janeDisk).toBeInTheDocument();
     const janeStyle = janeDisk!.getAttribute('style') ?? '';
-    expect(janeStyle).toMatch(/linear-gradient/);
-    expect(janeStyle).toMatch(/#0f172a|rgb\(15, 23, 42\)/i);
-    expect(janeStyle).toMatch(/inset 0 0 0 2px (#ffffff|rgb\(255, 255, 255\))/i);
+    expect(janeStyle).toMatch(/radial-gradient/);
+    expect(janeStyle).toMatch(/#fadd15|rgb\(250, 221, 21\)/i);
+    expect(janeStyle).toMatch(/inset 0 0 0 3px (#822174|rgb\(130, 33, 116\))/i);
 
     // Optionally, check a non-goalie's color
     const johnDisk = screen.getByText('John').closest('div');
@@ -112,7 +112,7 @@ describe('PlayerBar', () => {
 
       const onPitch = disc('Onni');
       expect(onPitch).not.toHaveAttribute('data-bench');
-      expect(onPitch.getAttribute('style') ?? '').toMatch(/linear-gradient/);
+      expect(onPitch.getAttribute('style') ?? '').toMatch(/radial-gradient/);
 
       const bench = disc('Roope');
       expect(bench).toHaveAttribute('data-bench', 'true');
@@ -139,8 +139,8 @@ describe('PlayerBar', () => {
       renderSquad();
       const gk = disc('Jasper');
       const style = gk.getAttribute('style') ?? '';
-      expect(style).toMatch(/linear-gradient/);
-      expect(style).toMatch(/inset 0 0 0 2px (#ffffff|rgb\(255, 255, 255\))/i);
+      expect(style).toMatch(/radial-gradient/);
+      expect(style).toMatch(/inset 0 0 0 3px (#822174|rgb\(130, 33, 116\))/i);
     });
 
     it('shows a selected bench player with the amber ring, still hollow', () => {

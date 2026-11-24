@@ -126,7 +126,7 @@ function MigrationStatusComponent() {
     return (
       <div className="fixed top-4 right-4 z-50">
         <div
-          className={`font-ui rounded-2xl p-4 max-w-sm bg-surface-2 shadow-[0_16px_32px_-8px_rgb(2_6_23/0.9),inset_0_0_0_1px_${error ? 'rgb(255_178_36/0.45)' : 'rgb(63_224_140/0.45)'}]`}
+          className={`font-ui rounded-2xl p-4 max-w-sm bg-surface-2 shadow-[0_16px_32px_-8px_rgb(12_4_13/0.9),inset_0_0_0_1px_${error ? 'rgb(250_221_21/0.45)' : 'rgb(63_224_140/0.45)'}]`}
           role="alert"
           aria-live="assertive"
           aria-labelledby="notification-title"

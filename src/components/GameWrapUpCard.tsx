@@ -144,7 +144,7 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
             done ? 'bg-win/[0.12] text-win shadow-[inset_0_0_0_1px_rgb(63_224_140/0.35)]'
-                 : 'bg-action/[0.08] text-action shadow-[inset_0_0_0_1px_rgb(255_178_36/0.35)]'
+                 : 'bg-action/[0.08] text-action shadow-[inset_0_0_0_1px_rgb(250_221_21/0.35)]'
           }`}
         >
           {done ? t('gameStatsModal.wrapUpComplete', 'Complete') : t('gameStatsModal.wrapUpPartial', 'Needs finishing')}

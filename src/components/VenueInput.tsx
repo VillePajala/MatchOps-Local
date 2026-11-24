@@ -10,7 +10,7 @@ import { labelStyle, sectionLabelStyle, fieldHintStyle } from '@/styles/modalSty
 
 /** The suggestion list under a venue field: a raised navy panel. */
 const dropdownStyle =
-  'absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]';
+  'absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(12_4_13/0.9)]';
 
 /**
  * The match location: two labelled fields, because it is two facts.

@@ -178,7 +178,7 @@ const foldHeaderStyle =
 /** The include toggle's dot: filled amber when the game counts (selection), hollow when not. */
 const includeDotStyle = (included: boolean) =>
   `block w-3 h-3 rounded-full transition-colors ${
-    included ? 'bg-action shadow-[0_0_0_3px_rgb(255_178_36/0.18)]' : 'bg-transparent shadow-[inset_0_0_0_1.5px_var(--color-ink-3)]'
+    included ? 'bg-action shadow-[0_0_0_3px_rgb(250_221_21/0.18)]' : 'bg-transparent shadow-[inset_0_0_0_1.5px_var(--color-ink-3)]'
   }`;
 
 /** Which plan was open - survives a resume-from-background remount (the
@@ -2573,7 +2573,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         'flex flex-col justify-center min-w-[6.5rem] max-w-[11rem] min-h-14 pl-3 pr-7 py-2 rounded-2xl text-left font-ui transition-colors',
                         'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-carbon',
                         isCurrent
-                          ? 's1-seg-on shadow-[inset_0_0_0_1.5px_var(--color-action),0_2px_6px_-2px_rgb(2_6_23/0.75)]'
+                          ? 's1-seg-on shadow-[inset_0_0_0_1.5px_var(--color-action),0_2px_6px_-2px_rgb(12_4_13/0.75)]'
                           : 'bg-white/[0.03] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10)] hover:bg-white/[0.06]',
                         g.included ? '' : 'opacity-50',
                       ].join(' ')}

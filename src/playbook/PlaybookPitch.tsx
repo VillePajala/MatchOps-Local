@@ -27,9 +27,9 @@ import { bendControl, easeStandard, quadPoint, type StepMotion } from './motion'
 /** Width : length of the board (the concept's 68 x 100 grid). */
 export const PITCH_ASPECT = PITCH_WIDTH / PITCH_LENGTH;
 
-const NAVY = '#0f172a';
-const AMBER = '#ffb224';
-const RUN_AMBER = '#ffd27a';
+const NAVY = '#170a18';
+const AMBER = '#fadd15';
+const RUN_AMBER = '#ffe97a';
 const PRESS_RED = '#ff8a80';
 const OPP_RED = '#ef4444';
 const DEFAULT_MOVE_MS = 900;
@@ -189,8 +189,8 @@ function Zone({
   still?: boolean;
 }) {
   const common = {
-    fill: 'rgba(255,178,36,0.16)',
-    stroke: 'rgba(255,178,36,0.75)',
+    fill: 'rgba(250,221,21,0.16)',
+    stroke: 'rgba(250,221,21,0.75)',
     strokeWidth: Math.max(1.2, unit * 0.32),
     strokeDasharray: `${unit * 1.2} ${unit * 0.9}`,
   };
@@ -260,7 +260,7 @@ function Zone({
           dominantBaseline="middle"
           fill="#ffe2a8"
           style={{ font: `700 ${Math.max(11, unit * 2)}px var(--font-inter), Inter, sans-serif`, paintOrder: 'stroke' }}
-          stroke="rgba(15,23,42,0.6)"
+          stroke="rgba(23,10,24,0.6)"
           strokeWidth={3}
         >
           {zone.label}
@@ -480,7 +480,7 @@ export default function PlaybookPitch({
                 <path
                   d={g.d}
                   fill="none"
-                  stroke="rgba(15,23,42,0.28)"
+                  stroke="rgba(23,10,24,0.28)"
                   strokeWidth={sw + 2}
                   strokeDasharray={style.dash ? style.dash.split(' ').map((v) => Number(v) * sw).join(' ') : undefined}
                   strokeLinecap="round"
@@ -502,7 +502,7 @@ export default function PlaybookPitch({
                   className={still ? undefined : 'pt-head'}
                   d={headPath(g.end, g.dir, head)}
                   fill={style.color}
-                  stroke="rgba(15,23,42,0.25)"
+                  stroke="rgba(23,10,24,0.25)"
                   strokeWidth={1}
                   strokeLinejoin="round"
                 />
@@ -565,7 +565,7 @@ export default function PlaybookPitch({
                 <circle
                   className={still ? undefined : 'pt-ring'}
                   r={(us ? r : rOpp) + (still ? r * 0.35 : Math.max(4, r * 0.2))}
-                  fill="rgba(255,178,36,0.18)"
+                  fill="rgba(250,221,21,0.18)"
                   stroke={AMBER}
                   strokeOpacity={0.85}
                   strokeWidth={still ? Math.max(1, r * 0.16) : Math.max(2.5, r * 0.13)}
@@ -576,16 +576,16 @@ export default function PlaybookPitch({
                   {!still && <circle r={r} cy={r * 0.12} fill="rgba(0,0,0,0.35)" style={{ filter: 'blur(3px)' }} />}
                   <circle r={r} fill={keeper ? keeperFill : whiteFill} />
                   {keeper ? (
-                    <circle r={Math.max(r - 1, r * 0.85)} fill="none" stroke="#fff" strokeWidth={still ? Math.max(0.8, r * 0.14) : 2} />
+                    <circle r={Math.max(r - 1, r * 0.85)} fill="none" stroke="#822174" strokeWidth={still ? Math.max(0.8, r * 0.14) : 2.5} />
                   ) : (
-                    <circle r={r - 0.5} fill="none" stroke="rgba(15,23,42,0.18)" strokeWidth={1} />
+                    <circle r={r - 0.75} fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth={still ? Math.max(0.6, r * 0.1) : 1.5} />
                   )}
                   {label?.name && (
                     <text
                       textAnchor="middle"
                       dominantBaseline="central"
                       y={0.5}
-                      fill={keeper ? '#fff' : NAVY}
+                      fill={keeper ? '#2a0826' : '#fff'}
                       textRendering="geometricPrecision"
                       style={{
                         font: `700 ${discFontSize(label.name, r).toFixed(1)}px var(--font-barlow-condensed), 'Barlow Condensed', 'Arial Narrow', sans-serif`,
@@ -596,7 +596,7 @@ export default function PlaybookPitch({
                   )}
                 </>
               ) : (
-                <circle r={rOpp} fill="rgba(15,23,42,0.28)" stroke={OPP_RED} strokeWidth={still ? Math.max(1, rOpp * 0.22) : Math.max(2.5, rOpp * 0.16)} />
+                <circle r={rOpp} fill="rgba(23,10,24,0.28)" stroke={OPP_RED} strokeWidth={still ? Math.max(1, rOpp * 0.22) : Math.max(2.5, rOpp * 0.16)} />
               )}
               {tappable && <circle r={r + 4} fill="transparent" />}
             </g>
@@ -615,14 +615,17 @@ export default function PlaybookPitch({
         })()}
 
         <defs>
-          <linearGradient id={`pt-white-${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="1" stopColor="#e6e9ee" />
-          </linearGradient>
-          <linearGradient id={`pt-keeper-${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#2a3854" />
-            <stop offset="1" stopColor={NAVY} />
-          </linearGradient>
+          {/* PePo club preview: club-violet discs, the keeper PePo yellow. */}
+          <radialGradient id={`pt-white-${uid}`} cx="0.35" cy="0.28" r="0.75">
+            <stop offset="0" stopColor="#a6339a" />
+            <stop offset="0.55" stopColor="#822174" />
+            <stop offset="1" stopColor="#5c1653" />
+          </radialGradient>
+          <radialGradient id={`pt-keeper-${uid}`} cx="0.35" cy="0.28" r="0.75">
+            <stop offset="0" stopColor="#fff27a" />
+            <stop offset="0.55" stopColor="#fadd15" />
+            <stop offset="1" stopColor="#f2b705" />
+          </radialGradient>
         </defs>
       </svg>
     </div>

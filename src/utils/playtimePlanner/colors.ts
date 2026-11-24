@@ -28,7 +28,7 @@ export function fairnessHue(ratio: number | null): number | null {
  */
 export function fairnessColor(ratio: number | null): string {
   const hue = fairnessHue(ratio);
-  return hue === null ? '#334155' /* slate-700 */ : `hsl(${hue}, 42%, 38%)`;
+  return hue === null ? '#4a2850' /* slate-700 */ : `hsl(${hue}, 42%, 38%)`;
 }
 
 /** Disc/segment fill on the pitch: the shared muted colour. */
@@ -39,7 +39,7 @@ export function fairnessFill(ratio: number | null): string {
 /** Small text tint (minutes under a disc / on a bench chip) on dark ground. */
 export function fairnessText(ratio: number | null): string {
   const hue = fairnessHue(ratio);
-  return hue === null ? '#94a3b8' /* slate-400 */ : `hsl(${hue}, 60%, 72%)`;
+  return hue === null ? '#b79ab9' /* slate-400 */ : `hsl(${hue}, 60%, 72%)`;
 }
 
 /** Strip/list cell background: the shared muted colour. */

@@ -63,11 +63,11 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ onClic
 
   // Field variant base styles: the frosted navy disc the field tools use
   // (matchFieldToolStyle), so the sync status sits with them over the grass
-  const fieldBaseClass = "relative rounded-full bg-[rgb(15_23_42/0.7)] hover:bg-[rgb(15_23_42/0.82)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_6px_12px_-8px_rgb(2_6_23/0.7)] before:absolute before:-inset-0.5 before:rounded-full before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+  const fieldBaseClass = "relative rounded-full bg-[rgb(23_10_24/0.7)] hover:bg-[rgb(23_10_24/0.82)] backdrop-blur-[12px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_6px_12px_-8px_rgb(12_4_13/0.7)] before:absolute before:-inset-0.5 before:rounded-full before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
   // Nothing needs the coach (stored locally, synced, syncing, offline): a
   // quiet grey mark on a fainter disc. Colour (amber/red) is kept for the
   // states that DO need attention - pending, paused, failed.
-  const fieldQuietClass = "relative rounded-full bg-[rgb(15_23_42/0.42)] hover:bg-[rgb(15_23_42/0.6)] backdrop-blur-[8px] before:absolute before:-inset-0.5 before:rounded-full before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+  const fieldQuietClass = "relative rounded-full bg-[rgb(23_10_24/0.42)] hover:bg-[rgb(23_10_24/0.6)] backdrop-blur-[8px] before:absolute before:-inset-0.5 before:rounded-full before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
   const quietIconClass = 'w-[18px] h-[18px] text-ink-3';
 
   // Local mode: just phone icon

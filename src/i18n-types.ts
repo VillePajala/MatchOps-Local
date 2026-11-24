@@ -3068,6 +3068,7 @@ export type TranslationKey =
   | 'startScreen.clubPlaybookSub'
   | 'startScreen.clubRulesSub'
   | 'startScreen.clubSectionCoaching'
+  | 'startScreen.clubSubtitle'
   | 'startScreen.clubTrainingSub'
   | 'startScreen.createFirstGame'
   | 'startScreen.createFirstSeasonTournament'

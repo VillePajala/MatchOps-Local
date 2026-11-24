@@ -78,7 +78,12 @@ export const BUILT_IN_PLAYBOOK: Playbook = {
  */
 export function buildPlaybooks(rows: PlaybookRows): Playbook[] {
   const out: Playbook[] = [];
-  for (const pb of [...rows.playbooks].sort((a, b) => a.name.localeCompare(b.name, 'fi'))) {
+  // PePo club preview: the club's own (PEPO) playbook first, so it is the one
+  // the library opens on; the rest by name.
+  const isClub = (name: string) => /^pepo\b/i.test(name.trim());
+  const byClubThenName = (a: { name: string }, b: { name: string }) =>
+    Number(isClub(b.name)) - Number(isClub(a.name)) || a.name.localeCompare(b.name, 'fi');
+  for (const pb of [...rows.playbooks].sort(byClubThenName)) {
     const concepts: Concept[] = [];
     const seen = new Set<string>();
     const ofBook = rows.concepts

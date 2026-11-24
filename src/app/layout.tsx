@@ -44,7 +44,7 @@ const config = manifestConfig[branch] || manifestConfig.default;
 
 export const metadata: Metadata = {
   title: config.appName,
-  description: "MatchOps Local - Comprehensive coaching assistant for match day management, tactics, and player analysis",
+  description: "PePo Ops - Comprehensive coaching assistant for match day management, tactics, and player analysis",
   icons: {
     icon: [
       { url: '/favicon.ico' },

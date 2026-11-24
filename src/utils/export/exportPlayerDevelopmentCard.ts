@@ -67,7 +67,7 @@ function drawRadar(
   const angleFor = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
 
   // Grid rings
-  ctx.strokeStyle = '#334155';
+  ctx.strokeStyle = '#4a2850';
   ctx.lineWidth = 1;
   [0.25, 0.5, 0.75, 1].forEach((f) => {
     ctx.beginPath();
@@ -80,7 +80,7 @@ function drawRadar(
   });
 
   // Axis spokes + labels
-  ctx.fillStyle = '#94a3b8';
+  ctx.fillStyle = '#b79ab9';
   ctx.font = `13px ${FONT}`;
   axes.forEach((ax, i) => {
     const a = angleFor(i);
@@ -107,8 +107,8 @@ function drawRadar(
 
   // Baseline (dashed grey)
   ctx.setLineDash([5, 4]);
-  ctx.strokeStyle = '#94a3b8';
-  ctx.fillStyle = 'rgba(148,163,184,0.10)';
+  ctx.strokeStyle = '#b79ab9';
+  ctx.fillStyle = 'rgba(183,154,185,0.10)';
   ctx.lineWidth = 1.5;
   polygon((ax) => ax.baseline);
   ctx.fill();
@@ -146,7 +146,7 @@ function drawItemList(
   ctx.font = `15px ${FONT}`;
   let ly = y + 22;
   if (items.length === 0) {
-    ctx.fillStyle = '#64748b';
+    ctx.fillStyle = '#8a6a8d';
     ctx.fillText('-', edgeX, ly);
     return;
   }
@@ -155,7 +155,7 @@ function drawItemList(
     const gap = arrowW ? 6 : 0;
     const labelW = ctx.measureText(it.label).width;
     ctx.textAlign = right ? 'right' : 'left';
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = '#f0e4f0';
     ctx.fillText(it.label, edgeX, ly);
     ctx.fillStyle = it.color;
     if (right) {
@@ -183,8 +183,8 @@ export function renderDevelopmentCard(data: DevelopmentCardData): HTMLCanvasElem
 
   // Background
   const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#1e293b');
-  grad.addColorStop(1, '#0f172a');
+  grad.addColorStop(0, '#361a3c');
+  grad.addColorStop(1, '#170a18');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
@@ -197,7 +197,7 @@ export function renderDevelopmentCard(data: DevelopmentCardData): HTMLCanvasElem
   ctx.fillStyle = '#f1f5f9';
   ctx.font = `bold 34px ${FONT}`;
   ctx.fillText(data.playerName, W / 2, 80);
-  ctx.fillStyle = '#94a3b8';
+  ctx.fillStyle = '#b79ab9';
   ctx.font = `15px ${FONT}`;
   const sub = [data.subtitle, data.countLabel].filter(Boolean).join('  ·  ');
   ctx.fillText(sub, W / 2, 106);
@@ -214,9 +214,9 @@ export function renderDevelopmentCard(data: DevelopmentCardData): HTMLCanvasElem
     ctx.lineWidth = 3;
     ctx.setLineDash([]);
     ctx.beginPath(); ctx.moveTo(W / 2 - 150, legendY); ctx.lineTo(W / 2 - 130, legendY); ctx.stroke();
-    ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#ead9ea'; ctx.textAlign = 'left';
     ctx.fillText(data.labels.now, W / 2 - 124, legendY);
-    ctx.strokeStyle = '#94a3b8';
+    ctx.strokeStyle = '#b79ab9';
     ctx.setLineDash([5, 4]);
     ctx.beginPath(); ctx.moveTo(W / 2 + 20, legendY); ctx.lineTo(W / 2 + 40, legendY); ctx.stroke();
     ctx.setLineDash([]);

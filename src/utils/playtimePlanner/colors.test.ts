@@ -17,9 +17,9 @@ describe('fairness colour ramp', () => {
   it('returns null hue and neutral colours when there is no signal', () => {
     expect(fairnessHue(null)).toBeNull();
     expect(fairnessHue(NaN)).toBeNull();
-    expect(fairnessFill(null)).toBe('#334155');
-    expect(fairnessText(null)).toBe('#94a3b8');
-    expect(fairnessCell(null)).toBe('#334155');
+    expect(fairnessFill(null)).toBe('#4a2850');
+    expect(fairnessText(null)).toBe('#b79ab9');
+    expect(fairnessCell(null)).toBe('#4a2850');
   });
 
   it('uses ONE muted colour for the pitch, the totals chips and the balance stripe', () => {

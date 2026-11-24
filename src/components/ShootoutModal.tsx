@@ -156,7 +156,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
   const missedButtonClass = `${secondaryButtonStyle} flex-1`;
   // The side that kicks next gets the amber ring (selection) and an "Up next" pill.
   const entryCardClass = (up: boolean) =>
-    `${cardStyle} space-y-3 font-ui ${up ? 'shadow-[inset_0_0_0_1.5px_var(--color-action),0_16px_26px_-18px_rgb(2_6_23/0.85)]!' : ''}`;
+    `${cardStyle} space-y-3 font-ui ${up ? 'shadow-[inset_0_0_0_1.5px_var(--color-action),0_16px_26px_-18px_rgb(12_4_13/0.85)]!' : ''}`;
 
   const playerName = (id?: string) =>
     (id && availablePlayers.find((p) => p.id === id)?.name) ||

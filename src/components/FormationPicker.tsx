@@ -333,7 +333,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
   const desktopDropdown = isOpen && !isMobile && typeof document !== 'undefined' ? createPortal(
     <div
       ref={dropdownRef}
-      className="fixed overflow-hidden flex flex-col overscroll-contain rounded-[22px] s1-canvas font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_20px_40px_-12px_rgb(2_6_23/0.9)]"
+      className="fixed overflow-hidden flex flex-col overscroll-contain rounded-[22px] s1-canvas font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1),0_20px_40px_-12px_rgb(12_4_13/0.9)]"
       style={{
         left: desktopLayout.left,
         bottom: desktopLayout.bottom,

@@ -42,7 +42,7 @@ const MetricAreaChart: React.FC<MetricAreaChartProps> = ({ data, label }) => {
         <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
           <CartesianGrid stroke="#4b5563" strokeDasharray="3 3" vertical={false} />
           <YAxis
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            tick={{ fill: '#b79ab9', fontSize: 12 }}
             axisLine={false}
             tickLine={false}
             domain={[0, maxVal]}
@@ -50,7 +50,7 @@ const MetricAreaChart: React.FC<MetricAreaChartProps> = ({ data, label }) => {
           />
           <Tooltip content={<CustomTooltip label={label} />} wrapperStyle={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }} />
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-          <ReferenceLine y={average} stroke="#94a3b8" strokeDasharray="4 4" />
+          <ReferenceLine y={average} stroke="#b79ab9" strokeDasharray="4 4" />
           <Area type="monotone" dataKey="value" fill="#facc15" stroke="#facc15" name={label} fillOpacity={0.2} dot={<CustomizedDot />} activeDot={false} />
         </ComposedChart>
       </ResponsiveContainer>

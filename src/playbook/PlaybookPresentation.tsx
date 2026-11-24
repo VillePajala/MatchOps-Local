@@ -414,7 +414,7 @@ export default function PlaybookPresentation({
   const pitchLabel = t('playbook.pitchLabel', 'Pitch, step {{current}} of {{total}}', { current: index + 1, total: steps.length });
 
   const picker = picking && (
-    <div data-pt-picker className="fixed inset-0 z-[61] flex items-end justify-center bg-[rgb(2_6_23/0.6)] sm:items-center" onClick={closePicker}>
+    <div data-pt-picker className="fixed inset-0 z-[61] flex items-end justify-center bg-[rgb(12_4_13/0.6)] sm:items-center" onClick={closePicker}>
       <div
         role="dialog"
         aria-modal="true"
@@ -506,14 +506,14 @@ export default function PlaybookPresentation({
           ) : (
             <>
               <span
-                className="pointer-events-none absolute right-3 rounded-full bg-[rgb(15_23_42/0.62)] px-2.5 py-1 text-[clamp(13px,1.9vw,17px)] font-bold tabular-nums text-ink backdrop-blur-sm"
+                className="pointer-events-none absolute right-3 rounded-full bg-[rgb(23_10_24/0.62)] px-2.5 py-1 text-[clamp(13px,1.9vw,17px)] font-bold tabular-nums text-ink backdrop-blur-sm"
                 style={{ top: 'max(10px, env(safe-area-inset-top))' }}
                 data-testid="playbook-focus-counter"
               >
                 {index + 1}/{steps.length}
               </span>
               <div
-                className="pointer-events-none fixed inset-x-0 bottom-0 flex items-center bg-[rgb(15_23_42/0.72)] px-5 backdrop-blur-sm"
+                className="pointer-events-none fixed inset-x-0 bottom-0 flex items-center bg-[rgb(23_10_24/0.72)] px-5 backdrop-blur-sm"
                 style={{ height: FOCUS_STRIP_HEIGHT, paddingBottom: 'env(safe-area-inset-bottom)' }}
                 aria-live="polite"
               >

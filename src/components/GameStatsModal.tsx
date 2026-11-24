@@ -1490,7 +1490,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       aria-label={t('playerStats.selectPlayerLabel', 'Select Player')}
                     />
                     {filteredPlayers.length > 0 && (
-                      <Combobox.Options className="absolute z-20 mt-1.5 w-full max-h-80 overflow-auto rounded-2xl bg-surface-2 py-1 text-[15px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)] focus:outline-none">
+                      <Combobox.Options className="absolute z-20 mt-1.5 w-full max-h-80 overflow-auto rounded-2xl bg-surface-2 py-1 text-[15px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(12_4_13/0.9)] focus:outline-none">
                         {filteredPlayers.map((p) => (
                           <Combobox.Option
                             key={p.id}

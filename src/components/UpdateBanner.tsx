@@ -65,7 +65,7 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ phase, onInstall, onReload,
         animation: 'fadeSlideIn 0.3s ease-out',
       }}
     >
-      <div className="relative overflow-hidden rounded-2xl bg-surface-2 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(2_6_23/0.9)]">
+      <div className="relative overflow-hidden rounded-2xl bg-surface-2 font-ui shadow-[inset_0_0_0_1px_rgb(255_255_255/0.10),0_16px_32px_-8px_rgb(12_4_13/0.9)]">
         <div className="relative flex flex-col items-center gap-3 px-12 py-4 text-center">
           <button
             onClick={handleDismiss}

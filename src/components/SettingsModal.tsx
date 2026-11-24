@@ -620,7 +620,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       : t('settingsModal.appInfoDisplayBrowser', 'Browser');
   };
   const buildAppInfo = () => [
-    t('settingsModal.appInfoTitle', 'MatchOps app info'),
+    t('settingsModal.appInfoTitle', 'PePo Ops app info'),
     `${t('settingsModal.appInfoVersion', 'Version')}: ${APP_VERSION}`,
     `${t('settingsModal.appInfoLanguage', 'Language')}: ${language}`,
     `${t('settingsModal.appInfoMode', 'Mode')}: ${authMode === 'cloud' ? t('settingsModal.appInfoModeCloud', 'Cloud') : t('settingsModal.appInfoModeLocal', 'Local')}`,

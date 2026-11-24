@@ -402,8 +402,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   return (
     // A tall bottom sheet over the dimmed match: a strip of the game stays in
     // view above it, so the coach can see they are still in the match.
-    <div className={`fixed inset-0 ${Z_LAYER.modal} bg-[rgb(2_6_23/0.72)]`} role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Match events')}>
-      <div className="absolute inset-x-0 bottom-0 top-16 flex flex-col overflow-hidden rounded-t-[28px] font-ui text-ink bg-[linear-gradient(180deg,#1c2740,#141d31)] shadow-[inset_0_1px_0_rgb(255_255_255/0.09),0_-20px_40px_-12px_rgb(2_6_23/0.8)]">
+    <div className={`fixed inset-0 ${Z_LAYER.modal} bg-[rgb(12_4_13/0.72)]`} role="dialog" aria-modal="true" aria-label={t('goalLog.title', 'Match events')}>
+      <div className="absolute inset-x-0 bottom-0 top-16 flex flex-col overflow-hidden rounded-t-[28px] font-ui text-ink bg-[linear-gradient(180deg,#2e1733,#1f0e23)] shadow-[inset_0_1px_0_rgb(255_255_255/0.09),0_-20px_40px_-12px_rgb(12_4_13/0.8)]">
         {/* Grab handle (decorative) */}
         <div className="flex-shrink-0 w-10 h-[5px] rounded-full bg-white/[0.22] mx-auto mt-2.5 mb-3" aria-hidden="true" />
 
@@ -416,7 +416,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
               {t('goalLogModal.title', 'Log Goal Event')}
             </h2>
             <div className="mt-2.5 inline-flex items-center gap-2 h-9 px-3 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]">
-              <span className="w-2 h-2 rounded-full bg-action shadow-[0_0_0_3px_rgb(255_178_36/0.2)]" aria-hidden="true" />
+              <span className="w-2 h-2 rounded-full bg-action shadow-[0_0_0_3px_rgb(250_221_21/0.2)]" aria-hidden="true" />
               <span className="font-display italic font-extrabold text-[22px] leading-none">{formatTime(currentTime)}</span>
             </div>
           </div>

@@ -763,8 +763,8 @@ describe('Translation File Validation', () => {
       // -3 playbook.themes.choose/themeOne/themesMany (Home next-match themes row removed). 3738.
       // +7 / -6 privacy pass (2026-11-23): labs toasts, typed-only report
       //     copy, support-email processor (4 keys); paid-features terms list,
-      //     billing, cancellation and data-after-cancel removed. 3739.
-      expect(enKeys.length).toBe(3739);
+      //     billing, cancellation and data-after-cancel removed. 3739; +1 PePo preview clubSubtitle = 3740.
+      expect(enKeys.length).toBe(3740);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -986,8 +986,8 @@ describe('Translation File Validation', () => {
       // +18 club code sheet (see EN). 3740.
       // +1 match menu "Ottelun teemat". 3741.
       // -3 Home next-match themes row removed (see EN). 3738.
-      // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3739.
-      expect(fiKeys.length).toBe(3739);
+      // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3739; +1 PePo preview clubSubtitle = 3740.
+      expect(fiKeys.length).toBe(3740);
     });
   });
 });
