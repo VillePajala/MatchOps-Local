@@ -42,11 +42,11 @@
   "sections": {
     "getting-started": {
       "title": "Pikaopas",
-      "description": "Ilmainen tili, joukkue ja ensimmäiset askeleet"
+      "description": "Ilmainen tili, joukkue, ensimmäinen suunnitelma sekä Perusnäkymä ja Koko näkymä"
     },
     "full-setup-path": {
       "title": "Koko näkymän käyttöönotto",
-      "description": "Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet"
+      "description": "Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet Koko näkymässä"
     },
     "roster-management": {
       "title": "Pelaajat",
@@ -82,7 +82,7 @@
     },
     "data-management": {
       "title": "Tili ja tiedot",
-      "description": "Tili, synkronointi, varmuuskopiot ja asetukset"
+      "description": "Tili, synkronointi, varmuuskopiot, asetukset ja näkymä"
     },
     "troubleshooting": {
       "title": "Vianetsintä",
