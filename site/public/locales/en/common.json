@@ -943,14 +943,14 @@
       },
       "record": {
         "title": "Record",
-        "desc": "After the game the match sheet is ready to copy, and you can share the match report. Stats build up from every game on their own."
+        "desc": "After the game the match sheet details are ready and the match report can be shared. Stats build up from every game on their own."
       }
     },
     "spotlights": {
       "taso": {
         "eyebrow": "After the game",
-        "title": "Match sheet ready to copy",
-        "desc": "Finish this game brings the result, the line-up and the goals together. The match sheet lists the players with shirt numbers, the goalkeeper and captain, the final and half-time score and every goal with its minute. Copy it and paste it wherever you need it, for example into Taso, the Football Association of Finland's match system."
+        "title": "Match sheet details ready",
+        "desc": "Finish this game brings the result, the line-up and the goals together. The match sheet lists the players with shirt numbers, the goalkeeper and captain, the final and half-time score and every goal with its minute. Everything is in one place when you fill in the match sheet, for example in Taso, the Football Association of Finland's match system."
       },
       "planner": {
         "eyebrow": "Tournament day",
@@ -1096,7 +1096,7 @@
         },
         {
           "q": "Does MatchOps work with Taso?",
-          "a": "The match sheet is ready-made text that you copy and paste into Taso. MatchOps is not connected to Taso directly, but the Taso link is in the app's menu."
+          "a": "The match sheet has everything you need to fill in the Taso match sheet: the line-up with shirt numbers, the final score, the half-time score and the goals with minutes, scorers and assists."
         },
         {
           "q": "Can I delete my data?",
