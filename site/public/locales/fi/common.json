@@ -15,7 +15,7 @@
       },
       "timer": {
         "title": "Pelikello",
-        "desc": "Seuraa peliaikaa ja vaihtovälejä. Kirjaa ottelutapahtumat pelin aikana muutamalla napautuksella."
+        "desc": "Seuraa peliaikaa ja vaihtovälejä. Kirjaa ottelutapahtumat pelin aikana muutamalla painalluksella."
       },
       "tactics": {
         "title": "Taktiikkataulu",
@@ -336,12 +336,12 @@
       "focusOnCoaching": "Keskity valmentamiseen,",
       "notPaperwork": "älä paperitöihin.",
       "buildLineupVisually": "Rakenna kokoonpano visuaalisesti",
-      "logGoalsTap": "Maali meille: tulos päivittyy yhdellä napautuksella",
+      "logGoalsTap": "Maali meille: tulos päivittyy yhdellä painalluksella",
       "trackDevelopmentTime": "Tarkastele tilastoja ajan myötä",
       "trackGamesRealtime": "Seuraa pelejä reaaliajassa",
       "buildStatsAuto": "Tilastot kertyvät automaattisesti",
-      "fieldDesc": "Valitse pelaaja ja napauta hänet paikalleen kentälle. Näet muodostelman jo ennen peliä.",
-      "timerDesc": "Pelikello vaihtoväleillä. Kirjaa maalit, syötöt ja tapahtumat napautuksella.",
+      "fieldDesc": "Valitse pelaaja ja paina paikkaa kentällä. Näet muodostelman jo ennen peliä.",
+      "timerDesc": "Pelikello vaihtoväleillä. Kirjaa maalit, syötöt ja tapahtumat painalluksella.",
       "statsDesc": "Pelaaja-, joukkue- ja kilpailutilastot. Seuraa kehitystä kaudesta toiseen.",
       "statsLongDesc": "Jokainen maali, syöttö ja pelitapahtuma kerryttää kauden tilastoja. Pelihistoria ja joukkuetilastot ovat aina katsottavissa."
     },
@@ -409,7 +409,7 @@
     },
     "featureCards": {
       "quickGoal": "Maali meille",
-      "quickGoalDesc": "Yksi napautus ottelukellosta, ja tulos päivittyy heti. Valitse sitten maalintekijä ja syöttäjä ottelun pelaajista - tai ohita ja täydennä myöhemmin.",
+      "quickGoalDesc": "Yksi painallus ottelukellosta, ja tulos päivittyy heti. Valitse sitten maalintekijä ja syöttäjä ottelun pelaajista - tai ohita ja täydennä myöhemmin.",
       "tacticalBoard": "Taktiikkataulu",
       "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Näytä pelaajille pelisuunnitelma ja havainnollista ideasi piirtämällä.",
       "formations": "Pikamuodostelmat",
@@ -894,7 +894,7 @@
     "hero": {
       "eyebrow": "Jalkapallon ja futsalin juniorivalmentajille",
       "title": "Koko ottelupäivä yhdessä sovelluksessa",
-      "subtitle": "Suunnittele kokoonpanot ja vaihdot etukäteen. Pelin aikana sovellus toimii pelikellona ja kirjaat ottelutapahtumat muutamalla napautuksella. Pöytäkirja on valmiina heti loppuvihellyksen jälkeen.",
+      "subtitle": "Suunnittele kokoonpanot ja vaihdot etukäteen. Pelin aikana sovellus toimii pelikellona ja kirjaat ottelutapahtumat muutamalla painalluksella. Pöytäkirja on valmiina heti loppuvihellyksen jälkeen.",
       "platform": "Android-puhelimille Google Playsta",
       "trust": {
         "free": "Ilmainen",
@@ -911,7 +911,7 @@
       "matchview": "Ottelunäkymä: pelaajat kentällä pelipaikoillaan ja ottelukello",
       "quickgoal": "Kuka teki? -valinta maalin jälkeen: pelaajien nimet, Ohita ja Seuraavaksi: kuka syötti?",
       "finish": "Viimeistele ottelu: tulos, päivä, paikka, kokoonpano ja ottelutapahtumat",
-      "attendance": "Ketkä ovat paikalla? Poissaolijat napautettu pois, paikalla 12/14",
+      "attendance": "Ketkä ovat paikalla? Poissaolijat painettu pois, paikalla 12/14",
       "tacticalBoard": "Taktiikkataulu, johon on piirretty liikkeitä",
       "matchReport": "Otteluraportti valmiin otsikkopohjan mukaan ja Jaa otteluraportti -painike",
       "positionBalance": "Pelipaikkojen tasapaino: kunkin pelaajan pelipaikat linjoittain koko kaudelta",
@@ -939,7 +939,7 @@
       },
       "rotate": {
         "title": "Peluuta",
-        "desc": "Pelikello, vaihtoajastin ja ottelun tilanne ovat yhdessä näkymässä. Näet seuraavan vaihdon: kuka kentälle, kuka penkille. Ottelutapahtumat kirjaat muutamalla napautuksella."
+        "desc": "Pelikello, vaihtoajastin ja ottelun tilanne ovat yhdessä näkymässä. Näet seuraavan vaihdon: kuka kentälle, kuka penkille. Ottelutapahtumat kirjaat muutamalla painalluksella."
       },
       "record": {
         "title": "Kirjaa",
@@ -960,17 +960,17 @@
       "goals": {
         "eyebrow": "Pelin aikana",
         "title": "Maalit ja syötöt",
-        "desc": "Napauta Maali meille, niin tulos päivittyy ja maalin aika tallentuu. Valitse sitten maalintekijä ja syöttäjä nimistä. Jos tilanne on kiireinen, ohita ja lisää ne myöhemmin. Vastustajan maalin kirjaat yhdellä napautuksella. Maalit ja syötöt kertyvät pelaajien tilastoihin."
+        "desc": "Maalit ja syöttäjät kirjataan muutamalla painalluksella. Ottelun tilanne, tapahtumien aikajana ja kokonaistilastot rakentuvat automaattisesti."
       },
       "lineup": {
         "eyebrow": "Kentällä",
         "title": "Kokoonpano kentällä",
-        "desc": "Napauta pelaajaa pelaajapalkissa ja sitten kohtaa kentällä, niin pelaaja on paikallaan. Pelipaikka näkyy pelaajan alla, ja se tulee mukaan pöytäkirjaan ja otteluraporttiin. Pelin jälkeen merkitset toteutuneet pelipaikat, ja niistä kertyy jokaisen pelaajan pelipaikkajakauma."
+        "desc": "Pelaajat ovat kentällä valmiiksi valitussa muodostelmassa. Vaihda pelipaikkoja ja vaihtopelaajia muutamalla painalluksella. Pelipaikat siirtyvät automaattisesti pöytäkirjaan ja otteluraporttiin."
       },
       "attendance": {
         "eyebrow": "Ketkä ovat paikalla?",
-        "title": "Pelaaja ei saapunut paikalle? Poista hänet kokoonpanosta yhdellä napautuksella, ja suunnitelma mukautuu.",
-        "desc": "Seuraava ottelu -kortin Merkitse poissaolijat -painike avaa listan, jossa kaikki pelaajat ovat aluksi mukana. Napauta poissaolijoita, niin näet heti, montako on paikalla. Aloituskokoonpano ja suunnitelma täydennetään paikalla olevilla pelaajilla. Poissaolijalle ei merkitä pelattua ottelua."
+        "title": "Pelaaja ei saapunut paikalle? Poista hänet kokoonpanosta yhdellä painalluksella, ja suunnitelma mukautuu.",
+        "desc": "Seuraava ottelu -kortin Merkitse poissaolijat -painike avaa listan, jossa kaikki pelaajat ovat aluksi mukana. Paina poissaolijoita, niin näet heti, montako on paikalla. Aloituskokoonpano ja suunnitelma täydennetään paikalla olevilla pelaajilla. Poissaolijalle ei merkitä pelattua ottelua."
       }
     },
     "features": {
@@ -1015,7 +1015,7 @@
       "items": {
         "quickGoal": {
           "title": "Maali meille",
-          "desc": "Yksi napautus, ja tulos päivittyy. Maalintekijän ja syöttäjän voi valita heti tai lisätä myöhemmin."
+          "desc": "Yksi painallus, ja tulos päivittyy. Maalintekijän ja syöttäjän voi valita heti tai lisätä myöhemmin."
         },
         "goalTimeline": {
           "title": "Ottelutapahtumat",

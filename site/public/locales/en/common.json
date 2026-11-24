@@ -960,12 +960,12 @@
       "goals": {
         "eyebrow": "During the game",
         "title": "Goals and assists",
-        "desc": "Tap Goal for us and the score updates, with the time of the goal saved. Then pick the scorer and the assister from the names. If things are busy, skip and add them later. An opponent goal is one tap. Goals and assists add up in each player's stats."
+        "desc": "Goals and assists take just a few taps. The score, the timeline of events and the overall statistics build up automatically."
       },
       "lineup": {
         "eyebrow": "On the pitch",
         "title": "Line-up on the pitch",
-        "desc": "Tap a player in the player bar, then tap the spot on the pitch, and they are in place. The position shows under the player and goes into the match sheet and the match report. After the game you mark the positions actually played, and they build up into each player's position spread."
+        "desc": "Players are already on the pitch in the formation you chose. Change positions and subs with a few taps. Positions go straight into the match sheet and the match report."
       },
       "attendance": {
         "eyebrow": "Who is here?",
