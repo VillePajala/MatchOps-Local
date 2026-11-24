@@ -42,6 +42,25 @@ const getScreenshots = (locale: string | undefined) => {
   };
 };
 
+// The collapsed "all features" cards: one screenshot per item (same naming as above).
+const allFeatureShot = (locale: string | undefined, item: string) =>
+  `/screenshots/MatchOps_v3_${ALL_FEATURE_SHOTS[item]}_${locale === 'en' ? 'en' : 'fi'}.jpg`;
+const ALL_FEATURE_SHOTS: Record<string, string> = {
+  goalTimeline: 'goallog', // Ottelutapahtumat on Viimeistele ottelu
+  overtime: 'overtime', // full time level: the Jatkoaika panel with Rangaistuspotkut
+  formations: 'formations', // Pelimuodostelmat
+  positions: 'positions', // Toteutuneet pelipaikat on Viimeistele ottelu
+  excelExport: 'excelexport', // Sarjatilastot with Vie Excel
+  archive: 'archive', // Tallennetut pelit: search, sort, filter
+  roster: 'roster', // Pelaajan tiedot: name, nickname, shirt number
+  teams: 'teams',
+  personnel: 'personnel',
+  seasons: 'seasons', // Sarjat
+  tournaments: 'tournaments', // Turnaukset with levels
+  friendlies: 'friendlies', // Harjoitusottelu switch in the new-game form
+  cloudSync: 'cloudsync', // Asetukset > Tili: cloud sync on, last synced
+};
+
 type FaqItem = { q: string; a: string };
 
 function PlayBadge({
@@ -75,6 +94,8 @@ export default function HomePage() {
   const locale = router.locale === 'en' ? 'en' : 'fi';
   const s = getScreenshots(locale);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  // The all-features cards render only once opened, so their screenshots never load with the page.
+  const [allFeaturesOpen, setAllFeaturesOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 800);
@@ -143,7 +164,7 @@ export default function HomePage() {
   ];
 
   const allFeatureGroups = [
-    { group: 'gameDay', items: ['quickGoal', 'goalTimeline', 'overtime', 'formations'] },
+    { group: 'gameDay', items: ['goalTimeline', 'overtime', 'formations'] },
     { group: 'afterGame', items: ['positions', 'excelExport', 'archive'] },
     {
       group: 'teamSeason',
@@ -354,28 +375,45 @@ export default function HomePage() {
               ))}
             </div>
 
-            <details className="group mt-10 rounded-lg border border-slate-700/50 bg-slate-800/40">
+            <details
+              className="group mt-10 rounded-lg border border-slate-700/50 bg-slate-800/40"
+              onToggle={(e) => setAllFeaturesOpen((e.currentTarget as HTMLDetailsElement).open)}
+            >
               <summary className="flex cursor-pointer list-none items-center justify-center gap-2 px-4 py-4 text-primary font-semibold [&::-webkit-details-marker]:hidden">
                 {t('home.allFeatures.summary')}
                 <FaChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" aria-hidden="true" />
               </summary>
-              <div className="grid gap-8 px-5 pb-6 md:grid-cols-3">
-                {allFeatureGroups.map((g) => (
-                  <div key={g.group}>
-                    <h3 className="text-lg font-bold text-white mb-3">{t(`home.allFeatures.groups.${g.group}`)}</h3>
-                    <ul className="space-y-3">
-                      {g.items.map((item) => (
-                        <li key={item}>
-                          <div className="text-slate-100 font-semibold">
-                            {t(`home.allFeatures.items.${item}.title`)}
+              {allFeaturesOpen && (
+                <div className="space-y-10 px-4 pb-6 md:px-5">
+                  {allFeatureGroups.map((g) => (
+                    <div key={g.group}>
+                      <h3 className="text-xl font-bold text-white mb-4">{t(`home.allFeatures.groups.${g.group}`)}</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        {g.items.map((item) => (
+                          <div
+                            key={item}
+                            className="bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center gap-4 text-left lg:text-center"
+                          >
+                            <div className="flex-shrink-0 w-[96px] lg:w-[160px]">
+                              <PhoneMockup
+                                screenshot={allFeatureShot(locale, item)}
+                                alt={t(`home.allFeatures.items.${item}.title`)}
+                                size="lg"
+                              />
+                            </div>
+                            <div>
+                              <h4 className="text-white text-lg font-bold mb-1 hyphens-auto break-words">
+                                {t(`home.allFeatures.items.${item}.title`)}
+                              </h4>
+                              <p className="text-slate-400 text-sm">{t(`home.allFeatures.items.${item}.desc`)}</p>
+                            </div>
                           </div>
-                          <p className="text-slate-400 text-sm">{t(`home.allFeatures.items.${item}.desc`)}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <p className="px-5 pb-6 text-center">
                 <Link href="/guide" className="text-primary hover:text-primary-light underline underline-offset-4">
                   {t('home.allFeatures.guideLink')}

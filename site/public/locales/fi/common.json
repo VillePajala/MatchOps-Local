@@ -1013,10 +1013,6 @@
         "teamSeason": "Joukkue ja kausi"
       },
       "items": {
-        "quickGoal": {
-          "title": "Maali meille",
-          "desc": "Yksi painallus, ja tulos päivittyy. Maalintekijän ja syöttäjän voi valita heti tai lisätä myöhemmin."
-        },
         "goalTimeline": {
           "title": "Ottelutapahtumat",
           "desc": "Maalit minuutteineen aikajärjestyksessä. Maalin voi korjata tai lisätä jälkikäteen."

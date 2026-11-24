@@ -1013,10 +1013,6 @@
         "teamSeason": "Team and season"
       },
       "items": {
-        "quickGoal": {
-          "title": "Goal for us",
-          "desc": "One tap and the score updates. Pick the scorer and assister now or add them later."
-        },
         "goalTimeline": {
           "title": "Match events",
           "desc": "Every goal with its minute, in order. Fix or add a goal afterwards."
