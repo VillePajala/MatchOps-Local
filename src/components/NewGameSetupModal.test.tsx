@@ -1491,6 +1491,64 @@ describe('NewGameSetupModal', () => {
       expect(call[call.length - 3]).toBeUndefined(); // no prefill payload
     });
 
+    /**
+     * The planner's "Luo ottelu": the form opens already prefilled from the
+     * planned game, linked to it, with the plan's team and squad.
+     * @critical
+     */
+    test('planSource opens the form prefilled from that planned game and links it', async () => {
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      const source = {
+        plan: {
+          ...planFixture,
+          teamId: 'team2',
+          players: [...planFixture.players, { id: 'gone', name: 'Removed' }],
+          games: [{ ...planFixture.games[0], label: 'Purppura', numberOfPeriods: 1 as const, periodMinutes: 20 }],
+        },
+        planGameId: 'pg1',
+      };
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} initialPlayerSelection={null} planSource={source} />
+        </ToastProvider>
+      );
+
+      // Opponent from the game's label; the plan's team; the plan selected in the picker.
+      expect(await screen.findByRole('textbox', { name: /Opponent Name/i })).toHaveValue('Purppura');
+      await waitFor(() =>
+        expect((screen.getByLabelText('Prefill from plan (optional)') as HTMLSelectElement).value).toBe('plan1'),
+      );
+      await waitFor(() => expect(screen.getAllByDisplayValue('Team Beta').length).toBeGreaterThan(0));
+      expect((document.getElementById('teamSelectTop') as HTMLSelectElement).value).toBe('team2');
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      // The plan's squad, limited to players still in the roster - not the team roster.
+      expect([...call[0]].sort()).toEqual(['player1', 'player2']);
+      expect(call[12]).toBe(1); // numPeriods from the planned game
+      expect(call[13]).toBe(20); // period minutes from the planned game
+      expect(call[20]).toBe('team2');
+      const prefillArg = call[call.length - 3];
+      expect(prefillArg.sourcePlanId).toBe('plan1');
+      expect(prefillArg.sourcePlanGameId).toBe('pg1');
+    });
+
+    test('planSource leaves the opponent empty for a placeholder label', async () => {
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} planSource={{ plan: planFixture, planGameId: 'pg1' }} />
+        </ToastProvider>
+      );
+      await waitFor(() =>
+        expect((screen.getByLabelText('Prefill from plan (optional)') as HTMLSelectElement).value).toBe('plan1'),
+      );
+      expect(screen.getByRole('textbox', { name: /Opponent Name/i })).toHaveValue('');
+    });
+
     test('picker stays hidden when there are no plans', async () => {
       renderModal();
       await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());

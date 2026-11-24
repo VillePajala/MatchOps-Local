@@ -58,6 +58,9 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import { getTeams } from '@/utils/teams';
+import { getAllPlanLinks } from '@/utils/playtimePlanner/planLinks';
+import { getPlans } from '@/utils/playtimePlanner/storage';
+import { planGameOrder } from '@/utils/playtimePlanner/createFromPlan';
 import { getAllPersonnel } from '@/utils/personnelManager';
 import { runMigration } from '@/utils/migration';
 import {
@@ -91,6 +94,20 @@ import { reloadApp, claimReloadAttempt, clearReloadOnce } from '@/utils/reloadAp
 
 // Toast display duration before force reload - allows user to see the notification
 const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
+
+/**
+ * Plan position of each game created from a playing-time plan, for Home's
+ * next-game order. Best effort: without it Home falls back to creation order.
+ */
+async function readPlanGameOrder(): Promise<ReturnType<typeof planGameOrder> | undefined> {
+  try {
+    const [links, plans] = await Promise.all([getAllPlanLinks(), getPlans()]);
+    return planGameOrder(links, plans);
+  } catch (err) {
+    logger.warn('Failed to read plan order for Home', { error: err });
+    return undefined;
+  }
+}
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
@@ -592,8 +609,9 @@ export default function Home() {
       );
       const signals = Promise.all([
         getSeasons(userId), getTournaments(userId), getTeams(userId), getAllPersonnel(userId),
+        readPlanGameOrder(),
       ])
-        .then(([seasonsList, tournamentsList, teamsList, personnel]) => {
+        .then(([seasonsList, tournamentsList, teamsList, personnel, planOrder]) => {
           setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
           setHasTeam(teamsList.length > 0);
           // Enrich the dashboard summary with entity counts + team names (for the
@@ -617,6 +635,7 @@ export default function Home() {
               personnelCount: personnel.length,
               seasonsCount: seasonsList.length,
               tournamentsCount: tournamentsList.length,
+              planOrder,
             })
           }
           return true;
@@ -654,7 +673,7 @@ export default function Home() {
 
   const refreshSetupSignals = useCallback(async () => {
     try {
-      const [roster, games, seasonsList, tournamentsList, teamsList, personnel] = await Promise.all([
+      const [roster, games, seasonsList, tournamentsList, teamsList, personnel, planOrder] = await Promise.all([
         // Guarded on its own: a transient roster read failure must not cancel
         // the rest of this refresh (null = unknown, keep what is shown).
         getMasterRoster(userId).catch((rosterErr) => {
@@ -668,6 +687,8 @@ export default function Home() {
         // Read here too: this refresh also runs after the personnel manager
         // closes, and the dashboard counts every entity, not only teams.
         getAllPersonnel(userId),
+        // Games created from a plan follow the plan's order on Home.
+        readPlanGameOrder(),
       ]);
       if (roster) setHasPlayers(roster.length > 0);
       // Also refreshed here so a cloud pull that brought or removed games updates
@@ -716,6 +737,7 @@ export default function Home() {
           seasonsCount: seasonsList.length,
           tournamentsCount: tournamentsList.length,
           personnelCount: personnel.length,
+          ...(planOrder ? { planOrder } : {}),
         });
       }
     } catch (err) {

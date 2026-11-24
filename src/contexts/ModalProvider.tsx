@@ -6,6 +6,16 @@ import type { Player } from '@/types';
 /** Live-match hooks for the host-level planner (L.3c). Registered by the
  *  match view while it is mounted; null on Home, where the planner operates
  *  on storage alone (no live game to flush or refresh). */
+/**
+ * Where the planner opens: one planned game of one plan. `tab` picks the plan
+ * tab to land on (default: the Games tab with that game showing).
+ */
+export interface PlannerTarget {
+  planId: string;
+  planGameId: string;
+  tab?: 'games' | 'plan';
+}
+
 export interface PlannerLiveGameHooks {
   /** Flush the loaded game's debounced autosave before bulk re-apply reads storage. */
   onFlushLiveGame: () => Promise<void>;
@@ -107,8 +117,8 @@ interface ModalContextValue {
    * the planner once consumed, so reopening it later lands on the manager
    * rather than silently reopening someone else's plan.
    */
-  plannerTarget: { planId: string; planGameId: string } | null;
-  setPlannerTarget: React.Dispatch<React.SetStateAction<{ planId: string; planGameId: string } | null>>;
+  plannerTarget: PlannerTarget | null;
+  setPlannerTarget: React.Dispatch<React.SetStateAction<PlannerTarget | null>>;
   /** The attendance sheet's game, or null when it is closed (renders in ClubModalsHost). */
   attendanceRequest: AttendanceRequest | null;
   setAttendanceRequest: React.Dispatch<React.SetStateAction<AttendanceRequest | null>>;
@@ -173,7 +183,7 @@ export const ModalProvider = ({ children, currentUserId }: {
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
   // L.3c: planner open-state + the match view's live-game hooks lifted here.
   const [isPlaytimePlannerOpen, setIsPlaytimePlannerOpen] = useState(false);
-  const [plannerTarget, setPlannerTarget] = useState<{ planId: string; planGameId: string } | null>(null);
+  const [plannerTarget, setPlannerTarget] = useState<PlannerTarget | null>(null);
   const [plannerLiveGameHooks, setPlannerLiveGameHooks] = useState<PlannerLiveGameHooks | null>(null);
   const [attendanceRequest, setAttendanceRequest] = useState<AttendanceRequest | null>(null);
   const [planQuickViewTarget, setPlanQuickViewTarget] = useState<PlanQuickViewTarget | null>(null);
