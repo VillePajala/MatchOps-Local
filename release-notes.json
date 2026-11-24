@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-24",
+      "en": ["Finnish instructions now say \"paina\" (press) instead of \"napauta\" (tap)."],
+      "fi": ["Ohjeissa lukee nyt \"paina\" eikä \"napauta\", samoin kuin sivustollamme."]
+    },
+    {
+      "date": "2026-11-24",
       "en": ["The goal list is now called Match events."],
       "fi": ["Maaliloki on nyt nimeltään Ottelutapahtumat, ja rangaistuspotkukilpailun tekstit käyttävät jalkapallon termejä: potku, potkaisija ja rangaistuspotkut."]
     },
