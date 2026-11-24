@@ -909,6 +909,7 @@
       "poytakirja": "Match sheet: the line-up with shirt numbers, final and half-time score and every goal with its minute",
       "plan": "Plan: players' minutes and substitutions on the field",
       "matchview": "Match view: players in their positions on the field and the match clock",
+      "quickgoal": "Who scored? sheet after a goal: the players' names, Skip and Next: who assisted?",
       "finish": "Finish this game: result, date, venue, line-up and match events",
       "attendance": "Who is here? Absent players tapped out, 12 of 14 here",
       "tacticalBoard": "Tactics board with runs drawn on the field",
@@ -942,7 +943,7 @@
       },
       "record": {
         "title": "Record",
-        "desc": "After the game the match sheet is ready to copy, and you can share the match report with the team. Stats build up from every game on their own."
+        "desc": "After the game the match sheet is ready to copy, and you can share the match report. Stats build up from every game on their own."
       }
     },
     "spotlights": {
@@ -955,6 +956,16 @@
         "eyebrow": "Tournament day",
         "title": "The whole tournament day in one go",
         "desc": "Plan the starting line-ups and substitutions for several games at once. Each player's planned minutes and positions across all the games are colour-coded. When you change one game, you see straight away how it affects the whole."
+      },
+      "goals": {
+        "eyebrow": "During the game",
+        "title": "Goals and assists",
+        "desc": "Goals and assists take just a few taps. The score, the timeline of events and the overall statistics build up automatically."
+      },
+      "lineup": {
+        "eyebrow": "On the pitch",
+        "title": "Line-up on the pitch",
+        "desc": "Players are already on the pitch in the formation you chose. Change positions and subs with a few taps. Positions go straight into the match sheet and the match report."
       },
       "attendance": {
         "eyebrow": "Who is here?",
@@ -973,7 +984,7 @@
         "desc": "Write a few lines under ready headings: what went well, what to work on, what comes next. When you share the report, the score, match events and players' positions go with it."
       },
       "positionBalance": {
-        "title": "Positions across the season",
+        "title": "Position spread",
         "desc": "See each player's spread of positions over a longer period."
       },
       "nextMatch": {
@@ -1002,10 +1013,6 @@
         "teamSeason": "Team and season"
       },
       "items": {
-        "quickGoal": {
-          "title": "Goal for us",
-          "desc": "One tap and the score updates. Pick the scorer and assister now or add them later."
-        },
         "goalTimeline": {
           "title": "Match events",
           "desc": "Every goal with its minute, in order. Fix or add a goal afterwards."
@@ -1048,7 +1055,7 @@
         },
         "tournaments": {
           "title": "Tournaments",
-          "desc": "Tournaments with levels and placements, plus tournament stats."
+          "desc": "Link games to a tournament and follow the tournament's stats."
         },
         "friendlies": {
           "title": "Friendlies",
@@ -1059,30 +1066,6 @@
           "desc": "Your data is saved to your account, so it stays with you even if you change phones."
         }
       }
-    },
-    "kids": {
-      "eyebrow": "Privacy",
-      "title": "Kids' data: what is stored and where",
-      "items": {
-        "what": {
-          "title": "What is stored",
-          "desc": "The player's first name or nickname, shirt number, match events such as playing time, goals and assists, and the coach's own notes."
-        },
-        "where": {
-          "title": "Where",
-          "desc": "On your phone and in your account on a server in the EU (Stockholm, Sweden). The data is never sold or used for advertising."
-        },
-        "who": {
-          "title": "Who decides",
-          "desc": "You as the coach, or your club. You decide what you record."
-        },
-        "delete": {
-          "title": "Deleting",
-          "desc": "Delete the data or your whole account at any time in Settings → Data."
-        }
-      },
-      "notice": "The app has a ready notice for families: Settings → Data → Notice to players' families. Copy it and send it to the team's group chat.",
-      "privacyLink": "Read the privacy policy"
     },
     "faq": {
       "title": "Frequently asked questions",

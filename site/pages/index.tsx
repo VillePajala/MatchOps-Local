@@ -28,8 +28,8 @@ const getScreenshots = (locale: string | undefined) => {
     timer: shot('timer'), // big match clock, Maali meille / Vastustaja +1, next sub
     planner: shot('planner'), // Ottelusuunnittelu: minutes per player, colour-coded
     poytakirja: shot('poytakirja'), // Pöytäkirja text with the Kopioi button
-    plan: shot('plan'), // one-game plan on the field
     matchview: shot('matchview'), // match view with players in position
+    quickgoal: shot('quickgoal'), // Kuka teki? sheet after Maali meille, Seuraavaksi: kuka syötti?
     finish: shot('finish'), // Viimeistele ottelu
     attendance: shot('attendance'), // Ketkä ovat paikalla?
     nextMatch: shot('nextmatch'),
@@ -40,6 +40,25 @@ const getScreenshots = (locale: string | undefined) => {
     futsal: shot('futsal'),
     playerStats: shot('playerstats'),
   };
+};
+
+// The collapsed "all features" cards: one screenshot per item (same naming as above).
+const allFeatureShot = (locale: string | undefined, item: string) =>
+  `/screenshots/MatchOps_v3_${ALL_FEATURE_SHOTS[item]}_${locale === 'en' ? 'en' : 'fi'}.jpg`;
+const ALL_FEATURE_SHOTS: Record<string, string> = {
+  goalTimeline: 'goallog', // Ottelutapahtumat on Viimeistele ottelu
+  overtime: 'overtime', // full time level: the Jatkoaika panel with Rangaistuspotkut
+  formations: 'formations', // Pelimuodostelmat
+  positions: 'positions', // Toteutuneet pelipaikat on Viimeistele ottelu
+  excelExport: 'excelexport', // Sarjatilastot with Vie Excel
+  archive: 'archive', // Tallennetut pelit: search, sort, filter
+  roster: 'roster', // Pelaajan tiedot: name, nickname, shirt number
+  teams: 'teams',
+  personnel: 'personnel',
+  seasons: 'seasons', // Sarjat
+  tournaments: 'tournaments', // Turnaukset with levels
+  friendlies: 'friendlies', // Harjoitusottelu switch in the new-game form
+  cloudSync: 'cloudsync', // Asetukset > Tili: cloud sync on, last synced
 };
 
 type FaqItem = { q: string; a: string };
@@ -75,6 +94,8 @@ export default function HomePage() {
   const locale = router.locale === 'en' ? 'en' : 'fi';
   const s = getScreenshots(locale);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  // The all-features cards render only once opened, so their screenshots never load with the page.
+  const [allFeaturesOpen, setAllFeaturesOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 800);
@@ -117,14 +138,18 @@ export default function HomePage() {
   const trust = ['free', 'noAds', 'eu', 'taso'] as const;
 
   const steps = [
-    { key: 'plan', screenshot: s.plan, alt: 'plan' },
-    { key: 'rotate', screenshot: s.matchview, alt: 'matchview' },
+    { key: 'plan', screenshot: s.planner, alt: 'planner' },
+    { key: 'rotate', screenshot: s.timer, alt: 'timer' },
     { key: 'record', screenshot: s.poytakirja, alt: 'poytakirja' },
   ] as const;
 
+  // Match-day order: plan, goals during the game, the line-up on the pitch, the
+  // match sheet afterwards, then the attendance re-plan.
   const spotlights = [
-    { key: 'taso', screenshot: s.finish, alt: 'finish' },
     { key: 'planner', screenshot: s.planner, alt: 'planner' },
+    { key: 'goals', screenshot: s.quickgoal, alt: 'quickgoal' },
+    { key: 'lineup', screenshot: s.matchview, alt: 'matchview' },
+    { key: 'taso', screenshot: s.finish, alt: 'finish' },
     { key: 'attendance', screenshot: s.attendance, alt: 'attendance' },
   ] as const;
 
@@ -139,7 +164,7 @@ export default function HomePage() {
   ];
 
   const allFeatureGroups = [
-    { group: 'gameDay', items: ['quickGoal', 'goalTimeline', 'overtime', 'formations'] },
+    { group: 'gameDay', items: ['goalTimeline', 'overtime', 'formations'] },
     { group: 'afterGame', items: ['positions', 'excelExport', 'archive'] },
     {
       group: 'teamSeason',
@@ -156,18 +181,18 @@ export default function HomePage() {
           <GlowBg color="amber" position="bottom-left" size="sm" blur={130} />
         </div>
         <div className="container-custom relative z-10">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12 max-w-6xl mx-auto">
-            <div className="text-center lg:text-left">
+          <div className="grid items-center gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] xl:gap-20 max-w-7xl mx-auto">
+            <div className="text-center xl:text-left max-w-2xl mx-auto xl:max-w-none">
               <p className="text-xs md:text-sm font-semibold text-primary uppercase tracking-wider mb-3">
                 {t('home.hero.eyebrow')}
               </p>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.05] mb-4">
+              <h1 className="text-4xl md:text-5xl 2xl:text-6xl font-bold text-white leading-[1.05] mb-4">
                 {t('home.hero.title')}
               </h1>
-              <p className="text-lg md:text-xl text-slate-300 mb-6 max-w-xl mx-auto lg:mx-0">
+              <p className="text-lg md:text-xl text-slate-300 mb-6 max-w-xl mx-auto xl:mx-0">
                 {t('home.hero.subtitle')}
               </p>
-              <div className="flex flex-col items-center lg:items-start gap-2 mb-6">
+              <div className="flex flex-col items-center xl:items-start gap-2 mb-6">
                 <PlayBadge
                   placement="hero"
                   locale={locale}
@@ -177,7 +202,7 @@ export default function HomePage() {
                 />
                 <p className="text-sm text-slate-400">{t('home.hero.platform')}</p>
               </div>
-              <ul className="flex flex-wrap justify-center lg:justify-start gap-x-4 gap-y-2 text-sm text-slate-200">
+              <ul className="flex flex-wrap justify-center xl:justify-start gap-x-4 gap-y-2 text-sm text-slate-200">
                 {trust.map((key) => (
                   <li key={key} className="flex items-center gap-1.5">
                     <FaCheck className="h-3 w-3 text-primary" aria-hidden="true" />
@@ -187,29 +212,30 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Phones: one on small screens, a fan of three on large ones */}
+            {/* Phones: the field on small screens; on large ones a fan of three with the
+                field in front - the clock and the planner tilted behind it. */}
             <div className="relative flex justify-center">
               <div className="lg:hidden w-[240px] max-w-[70vw]">
-                <PhoneMockup screenshot={s.timer} alt={t('home.alt.timer')} size="2xl" priority />
+                <PhoneMockup screenshot={s.matchview} alt={t('home.alt.matchview')} size="2xl" priority />
               </div>
-              <div className="hidden lg:block relative h-[600px] w-full">
+              <div className="hidden lg:block relative h-[600px] w-full max-w-[620px]">
+                <PhoneMockup
+                  screenshot={s.timer}
+                  alt={t('home.alt.timer')}
+                  size="xl"
+                  style={{ position: 'absolute', left: '0%', top: '50%', transform: 'translateY(-50%) rotate(-7deg)' }}
+                  zIndex={1}
+                />
                 <PhoneMockup
                   screenshot={s.planner}
                   alt={t('home.alt.planner')}
                   size="xl"
-                  style={{ position: 'absolute', left: '2%', top: '50%', transform: 'translateY(-50%) rotate(-6deg)' }}
+                  style={{ position: 'absolute', right: '0%', top: '50%', transform: 'translateY(-50%) rotate(7deg)' }}
                   zIndex={1}
                 />
                 <PhoneMockup
-                  screenshot={s.poytakirja}
-                  alt={t('home.alt.poytakirja')}
-                  size="xl"
-                  style={{ position: 'absolute', right: '2%', top: '50%', transform: 'translateY(-50%) rotate(6deg)' }}
-                  zIndex={1}
-                />
-                <PhoneMockup
-                  screenshot={s.timer}
-                  alt={t('home.alt.timer')}
+                  screenshot={s.matchview}
+                  alt={t('home.alt.matchview')}
                   size="2xl"
                   style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
                   zIndex={10}
@@ -291,7 +317,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== SPOTLIGHTS: Taso, tournament day, absences ===== */}
+      {/* ===== SPOTLIGHTS: planner, goals, line-up, match sheet, absences ===== */}
       <section className="section section-divider bg-slate-800/40">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">
@@ -328,11 +354,11 @@ export default function HomePage() {
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 text-center">{t('home.features.title')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6">
               {features.map((f) => (
                 <div
                   key={f.key}
-                  className="bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center gap-4 text-left lg:text-center"
+                  className="w-full sm:w-[calc(50%-0.5rem)] md:w-[calc(50%-0.75rem)] lg:w-[calc(25%-1.125rem)] bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center lg:justify-start gap-4 text-left lg:text-center"
                 >
                   <div className="flex-shrink-0 w-[96px] lg:w-[160px]">
                     <PhoneMockup
@@ -349,64 +375,51 @@ export default function HomePage() {
               ))}
             </div>
 
-            <details className="group mt-10 rounded-lg border border-slate-700/50 bg-slate-800/40">
+            <details
+              className="group mt-10 rounded-lg border border-slate-700/50 bg-slate-800/40"
+              onToggle={(e) => setAllFeaturesOpen((e.currentTarget as HTMLDetailsElement).open)}
+            >
               <summary className="flex cursor-pointer list-none items-center justify-center gap-2 px-4 py-4 text-primary font-semibold [&::-webkit-details-marker]:hidden">
                 {t('home.allFeatures.summary')}
                 <FaChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" aria-hidden="true" />
               </summary>
-              <div className="grid gap-8 px-5 pb-6 md:grid-cols-3">
-                {allFeatureGroups.map((g) => (
-                  <div key={g.group}>
-                    <h3 className="text-lg font-bold text-white mb-3">{t(`home.allFeatures.groups.${g.group}`)}</h3>
-                    <ul className="space-y-3">
-                      {g.items.map((item) => (
-                        <li key={item}>
-                          <div className="text-slate-100 font-semibold">
-                            {t(`home.allFeatures.items.${item}.title`)}
+              {allFeaturesOpen && (
+                <div className="space-y-10 px-4 pb-6 md:px-5">
+                  {allFeatureGroups.map((g) => (
+                    <div key={g.group}>
+                      <h3 className="text-xl font-bold text-white mb-4 text-center">{t(`home.allFeatures.groups.${g.group}`)}</h3>
+                      <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+                        {g.items.map((item) => (
+                          <div
+                            key={item}
+                            className="w-full sm:w-[calc(50%-0.5rem)] md:w-[calc(50%-0.75rem)] lg:w-[calc(25%-1.125rem)] bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center lg:justify-start gap-4 text-left lg:text-center"
+                          >
+                            <div className="flex-shrink-0 w-[96px] lg:w-[160px]">
+                              <PhoneMockup
+                                screenshot={allFeatureShot(locale, item)}
+                                alt={t(`home.allFeatures.items.${item}.title`)}
+                                size="lg"
+                              />
+                            </div>
+                            <div>
+                              <h4 className="text-white text-lg font-bold mb-1 hyphens-auto break-words">
+                                {t(`home.allFeatures.items.${item}.title`)}
+                              </h4>
+                              <p className="text-slate-400 text-sm">{t(`home.allFeatures.items.${item}.desc`)}</p>
+                            </div>
                           </div>
-                          <p className="text-slate-400 text-sm">{t(`home.allFeatures.items.${item}.desc`)}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <p className="px-5 pb-6 text-center">
                 <Link href="/guide" className="text-primary hover:text-primary-light underline underline-offset-4">
                   {t('home.allFeatures.guideLink')}
                 </Link>
               </p>
             </details>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== KIDS' DATA ===== */}
-      <section className="section section-divider bg-slate-800/50">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            <div>
-              <div className="text-primary text-sm font-semibold uppercase tracking-wider mb-2">
-                {t('home.kids.eyebrow')}
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">{t('home.kids.title')}</h2>
-              <dl className="grid gap-5 sm:grid-cols-2">
-                {(['what', 'where', 'who', 'delete'] as const).map((key) => (
-                  <div key={key}>
-                    <dt className="text-white font-semibold mb-1">{t(`home.kids.items.${key}.title`)}</dt>
-                    <dd className="text-slate-300 text-sm">{t(`home.kids.items.${key}.desc`)}</dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="mt-6 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-slate-200">
-                {t('home.kids.notice')}
-              </p>
-              <p className="mt-4 text-sm">
-                <Link href="/privacy" className="text-primary hover:text-primary-light underline underline-offset-4">
-                  {t('home.kids.privacyLink')}
-                </Link>
-              </p>
-            </div>
           </div>
         </div>
       </section>
