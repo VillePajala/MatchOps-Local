@@ -44,7 +44,7 @@ export const guideSections: GuideSection[] = [
     title: 'Quick Start',
     titleFi: 'Pikaopas',
     description: 'Free account, your team, the first plan, and the basic and full layouts',
-    descriptionFi: 'Ilmainen tili, joukkue, ensimmäinen suunnitelma sekä Perusnäkymä ja Koko näkymä',
+    descriptionFi: 'Ilmainen tili, joukkue ja ensimmäinen suunnitelma sekä Perusnäkymä ja Koko näkymä',
     icon: FaRocket,
     order: 1,
     group: 'getting-started',
@@ -53,7 +53,7 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'full-setup-path',
     title: 'Full Layout: Recommended Setup',
-    titleFi: 'Koko näkymän käyttöönotto',
+    titleFi: 'Näin otat Koko näkymän käyttöön',
     description: 'Players, staff, leagues, tournaments and teams in the full layout',
     descriptionFi: 'Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet Koko näkymässä',
     icon: FaRoute,
@@ -96,7 +96,7 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'before-the-game',
     title: 'Before the Game: the Plan and Who Is Here?',
-    titleFi: 'Ennen peliä: suunnitelma ja Ketkä ovat paikalla?',
+    titleFi: 'Ennen peliä: suunnitelma ja poissaolijat',
     description: 'The game plan, sharing it, absences and planning several games',
     descriptionFi: 'Pelin suunnitelma, jakaminen, poissaolijat ja usean pelin suunnittelu',
     icon: FaClipboardList,
@@ -157,9 +157,9 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'troubleshooting',
     title: 'Troubleshooting',
-    titleFi: 'Vianetsintä',
+    titleFi: 'Ongelmatilanteet',
     description: 'Common issues and solutions',
-    descriptionFi: 'Yleiset ongelmat ja ratkaisut',
+    descriptionFi: 'Yleisimmät ongelmat ja niiden ratkaisut',
     icon: FaExclamationTriangle,
     order: 12,
     group: 'review',
@@ -167,7 +167,7 @@ export const guideSections: GuideSection[] = [
   {
     slug: 'tips-best-practices',
     title: 'Tips & Best Practices',
-    titleFi: 'Vinkit ja hyvät käytännöt',
+    titleFi: 'Käytännön vinkit',
     description: 'Get the most out of MatchOps',
     descriptionFi: 'Näin saat MatchOpsista eniten irti',
     icon: FaLightbulb,

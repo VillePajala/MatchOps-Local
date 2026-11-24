@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-24",
+      "en": ["Finnish wording polished in the app: clearer names for the connection status, a player's match list and the match menu's extras."],
+      "fi": ["Suomenkielisiä tekstejä on hiottu: yhteyden tila on nyt \"Ei yhteyttä\", pelaajan Otteluloki on \"Pelatut ottelut\" ja ottelun valikon Resurssit on \"Apuvälineet\"."]
+    },
+    {
+      "date": "2026-11-24",
       "en": ["The match sheet is now described as what it is: all the match details in one place for filling in the official match sheet, for example in Taso."],
       "fi": ["Pöytäkirjan kuvaus kertoo nyt, mitä se on: kaikki ottelun tiedot yhdessä paikassa pöytäkirjan täyttämiseen, esimerkiksi Tasoon."]
     },
