@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-24",
+      "en": ["The match sheet is now described as what it is: all the match details in one place for filling in the official match sheet, for example in Taso."],
+      "fi": ["Pöytäkirjan kuvaus kertoo nyt, mitä se on: kaikki ottelun tiedot yhdessä paikassa pöytäkirjan täyttämiseen, esimerkiksi Tasoon."]
+    },
+    {
+      "date": "2026-11-24",
       "en": ["Finnish instructions now say \"paina\" (press) instead of \"napauta\" (tap)."],
       "fi": ["Ohjeissa lukee nyt \"paina\" eikä \"napauta\", samoin kuin sivustollamme."]
     },

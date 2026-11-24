@@ -20,7 +20,7 @@
   "taso": {
     "button": "Match sheet",
     "title": "Match sheet",
-    "subtitle": "The match data, ready to copy.",
+    "subtitle": "Match details ready for filling in the match sheet.",
     "lineupTitle": "Squad",
     "reportTitle": "Match sheet",
     "halfTime": "half-time",
@@ -1472,7 +1472,7 @@
     "dictationTip": "Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.",
     "finishTitle": "Finishing the match",
     "finishStart": "At full time tap \"Finish this game\".",
-    "finishSheet": "Match sheet: a copy-ready text of the match data that you can paste into any system.",
+    "finishSheet": "Match sheet: every match detail in one place when you fill in the match sheet, for example in Taso.",
     "finishReport": "Match report: your own text - write it, dictate it or make an AI draft. \"Share match report\" sends it on.",
     "drawingTools": "Drawing & Tactical Tools",
     "drawingToolsNote": "After clicking Tactics Board, you can:",
