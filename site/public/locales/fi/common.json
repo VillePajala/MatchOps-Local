@@ -909,6 +909,7 @@
       "poytakirja": "Pöytäkirja: kokoonpano pelinumeroineen, lopputulos, puoliaikatilanne ja maalit minuutteineen",
       "plan": "Suunnitelma: pelaajien peliminuutit ja vaihdot kentällä",
       "matchview": "Ottelunäkymä: pelaajat kentällä pelipaikoillaan ja ottelukello",
+      "quickgoal": "Kuka teki? -valinta maalin jälkeen: pelaajien nimet, Ohita ja Seuraavaksi: kuka syötti?",
       "finish": "Viimeistele ottelu: tulos, päivä, paikka, kokoonpano ja ottelutapahtumat",
       "attendance": "Ketkä ovat paikalla? Poissaolijat napautettu pois, paikalla 12/14",
       "tacticalBoard": "Taktiikkataulu, johon on piirretty liikkeitä",
@@ -942,7 +943,7 @@
       },
       "record": {
         "title": "Kirjaa",
-        "desc": "Pelin jälkeen pöytäkirja on valmiina kopioitavaksi, ja otteluraportin voi jakaa joukkueelle. Tilastot kertyvät jokaisesta pelistä itsestään."
+        "desc": "Pelin jälkeen pöytäkirja on valmiina kopioitavaksi, ja otteluraportin voi jakaa. Tilastot kertyvät jokaisesta pelistä itsestään."
       }
     },
     "spotlights": {
@@ -955,6 +956,16 @@
         "eyebrow": "Turnauspäivä",
         "title": "Koko turnauspäivä kerralla",
         "desc": "Suunnittele aloituskokoonpanot ja vaihdot useaan peliin kerralla. Jokaisen pelaajan suunnitellut peliminuutit ja pelipaikat näkyvät värikoodattuina kaikista peleistä. Kun muutat yhtä peliä, näet heti, miten se vaikuttaa kokonaisuuteen."
+      },
+      "goals": {
+        "eyebrow": "Pelin aikana",
+        "title": "Maalit ja syötöt",
+        "desc": "Napauta Maali meille, niin tulos päivittyy ja maalin aika tallentuu. Valitse sitten maalintekijä ja syöttäjä nimistä. Jos tilanne on kiireinen, ohita ja lisää ne myöhemmin. Vastustajan maalin kirjaat yhdellä napautuksella. Maalit ja syötöt kertyvät pelaajien tilastoihin."
+      },
+      "lineup": {
+        "eyebrow": "Kentällä",
+        "title": "Kokoonpano kentällä",
+        "desc": "Napauta pelaajaa pelaajapalkissa ja sitten kohtaa kentällä, niin pelaaja on paikallaan. Pelipaikka näkyy pelaajan alla, ja se tulee mukaan pöytäkirjaan ja otteluraporttiin. Pelin jälkeen merkitset toteutuneet pelipaikat, ja niistä kertyy jokaisen pelaajan pelipaikkajakauma."
       },
       "attendance": {
         "eyebrow": "Ketkä ovat paikalla?",
@@ -973,7 +984,7 @@
         "desc": "Kirjoita muutama rivi valmiiden otsikoiden alle: mikä toimi, mitä harjoitellaan, mitä seuraavaksi. Kun jaat raportin, mukaan tulevat tulos, ottelutapahtumat ja pelaajien pelipaikat."
       },
       "positionBalance": {
-        "title": "Pelipaikat koko kaudelta",
+        "title": "Pelipaikkojen jakauma",
         "desc": "Näet jokaisen pelaajan pelipaikkojen jakauman pidemmällä aikavälillä."
       },
       "nextMatch": {

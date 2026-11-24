@@ -28,8 +28,8 @@ const getScreenshots = (locale: string | undefined) => {
     timer: shot('timer'), // big match clock, Maali meille / Vastustaja +1, next sub
     planner: shot('planner'), // Ottelusuunnittelu: minutes per player, colour-coded
     poytakirja: shot('poytakirja'), // Pöytäkirja text with the Kopioi button
-    plan: shot('plan'), // one-game plan on the field
     matchview: shot('matchview'), // match view with players in position
+    quickgoal: shot('quickgoal'), // Kuka teki? sheet after Maali meille, Seuraavaksi: kuka syötti?
     finish: shot('finish'), // Viimeistele ottelu
     attendance: shot('attendance'), // Ketkä ovat paikalla?
     nextMatch: shot('nextmatch'),
@@ -117,14 +117,18 @@ export default function HomePage() {
   const trust = ['free', 'noAds', 'eu', 'taso'] as const;
 
   const steps = [
-    { key: 'plan', screenshot: s.plan, alt: 'plan' },
-    { key: 'rotate', screenshot: s.matchview, alt: 'matchview' },
+    { key: 'plan', screenshot: s.planner, alt: 'planner' },
+    { key: 'rotate', screenshot: s.timer, alt: 'timer' },
     { key: 'record', screenshot: s.poytakirja, alt: 'poytakirja' },
   ] as const;
 
+  // Match-day order: plan, goals during the game, the line-up on the pitch, the
+  // match sheet afterwards, then the attendance re-plan.
   const spotlights = [
-    { key: 'taso', screenshot: s.finish, alt: 'finish' },
     { key: 'planner', screenshot: s.planner, alt: 'planner' },
+    { key: 'goals', screenshot: s.quickgoal, alt: 'quickgoal' },
+    { key: 'lineup', screenshot: s.matchview, alt: 'matchview' },
+    { key: 'taso', screenshot: s.finish, alt: 'finish' },
     { key: 'attendance', screenshot: s.attendance, alt: 'attendance' },
   ] as const;
 
@@ -156,18 +160,18 @@ export default function HomePage() {
           <GlowBg color="amber" position="bottom-left" size="sm" blur={130} />
         </div>
         <div className="container-custom relative z-10">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12 max-w-6xl mx-auto">
-            <div className="text-center lg:text-left">
+          <div className="grid items-center gap-10 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] xl:gap-8 max-w-7xl mx-auto">
+            <div className="text-center xl:text-left max-w-2xl mx-auto xl:max-w-none">
               <p className="text-xs md:text-sm font-semibold text-primary uppercase tracking-wider mb-3">
                 {t('home.hero.eyebrow')}
               </p>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.05] mb-4">
+              <h1 className="text-4xl md:text-5xl 2xl:text-6xl font-bold text-white leading-[1.05] mb-4">
                 {t('home.hero.title')}
               </h1>
-              <p className="text-lg md:text-xl text-slate-300 mb-6 max-w-xl mx-auto lg:mx-0">
+              <p className="text-lg md:text-xl text-slate-300 mb-6 max-w-xl mx-auto xl:mx-0">
                 {t('home.hero.subtitle')}
               </p>
-              <div className="flex flex-col items-center lg:items-start gap-2 mb-6">
+              <div className="flex flex-col items-center xl:items-start gap-2 mb-6">
                 <PlayBadge
                   placement="hero"
                   locale={locale}
@@ -177,7 +181,7 @@ export default function HomePage() {
                 />
                 <p className="text-sm text-slate-400">{t('home.hero.platform')}</p>
               </div>
-              <ul className="flex flex-wrap justify-center lg:justify-start gap-x-4 gap-y-2 text-sm text-slate-200">
+              <ul className="flex flex-wrap justify-center xl:justify-start gap-x-4 gap-y-2 text-sm text-slate-200">
                 {trust.map((key) => (
                   <li key={key} className="flex items-center gap-1.5">
                     <FaCheck className="h-3 w-3 text-primary" aria-hidden="true" />
@@ -187,33 +191,41 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Phones: one on small screens, a fan of three on large ones */}
+            {/* Phones: the field on small screens; on large ones the match day left to
+                right - plan, the match on the field, the clock, the match sheet. */}
             <div className="relative flex justify-center">
               <div className="lg:hidden w-[240px] max-w-[70vw]">
-                <PhoneMockup screenshot={s.timer} alt={t('home.alt.timer')} size="2xl" priority />
+                <PhoneMockup screenshot={s.matchview} alt={t('home.alt.matchview')} size="2xl" priority />
               </div>
-              <div className="hidden lg:block relative h-[600px] w-full">
+              <div className="hidden lg:flex items-center justify-center py-6">
                 <PhoneMockup
                   screenshot={s.planner}
                   alt={t('home.alt.planner')}
-                  size="xl"
-                  style={{ position: 'absolute', left: '2%', top: '50%', transform: 'translateY(-50%) rotate(-6deg)' }}
+                  size="lg"
+                  style={{ width: 160, marginRight: -24, transform: 'translateY(24px) rotate(-4deg)' }}
                   zIndex={1}
                 />
                 <PhoneMockup
-                  screenshot={s.poytakirja}
-                  alt={t('home.alt.poytakirja')}
+                  screenshot={s.matchview}
+                  alt={t('home.alt.matchview')}
                   size="xl"
-                  style={{ position: 'absolute', right: '2%', top: '50%', transform: 'translateY(-50%) rotate(6deg)' }}
-                  zIndex={1}
+                  style={{ marginRight: 8 }}
+                  zIndex={10}
+                  priority
                 />
                 <PhoneMockup
                   screenshot={s.timer}
                   alt={t('home.alt.timer')}
-                  size="2xl"
-                  style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+                  size="xl"
                   zIndex={10}
                   priority
+                />
+                <PhoneMockup
+                  screenshot={s.poytakirja}
+                  alt={t('home.alt.poytakirja')}
+                  size="lg"
+                  style={{ width: 160, marginLeft: -24, transform: 'translateY(24px) rotate(4deg)' }}
+                  zIndex={1}
                 />
               </div>
             </div>
@@ -291,7 +303,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== SPOTLIGHTS: Taso, tournament day, absences ===== */}
+      {/* ===== SPOTLIGHTS: planner, goals, line-up, match sheet, absences ===== */}
       <section className="section section-divider bg-slate-800/40">
         <div className="container-custom">
           <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">

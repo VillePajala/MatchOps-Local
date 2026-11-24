@@ -909,6 +909,7 @@
       "poytakirja": "Match sheet: the line-up with shirt numbers, final and half-time score and every goal with its minute",
       "plan": "Plan: players' minutes and substitutions on the field",
       "matchview": "Match view: players in their positions on the field and the match clock",
+      "quickgoal": "Who scored? sheet after a goal: the players' names, Skip and Next: who assisted?",
       "finish": "Finish this game: result, date, venue, line-up and match events",
       "attendance": "Who is here? Absent players tapped out, 12 of 14 here",
       "tacticalBoard": "Tactics board with runs drawn on the field",
@@ -942,7 +943,7 @@
       },
       "record": {
         "title": "Record",
-        "desc": "After the game the match sheet is ready to copy, and you can share the match report with the team. Stats build up from every game on their own."
+        "desc": "After the game the match sheet is ready to copy, and you can share the match report. Stats build up from every game on their own."
       }
     },
     "spotlights": {
@@ -955,6 +956,16 @@
         "eyebrow": "Tournament day",
         "title": "The whole tournament day in one go",
         "desc": "Plan the starting line-ups and substitutions for several games at once. Each player's planned minutes and positions across all the games are colour-coded. When you change one game, you see straight away how it affects the whole."
+      },
+      "goals": {
+        "eyebrow": "During the game",
+        "title": "Goals and assists",
+        "desc": "Tap Goal for us and the score updates, with the time of the goal saved. Then pick the scorer and the assister from the names. If things are busy, skip and add them later. An opponent goal is one tap. Goals and assists add up in each player's stats."
+      },
+      "lineup": {
+        "eyebrow": "On the pitch",
+        "title": "Line-up on the pitch",
+        "desc": "Tap a player in the player bar, then tap the spot on the pitch, and they are in place. The position shows under the player and goes into the match sheet and the match report. After the game you mark the positions actually played, and they build up into each player's position spread."
       },
       "attendance": {
         "eyebrow": "Who is here?",
@@ -973,7 +984,7 @@
         "desc": "Write a few lines under ready headings: what went well, what to work on, what comes next. When you share the report, the score, match events and players' positions go with it."
       },
       "positionBalance": {
-        "title": "Positions across the season",
+        "title": "Position spread",
         "desc": "See each player's spread of positions over a longer period."
       },
       "nextMatch": {
