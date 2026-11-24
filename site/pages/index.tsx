@@ -354,11 +354,11 @@ export default function HomePage() {
         <div className="container-custom">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 text-center">{t('home.features.title')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6">
               {features.map((f) => (
                 <div
                   key={f.key}
-                  className="bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center gap-4 text-left lg:text-center"
+                  className="w-full sm:w-[calc(50%-0.5rem)] md:w-[calc(50%-0.75rem)] lg:w-[calc(25%-1.125rem)] bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center lg:justify-start gap-4 text-left lg:text-center"
                 >
                   <div className="flex-shrink-0 w-[96px] lg:w-[160px]">
                     <PhoneMockup
@@ -387,12 +387,12 @@ export default function HomePage() {
                 <div className="space-y-10 px-4 pb-6 md:px-5">
                   {allFeatureGroups.map((g) => (
                     <div key={g.group}>
-                      <h3 className="text-xl font-bold text-white mb-4">{t(`home.allFeatures.groups.${g.group}`)}</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                      <h3 className="text-xl font-bold text-white mb-4 text-center">{t(`home.allFeatures.groups.${g.group}`)}</h3>
+                      <div className="flex flex-wrap justify-center gap-4 md:gap-6">
                         {g.items.map((item) => (
                           <div
                             key={item}
-                            className="bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center gap-4 text-left lg:text-center"
+                            className="w-full sm:w-[calc(50%-0.5rem)] md:w-[calc(50%-0.75rem)] lg:w-[calc(25%-1.125rem)] bg-gradient-to-br from-slate-800/80 to-slate-900 rounded-lg p-4 md:p-5 border border-slate-700/40 flex flex-row lg:flex-col items-center lg:justify-start gap-4 text-left lg:text-center"
                           >
                             <div className="flex-shrink-0 w-[96px] lg:w-[160px]">
                               <PhoneMockup
