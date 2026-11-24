@@ -20,7 +20,7 @@
   "taso": {
     "button": "Pöytäkirja",
     "title": "Pöytäkirja",
-    "subtitle": "Ottelun tiedot valmiina kopioitavaksi.",
+    "subtitle": "Ottelun tiedot valmiina pöytäkirjan täyttämiseen.",
     "lineupTitle": "Kokoonpano",
     "reportTitle": "Pöytäkirja",
     "halfTime": "puoliaika",
@@ -1323,7 +1323,7 @@
     "dictationTip": "Pidä ison kellon mikrofonipainiketta pohjassa sanellaksesi äänimuistiinpanon - se pysyy puhelimessasi.",
     "finishTitle": "Ottelun viimeistely",
     "finishStart": "Täyden ajan jälkeen paina \"Viimeistele ottelu\".",
-    "finishSheet": "Pöytäkirja: kopioitavaksi valmis teksti ottelun tiedoista, jonka voit liittää mihin tahansa järjestelmään.",
+    "finishSheet": "Pöytäkirja: kaikki ottelun tiedot yhdessä paikassa, kun täytät pöytäkirjaa esimerkiksi Tasoon.",
     "finishReport": "Otteluraportti: oma tekstisi - kirjoita se, sanele se tai tee tekoälyluonnos. \"Jaa otteluraportti\" lähettää sen eteenpäin.",
     "drawingTools": "Piirto- ja taktiikat-työkalut",
     "drawingToolsNote": "Taktiikat-painikkeella pääset:",

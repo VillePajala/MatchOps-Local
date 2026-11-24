@@ -1158,7 +1158,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         </>
       ),
     });
-    // The match sheet: the official report text, ready to copy (was "for Taso").
+    // The match sheet: every match detail needed to fill in the official match sheet (e.g. Taso).
     spineSteps.push({
       key: 'taso',
       content: (
@@ -1833,7 +1833,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           onClose={() => setShowTaso(false)}
           recap={tasoText}
           title={t('taso.title', 'Match sheet')}
-          subtitle={t('taso.subtitle', 'The match data, ready to copy.')}
+          subtitle={t('taso.subtitle', 'Match details ready for filling in the match sheet.')}
         />
         {/* Rendered here as well as from the competitions manager: the tool is
             self-contained, and the point of the banner above is that a coach

@@ -180,7 +180,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div>
               <ul className={list}>
                 <li>{t('firstGameGuide.finishStart', 'At full time tap "Finish this game".')}</li>
-                <li>{t('firstGameGuide.finishSheet', 'Match sheet: a copy-ready text of the match data that you can paste into any system.')}</li>
+                <li>{t('firstGameGuide.finishSheet', 'Match sheet: every match detail in one place when you fill in the match sheet, for example in Taso.')}</li>
                 <li>
                   {labsEnabled
                     ? t('firstGameGuide.finishReport', 'Match report: your own text - write it, dictate it or make an AI draft. "Share match report" sends it on.')
