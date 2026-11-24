@@ -1055,7 +1055,7 @@
         },
         "tournaments": {
           "title": "Tournaments",
-          "desc": "Tournaments with levels and placements, plus tournament stats."
+          "desc": "Link games to a tournament and follow the tournament's stats."
         },
         "friendlies": {
           "title": "Friendlies",

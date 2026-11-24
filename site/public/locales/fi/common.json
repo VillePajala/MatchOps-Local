@@ -1055,7 +1055,7 @@
         },
         "tournaments": {
           "title": "Turnaukset",
-          "desc": "Turnaukset tasoineen ja sijoituksineen sekä turnauksen tilastot."
+          "desc": "Liitä ottelut turnaukseen ja seuraa turnauksen tilastoja."
         },
         "friendlies": {
           "title": "Harjoitusottelut",
