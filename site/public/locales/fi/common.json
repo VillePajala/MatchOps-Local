@@ -943,14 +943,14 @@
       },
       "record": {
         "title": "Kirjaa",
-        "desc": "Pelin jälkeen pöytäkirja on valmiina kopioitavaksi, ja otteluraportin voi jakaa. Tilastot kertyvät jokaisesta pelistä itsestään."
+        "desc": "Pelin jälkeen pöytäkirjan tiedot ovat valmiina, ja otteluraportin voi jakaa. Tilastot kertyvät jokaisesta pelistä itsestään."
       }
     },
     "spotlights": {
       "taso": {
         "eyebrow": "Pelin jälkeen",
-        "title": "Pöytäkirja valmiina kopioitavaksi",
-        "desc": "Viimeistele ottelu -näkymä kokoaa tuloksen, kokoonpanon ja maalit yhteen. Pöytäkirjassa ovat pelaajat pelinumeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen. Kopioi teksti ja liitä se haluamaasi paikkaan, esimerkiksi Tasoon."
+        "title": "Pöytäkirjan tiedot valmiina",
+        "desc": "Viimeistele ottelu -näkymä kokoaa tuloksen, kokoonpanon ja maalit yhteen. Pöytäkirjassa ovat pelaajat pelinumeroineen, maalivahti ja kapteeni, lopputulos, puoliaikatilanne ja maalit minuutteineen. Kaikki tiedot ovat yhdessä paikassa, kun täytät pöytäkirjan esimerkiksi Tasoon."
       },
       "planner": {
         "eyebrow": "Turnauspäivä",
@@ -1096,7 +1096,7 @@
         },
         {
           "q": "Toimiiko MatchOps Tason kanssa?",
-          "a": "Pöytäkirja on valmis teksti, jonka kopioit ja liität Tasoon. MatchOps ei ole suoraan yhteydessä Tasoon, mutta Taso-linkki löytyy sovelluksen valikosta."
+          "a": "Pöytäkirjassa on kaikki tiedot, joita Tason ottelupöytäkirjan täyttämiseen tarvitaan: kokoonpano pelinumeroineen, lopputulos, puoliaikatilanne ja maalit minuutteineen, tekijöineen ja syöttäjineen."
         },
         {
           "q": "Voinko poistaa tietoni?",
