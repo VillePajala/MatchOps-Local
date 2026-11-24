@@ -1071,30 +1071,6 @@
         }
       }
     },
-    "kids": {
-      "eyebrow": "Tietosuoja",
-      "title": "Lasten tiedot: mitä tallennetaan ja missä",
-      "items": {
-        "what": {
-          "title": "Mitä tallennetaan",
-          "desc": "Pelaajan nimi tai lempinimi, pelinumero, ottelutapahtumat, kuten peliajat, maalit ja syötöt, sekä valmentajan omat muistiinpanot."
-        },
-        "where": {
-          "title": "Missä",
-          "desc": "Puhelimessasi ja tililläsi palvelimella EU:ssa (Tukholma, Ruotsi). Tietoja ei myydä eikä käytetä mainontaan."
-        },
-        "who": {
-          "title": "Kuka päättää",
-          "desc": "Sinä valmentajana tai seurasi. Sinä päätät, mitä kirjaat."
-        },
-        "delete": {
-          "title": "Poisto",
-          "desc": "Voit poistaa tiedot tai koko tilin milloin tahansa kohdassa Asetukset → Tiedot."
-        }
-      },
-      "notice": "Perheille on sovelluksessa valmis tiedote: Asetukset → Tiedot → Tiedote pelaajien perheille. Kopioi se ja lähetä joukkueen viestiryhmään.",
-      "privacyLink": "Lue tietosuojakäytäntö"
-    },
     "faq": {
       "title": "Usein kysyttyä",
       "items": [

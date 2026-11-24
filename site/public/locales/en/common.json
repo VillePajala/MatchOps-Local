@@ -1071,30 +1071,6 @@
         }
       }
     },
-    "kids": {
-      "eyebrow": "Privacy",
-      "title": "Kids' data: what is stored and where",
-      "items": {
-        "what": {
-          "title": "What is stored",
-          "desc": "The player's first name or nickname, shirt number, match events such as playing time, goals and assists, and the coach's own notes."
-        },
-        "where": {
-          "title": "Where",
-          "desc": "On your phone and in your account on a server in the EU (Stockholm, Sweden). The data is never sold or used for advertising."
-        },
-        "who": {
-          "title": "Who decides",
-          "desc": "You as the coach, or your club. You decide what you record."
-        },
-        "delete": {
-          "title": "Deleting",
-          "desc": "Delete the data or your whole account at any time in Settings → Data."
-        }
-      },
-      "notice": "The app has a ready notice for families: Settings → Data → Notice to players' families. Copy it and send it to the team's group chat.",
-      "privacyLink": "Read the privacy policy"
-    },
     "faq": {
       "title": "Frequently asked questions",
       "items": [

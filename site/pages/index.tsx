@@ -386,36 +386,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== KIDS' DATA ===== */}
-      <section className="section section-divider bg-slate-800/50">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            <div>
-              <div className="text-primary text-sm font-semibold uppercase tracking-wider mb-2">
-                {t('home.kids.eyebrow')}
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">{t('home.kids.title')}</h2>
-              <dl className="grid gap-5 sm:grid-cols-2">
-                {(['what', 'where', 'who', 'delete'] as const).map((key) => (
-                  <div key={key}>
-                    <dt className="text-white font-semibold mb-1">{t(`home.kids.items.${key}.title`)}</dt>
-                    <dd className="text-slate-300 text-sm">{t(`home.kids.items.${key}.desc`)}</dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="mt-6 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-slate-200">
-                {t('home.kids.notice')}
-              </p>
-              <p className="mt-4 text-sm">
-                <Link href="/privacy" className="text-primary hover:text-primary-light underline underline-offset-4">
-                  {t('home.kids.privacyLink')}
-                </Link>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ===== FAQ ===== */}
       <section id="faq" className="section section-divider bg-slate-900 scroll-mt-4">
         <div className="container-custom">
