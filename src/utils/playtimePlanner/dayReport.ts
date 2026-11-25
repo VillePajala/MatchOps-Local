@@ -25,14 +25,26 @@ import { getPositionLabel, isSidelinePosition } from '@/utils/positionLabels';
 import { hasPlayEvents } from './reapply';
 import type { PlaytimePlan } from './types';
 
+/**
+ * What a game-by-game report is about: a plan (one tournament day) or a
+ * competition (a tournament's games). `players` sets the row order (a plan's
+ * own roster order); anyone outside it is sorted by name. A plan satisfies
+ * this as it is.
+ */
+export interface DayReportSubject {
+  name: string;
+  players: ReadonlyArray<Pick<Player, 'id' | 'name' | 'nickname'>>;
+}
+
 /** key + fallback (+ interpolation) -> localized string (a slice of i18next's `t`). */
 export type DayReportTranslate = (key: string, fallback: string, options?: Record<string, unknown>) => string;
 
 /** Shown in a player's column for a game they were not part of. */
 export const NOT_IN_GAME = '–';
 
-/** One real game made from the plan, in plan order. */
+/** One real game in the report, in report order (plan order, or date order for a competition). */
 export interface DayReportGameInput {
+  /** The planned game it was made from; the game id again for a competition's game. */
   planGameId: string;
   gameId: string;
   game: AppState;
@@ -67,6 +79,7 @@ export interface DayReportPlayerRow {
 }
 
 export interface DayReport {
+  /** The plan's (or the competition's) name. */
   planName: string;
   /** The team name when every played game was played under the same one. */
   teamName?: string;
@@ -96,6 +109,16 @@ export function isDayGamePlayed(game: AppState): boolean {
     (game.homeScore ?? 0) > 0 ||
     (game.awayScore ?? 0) > 0
   );
+}
+
+/**
+ * Whether a game is OVER for the "day done" prompts (the finish screen and
+ * Home): played (above) and not stopped mid-way - a game whose clock is
+ * running or that is between periods is still being played.
+ */
+export function isDayGameFinished(game: AppState): boolean {
+  const status = game.gameStatus ?? 'notStarted';
+  return isDayGamePlayed(game) && status !== 'inProgress' && status !== 'periodEnd';
 }
 
 /**
@@ -144,7 +167,7 @@ const commonValue = (values: Array<string | undefined>): string | undefined => {
  * start (or was not recorded): shown as SUB, the pitch's own label for the
  * sideline. Players outside the squad get no entry.
  */
-function positionsForGame(game: AppState, t: DayReportTranslate): Map<string, string> {
+export function positionsForGame(game: AppState, t: DayReportTranslate): Map<string, string> {
   const out = new Map<string, string>();
   const recorded = Object.entries(game.playerPositions ?? {}).filter(([, ids]) => (ids ?? []).length > 0);
 
@@ -173,12 +196,12 @@ function positionsForGame(game: AppState, t: DayReportTranslate): Map<string, st
 }
 
 /**
- * Build the day report. `inputs` must already be in plan order
- * (orderDayGames); `roster` resolves names for players a game no longer
- * carries.
+ * Build the day report. `inputs` must already be in report order
+ * (orderDayGames / orderCompetitionGames); `roster` resolves names for players
+ * a game no longer carries.
  */
 export function buildDayReport(
-  plan: PlaytimePlan,
+  plan: DayReportSubject,
   inputs: DayReportGameInput[],
   roster: Player[],
   t: DayReportTranslate,

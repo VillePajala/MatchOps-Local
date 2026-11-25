@@ -38,6 +38,8 @@ export interface DayPacket {
   language: string;
   pseudonymized: boolean;
   teamName?: string;
+  /** What the games are: one day (a plan), a tournament or a league. Absent = a day. */
+  scope?: 'day' | 'tournament' | 'season';
   dayName: string;
   ageGroup?: string;
   gameType?: AppState['gameType'];
@@ -63,12 +65,14 @@ export function buildDayPacket({
   roster,
   pseudonymize,
   language,
+  scope,
 }: {
   report: DayReport;
   inputs: DayReportGameInput[];
   roster: Player[];
   pseudonymize: boolean;
   language: string;
+  scope?: DayPacket['scope'];
 }): DayPacketResult {
   const byGameId = new Map(inputs.map((i) => [i.gameId, i.game]));
   const playedGames = report.games.filter((g) => g.played && g.result && byGameId.has(g.gameId));
@@ -121,6 +125,7 @@ export function buildDayPacket({
     dayName: report.planName,
     games: packetGames,
   };
+  if (scope && scope !== 'day') packet.scope = scope;
   if (report.teamName) packet.teamName = report.teamName;
   if (first?.ageGroup) packet.ageGroup = first.ageGroup;
   if (first?.gameType) packet.gameType = first.gameType;

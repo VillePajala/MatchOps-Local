@@ -343,7 +343,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // (the entry shows from one), and the games while the report is open.
   const [playedLinkedCount, setPlayedLinkedCount] = useState(0);
   const [dayReportGames, setDayReportGames] = useState<DayReportGameInput[] | null>(null);
-  const dayReportCloseRef = useRef<(() => void) | null>(null);
+  const dayReportCloseRef = useRef<(() => boolean) | null>(null);
   /** The venue book for "Create all games" (loaded when the sheet opens). */
   const [createAllVenues, setCreateAllVenues] = useState<KnownVenue[]>([]);
   useEffect(() => {
@@ -3020,7 +3020,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
       {dayReportGames !== null && activePlan && (
         <PlanDayReportModal
-          plan={activePlan}
+          subject={activePlan}
+          savedText={activePlan.dayReport}
           inputs={dayReportGames}
           roster={roster}
           onSave={handleSaveDayReport}

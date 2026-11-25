@@ -77,6 +77,14 @@ export const REPORT_SECTIONS = [
 ] as const;
 export type ReportSectionKey = (typeof REPORT_SECTIONS)[number];
 
+/**
+ * The six headings of a report over SEVERAL games (a tournament day, a
+ * tournament, a league): the match template without "how the game unfolded",
+ * which describes one game. Same keys, so drafted text lands under the same
+ * headings the coach's template has.
+ */
+export const DAY_REPORT_SECTIONS = ['overview', 'worked', 'improve', 'spirit', 'mentions', 'next'] as const satisfies readonly ReportSectionKey[];
+
 export interface DraftSection {
   section: ReportSectionKey;
   text: string;
@@ -245,7 +253,9 @@ export function buildDraftingInstructions(packet: GamePacket, mode: DraftingMode
       ? [
           'THIS IS A TIDYING JOB, NOT A NEW REPORT. The coach has already written the report',
           'in `attested.coachReport`. Organise THEIR account under the seven headings, keep',
-          'their judgements and their turns of phrase, and cut repetition. Do not add an',
+          'their judgements and their turns of phrase, and cut repetition. Their text may use',
+          'older names for two headings: "Mikä toimi hyvin" is `worked`, and "Kehityskohteet" or',
+          '"What we\'re working on" is `improve`. Do not add an',
           'observation they did not make, and do not replace their opinion with your own. The',
           'rest of the data is there so you can place their words correctly and fix a detail',
           'they plainly meant - never to introduce material they left out. If they wrote',
@@ -805,9 +815,15 @@ export interface DaySummaryDraft {
 
 export function buildDaySummaryInstructions(packet: DayPacket): string {
   const futsal = packet.gameType === 'futsal';
+  const scope = packet.scope ?? 'day';
+  const opening =
+    scope === 'season'
+      ? ['You draft a short report of one youth football league season so far - its games in date order -', 'for the coach who was there.']
+      : scope === 'tournament'
+        ? ['You draft a short report of one youth football tournament - a few short games, over one or', 'more days - for the coach who was there.']
+        : ['You draft a short report of one youth football day - usually a tournament of a few short', 'games played back to back - for the coach who was there.'];
   return [
-    'You draft a short report of one youth football day - usually a tournament of a few short',
-    'games played back to back - for the coach who was there.',
+    ...opening,
     `Write in ${packet.language}. Plain prose, no markdown, no headings inside a section's text.`,
     '',
     `SPORT: ${futsal ? 'futsal (five-a-side indoor football)' : 'association football (soccer)'}, youth level.`,
@@ -840,7 +856,7 @@ export function buildDaySummaryInstructions(packet: DayPacket): string {
     '6. Be concrete and short. A coach reads this on a phone.',
     '7. If the data is too thin for a section, leave its text empty rather than padding.',
     '',
-    'Return the seven sections in the given order.',
+    'Return the six sections in the given order.',
   ].join('\n');
 }
 
@@ -857,7 +873,7 @@ function daySummarySchema(): Record<string, unknown> {
           additionalProperties: false,
           required: ['section', 'text'],
           properties: {
-            section: { type: 'string', enum: [...REPORT_SECTIONS] },
+            section: { type: 'string', enum: [...DAY_REPORT_SECTIONS] },
             text: { type: 'string' },
           },
         },
@@ -877,7 +893,7 @@ export function validateDaySummary(raw: unknown): DraftSection[] {
       if (!entry || typeof entry !== 'object') continue;
       const { section, text } = entry as { section?: unknown; text?: unknown };
       if (typeof section !== 'string' || typeof text !== 'string') continue;
-      if (!REPORT_SECTIONS.includes(section as ReportSectionKey)) continue;
+      if (!(DAY_REPORT_SECTIONS as readonly string[]).includes(section)) continue;
       const key = section as ReportSectionKey;
       if (seen.has(key)) continue;
       const clamped = clamp(text, MAX_SECTION_CHARS);

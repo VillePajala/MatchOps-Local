@@ -683,7 +683,7 @@
       "overview": "Overview",
       "flow": "How the game unfolded",
       "worked": "What went well",
-      "improve": "What we're working on",
+      "improve": "What to improve",
       "spirit": "Team spirit & effort",
       "mentions": "Highlights",
       "next": "Next step"
@@ -4322,6 +4322,40 @@
     "discardTitle": "Discard changes?",
     "discardMessage": "The day report text you wrote has not been saved.",
     "discardConfirm": "Discard",
-    "keepEditing": "Keep writing"
+    "keepEditing": "Keep writing",
+    "sections": {
+      "overview": "Overview",
+      "worked": "What went well",
+      "improve": "What to improve",
+      "spirit": "Team spirit and attitude",
+      "mentions": "Special mentions",
+      "next": "Next step"
+    },
+    "lastGameDone": "The day's last game is played",
+    "homeDone": "{{name}} done",
+    "homeAction": "Write the report",
+    "saveError": "Could not save the day report. Try again."
+  },
+  "competitionReport": {
+    "tournamentTitle": "Tournament report",
+    "seasonTitle": "League report",
+    "textHeading": "Report text",
+    "textPlaceholderTournament": "How did the tournament go?",
+    "textPlaceholderSeason": "How has the league gone?",
+    "notSaved": "This text is not saved. Share or copy the report before you close.",
+    "discardMessage": "The text you wrote is not saved. Share the report first if you want to keep it.",
+    "shareTitleTournament": "Share tournament report",
+    "shareTitleSeason": "Share league report",
+    "goalsLine": "goals {{for}}–{{against}}",
+    "sharePlayersHeading": "Players (games · goals+assists · positions):",
+    "resultsHeading": "Results",
+    "gamesColumn": "Games",
+    "positionsColumn": "Positions",
+    "seasonPlayersHint": "Games = games played · G+A = goals + assists · positions: in how many games each (bench starts not shown)",
+    "aiScope_one": "Sends the result and match report of {{count}} game to your own AI provider. Player names are replaced with codes. The draft goes into the text above.",
+    "aiScope_other": "Sends the results and match reports of {{count}} games to your own AI provider. Player names are replaced with codes. The draft goes into the text above.",
+    "aiScopeNames_one": "Sends the result and match report of {{count}} game, with player names, to your own AI provider. The draft goes into the text above.",
+    "aiScopeNames_other": "Sends the results and match reports of {{count}} games, with player names, to your own AI provider. The draft goes into the text above.",
+    "aiInserted": "Draft added to the text. Check it before you share."
   }
 }

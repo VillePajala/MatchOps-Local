@@ -963,8 +963,8 @@
     "reportSections": {
       "overview": "Yleiskuva",
       "flow": "Pelin kulku",
-      "worked": "Mikä toimi hyvin",
-      "improve": "Kehityskohteet",
+      "worked": "Missä onnistuttiin",
+      "improve": "Mitä kehitetään",
       "spirit": "Joukkuehenki ja asenne",
       "mentions": "Erityismaininnat",
       "next": "Seuraava askel"
@@ -4322,6 +4322,40 @@
     "discardTitle": "Hylätäänkö muutokset?",
     "discardMessage": "Kirjoittamaasi päivän raporttia ei ole tallennettu.",
     "discardConfirm": "Hylkää",
-    "keepEditing": "Jatka kirjoittamista"
+    "keepEditing": "Jatka kirjoittamista",
+    "sections": {
+      "overview": "Yleiskuva",
+      "worked": "Missä onnistuttiin",
+      "improve": "Mitä kehitetään",
+      "spirit": "Joukkuehenki ja asenne",
+      "mentions": "Erityismaininnat",
+      "next": "Seuraava askel"
+    },
+    "lastGameDone": "Päivän viimeinen peli pelattu",
+    "homeDone": "{{name}} valmis",
+    "homeAction": "Tee raportti",
+    "saveError": "Päivän raporttia ei saatu tallennettua. Yritä uudelleen."
+  },
+  "competitionReport": {
+    "tournamentTitle": "Turnauksen raportti",
+    "seasonTitle": "Sarjaraportti",
+    "textHeading": "Raportin teksti",
+    "textPlaceholderTournament": "Miten turnaus meni?",
+    "textPlaceholderSeason": "Miten sarja on mennyt?",
+    "notSaved": "Tätä tekstiä ei tallenneta. Jaa tai kopioi raportti ennen kuin suljet.",
+    "discardMessage": "Kirjoittamaasi tekstiä ei tallenneta. Jaa raportti ensin, jos haluat pitää sen.",
+    "shareTitleTournament": "Jaa turnauksen raportti",
+    "shareTitleSeason": "Jaa sarjaraportti",
+    "goalsLine": "maalit {{for}}–{{against}}",
+    "sharePlayersHeading": "Pelaajat (pelit · maalit+syötöt · pelipaikat):",
+    "resultsHeading": "Tulokset",
+    "gamesColumn": "Pelit",
+    "positionsColumn": "Pelipaikat",
+    "seasonPlayersHint": "Pelit = pelatut pelit · M+S = maalit + syötöt · pelipaikat: monessako pelissä missäkin (vaihdosta aloitetut eivät näy)",
+    "aiScope_one": "Lähettää {{count}} pelin tuloksen ja otteluraportin omalle tekoälypalvelullesi. Pelaajien nimet korvataan koodeilla. Luonnos tulee yllä olevaan tekstiin.",
+    "aiScope_other": "Lähettää {{count}} pelin tulokset ja otteluraportit omalle tekoälypalvelullesi. Pelaajien nimet korvataan koodeilla. Luonnos tulee yllä olevaan tekstiin.",
+    "aiScopeNames_one": "Lähettää {{count}} pelin tuloksen ja otteluraportin pelaajien nimineen omalle tekoälypalvelullesi. Luonnos tulee yllä olevaan tekstiin.",
+    "aiScopeNames_other": "Lähettää {{count}} pelin tulokset ja otteluraportit pelaajien nimineen omalle tekoälypalvelullesi. Luonnos tulee yllä olevaan tekstiin.",
+    "aiInserted": "Luonnos lisätty tekstiin. Tarkista se ennen kuin jaat."
   }
 }

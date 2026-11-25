@@ -166,4 +166,15 @@ describe('validateDaySummary', () => {
   it('throws when nothing usable came back', () => {
     expect(() => validateDaySummary({ sections: [] })).toThrow(DraftingError);
   });
+
+  /** The day template has no "how the game unfolded": a drafted one is dropped. */
+  it('keeps only the six day-report sections', () => {
+    const sections = validateDaySummary({
+      sections: [
+        { section: 'flow', text: 'Ensimmäinen peli alkoi hitaasti.' },
+        { section: 'worked', text: 'Pallo kiersi.' },
+      ],
+    });
+    expect(sections).toEqual([{ section: 'worked', text: 'Pallo kiersi.' }]);
+  });
 });

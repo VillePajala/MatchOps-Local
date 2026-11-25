@@ -102,7 +102,8 @@ const inputs: DayReportGameInput[] = [
 
 const renderModal = (over: Partial<React.ComponentProps<typeof PlanDayReportModal>> = {}) => {
   const props = {
-    plan,
+    subject: plan,
+    savedText: plan.dayReport,
     inputs,
     roster,
     onSave: jest.fn(),
@@ -157,8 +158,10 @@ describe('PlanDayReportModal', () => {
       fireEvent.click(screen.getByTestId('day-report-template'));
     });
     const text = screen.getByTestId('day-report-text') as HTMLTextAreaElement;
-    expect(text.value).toContain('Overview:');
-    expect(text.value).toContain('Next step:');
+    // The day-report headings: the match template without "how the game unfolded".
+    expect(text.value).toBe(
+      'Overview:\n\nWhat went well:\n\nWhat to improve:\n\nTeam spirit and attitude:\n\nSpecial mentions:\n\nNext step:\n',
+    );
     expect(props.onSave).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -234,7 +237,7 @@ describe('PlanDayReportModal', () => {
       const writeText = jest.fn(async () => undefined);
       const share = jest.fn(async () => undefined);
       Object.assign(navigator, { clipboard: { writeText }, share });
-      renderModal({ plan: { ...plan, dayReport: 'Hyvä päivä.' } });
+      renderModal({ savedText: 'Hyvä päivä.' });
       await act(async () => {
         fireEvent.click(screen.getByTestId('day-report-share'));
       });
@@ -264,4 +267,60 @@ describe('PlanDayReportModal', () => {
       expect(share).toHaveBeenCalledWith({ text: box.value });
     });
   });
+
+  /** Competition reports: no stored text (no field without a migration). */
+  describe('league report (Sarjaraportti)', () => {
+    const seasonInputs: DayReportGameInput[] = inputs.map((i, n) => ({
+      ...i,
+      game: { ...i.game, gameDate: `2026-09-2${n}` },
+    }));
+
+    it('shows totals, writes straight into an unsaved editor and shares in the day-report style', async () => {
+      const writeText = jest.fn(async () => undefined);
+      Object.assign(navigator, { clipboard: { writeText }, share: undefined });
+      renderModal({ kind: 'season', subject: { name: 'Harrastesarja', players: [] }, inputs: seasonInputs, onSave: undefined, savedText: undefined });
+      expect(screen.getByText('League report')).toBeInTheDocument();
+      expect(screen.getByTestId('series-report-players')).toHaveTextContent('GK ×1');
+      // The editor is open from the start, with no Save, and says it is not kept.
+      expect(screen.queryByTestId('day-report-save')).not.toBeInTheDocument();
+      expect(screen.getByTestId('day-report-not-saved')).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('day-report-text'), { target: { value: 'Hyvä syksy.' } });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('day-report-share'));
+      });
+      const box = screen.getByRole('textbox', { name: 'Share league report' }) as HTMLTextAreaElement;
+      expect(box.value).toBe(
+        [
+          '⚽ Kotkat P11 · Harrastesarja',
+          '1W 1D 0L · goals 3–2',
+          '',
+          '✅ 20.9. Kallion Kiri 2–1',
+          '➖ 21.9. Harjun Haukat 1–1',
+          '',
+          'Players (games · goals+assists · positions):',
+          'Eeli: 2 · 0+1 · GK ×1, LB ×1',
+          'Onni: 1 · 1+0 · ST ×1',
+          '',
+          'Hyvä syksy.',
+        ].join('\n'),
+      );
+    });
+
+    it('asks before closing with text written, since it is not kept', async () => {
+      const props = renderModal({ kind: 'tournament', subject: { name: 'Joulucup', players: [] }, onSave: undefined });
+      expect(screen.getByText('Tournament report')).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('day-report-text'), { target: { value: 'Kesken' } });
+      });
+      await act(async () => {
+        (document.activeElement as HTMLElement | null)?.blur();
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      expect(screen.getByText('The text you wrote is not saved. Share the report first if you want to keep it.')).toBeInTheDocument();
+      expect(props.onClose).not.toHaveBeenCalled();
+    });
+  });
 });
+
