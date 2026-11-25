@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * HomeBasic - the body of Home in the BASIC layout (Perusnäkymä, Onboarding v3
+ * HomeBasic - the body of Home in the BASIC layout (Kevennetty näkymä, Onboarding v3
  * step 6). StartScreen keeps its top bar; this replaces the tabbed body and
  * there is no tab bar.
  *
@@ -15,7 +15,7 @@
  *   2. rows that appear once there is something behind them: the team (opens
  *      the player list), all games (from the first), statistics (from the
  *      first played game),
- *   3. "Kaikki toiminnot": what the full layout adds, and one switch to it.
+ *   3. "Kaikki toiminnot": what the Full view adds, and one switch to it.
  *
  * Copy rule: facts only - "Suunnitelma valmis · 14 pelaajaa", never a fairness
  * claim.
@@ -103,7 +103,7 @@ function BasicRow({ icon: Icon, label, onClick, testId }: {
   );
 }
 
-/** "Kaikki toiminnot": a short list of what the full layout adds, and the switch. */
+/** "Kaikki toiminnot": a short list of what the Full view adds, and the switch. */
 function AllFeaturesSheet({ onClose, onSwitchToFull, t }: {
   onClose: () => void;
   onSwitchToFull?: () => void;
@@ -150,7 +150,7 @@ function AllFeaturesSheet({ onClose, onSwitchToFull, t }: {
           </button>
         </div>
         <p className="mt-1.5 text-[15px] leading-snug text-ink-2">
-          {t('allFeatures.intro', 'The basic layout shows what matters on match day. The full layout adds:')}
+          {t('allFeatures.intro', 'The Basic view shows what matters on match day. The Full view adds:')}
         </p>
         <ul className="mt-3 space-y-2" data-testid="all-features-list">
           {items.map((item) => (
@@ -170,7 +170,7 @@ function AllFeaturesSheet({ onClose, onSwitchToFull, t }: {
           data-testid="switch-to-full"
           className={`s1-primary mt-5 flex h-14 w-full items-center justify-center rounded-full px-5 text-base font-bold ${HOME_FOCUS}`}
         >
-          {t('allFeatures.switchToFull', 'Switch to the full layout')}
+          {t('allFeatures.switchToFull', 'Switch to the Full view')}
         </button>
         <p className="mt-2.5 text-center text-[13px] text-ink-3">
           {t('allFeatures.switchNote', 'Nothing is removed. You can switch back in Settings.')}
@@ -318,7 +318,7 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
         data-testid="full-app-line"
         className={`-my-2 flex min-h-[44px] w-full items-center justify-center gap-1 px-2 text-[13px] text-ink-3 ${HOME_FOCUS}`}
       >
-        <span className="truncate">{t('allFeatures.fullAppLine', 'Simplified view · See the full app')}</span>
+        <span className="truncate">{t('allFeatures.fullAppLine', 'Basic view · See the full app')}</span>
         <HiOutlineChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       </button>
       {unfinished ? (

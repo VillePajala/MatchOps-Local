@@ -1362,7 +1362,7 @@ export function HomeTeamsCard({ summary, teams, onOpenTeam, t }: {
   );
 }
 
-/* ------------------------------------------------- basic layout (Perusnäkymä) */
+/* ------------------------------------------------- basic layout (Kevennetty näkymä) */
 
 /** The quiet outline pill under the basic card's primary action. */
 const GHOST_PILL = `s1-ghost flex h-12 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-2.5 text-[15px] font-semibold text-ink transition-colors ${HOME_FOCUS}`;

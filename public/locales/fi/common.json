@@ -1927,7 +1927,7 @@
   },
   "settingsModal": {
     "layoutLabel": "Näkymä",
-    "layoutBasic": "Perusnäkymä",
+    "layoutBasic": "Kevennetty näkymä",
     "layoutFull": "Koko näkymä",
     "layoutHint": "Koko näkymä näyttää kaikki toiminnot. Mitään ei poisteta.",
     "title": "Asetukset",
@@ -2530,7 +2530,7 @@
   "privacyPolicy": {
     "title": "MatchOpsin tietosuojakäytäntö",
     "version": "Käytännön versio: 2026-11",
-    "lastUpdated": "Päivitetty: 23.11.2026",
+    "lastUpdated": "Päivitetty: 25.11.2026",
     "dataController": {
       "title": "Rekisterinpitäjä",
       "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Olemme rekisterinpitäjä tilisi tiedoille (sähköpostiosoite, asetukset, suostumustiedot) sekä alla kuvatuille virheraporteille ja käyttötilastoille. Muista henkilöistä (pelaajat, henkilöstö) syötettyjen henkilötietojen rekisterinpitäjä on sovellusta käyttävä valmentaja - tai seura, jos valmentaja käyttää sovellusta osana seuran toimintaa - ja me olemme henkilötietojen käsittelijä (ks. käyttöehtojen kohta Henkilötietojen käsittely)."
@@ -2608,7 +2608,7 @@
       },
       "personnelDataNote": "Nämä tiedot tallennetaan laitteellesi ja synkronoidaan pilvitilillesi EU:ssa (Tukholma, Ruotsi). Henkilöstön yhteystiedot (sähköposti, puhelin) ovat GDPR:n mukaisia henkilötietoja. Muista henkilöistä (kuten pelaajista ja henkilöstöstä) syöttämiesi henkilötietojen rekisterinpitäjä olet sinä - tai seura, jonka puolesta toimit - ja vastaat siitä, että tallentamiselle on oikeusperuste ja että asianomaisia informoidaan; me käsittelemme niitä vain puolestasi (ks. käyttöehtojen kohta Henkilötietojen käsittely).",
       "onboardingTitle": "Käyttöönoton eteneminen ja näkymä",
-      "onboardingContent": "Ellet kytke sitä pois, tallennamme tilisi asetuksiin muutaman aikaleiman käyttöönoton etenemisestä (tili luotu, aloitusohjattu asetus valmis tai ohitettu, ensimmäinen suunnitelma nähty, ensimmäinen ja toinen ottelu viimeistelty) sekä valitsemasi näkymän (Perusnäkymä tai Koko näkymä). Käytämme aikaleimoja vain uusien valmentajien käyttöönoton parantamiseen. Ne eivät sisällä pelitietojasi, niitä ei jaeta eikä myydä kenellekään, ja ne poistetaan tilisi mukana. Voit vastustaa käsittelyä kytkemällä pois kohdan Asetukset → Tiedot → Virheraportit ja käyttötilastot: sen jälkeen uusia aikaleimoja ei tallenneta. Näkymä on sovelluksen asetus ja säilyy aina."
+      "onboardingContent": "Ellet kytke sitä pois, tallennamme tilisi asetuksiin muutaman aikaleiman käyttöönoton etenemisestä (tili luotu, aloitusohjattu asetus valmis tai ohitettu, ensimmäinen suunnitelma nähty, ensimmäinen ja toinen ottelu viimeistelty, vaihto koko näkymään) sekä valitsemasi näkymän (Kevennetty näkymä tai Koko näkymä). Käytämme aikaleimoja vain uusien valmentajien käyttöönoton parantamiseen. Ne eivät sisällä pelitietojasi, niitä ei jaeta eikä myydä kenellekään, ja ne poistetaan tilisi mukana. Voit vastustaa käsittelyä kytkemällä pois kohdan Asetukset → Tiedot → Virheraportit ja käyttötilastot: sen jälkeen uusia aikaleimoja ei tallenneta. Näkymä on sovelluksen asetus ja säilyy aina. Samoin säilyvät aina näkymäilmoituksen merkinnät (näkymäilmoitus näytetty ja milloin sekä valintasi Älä näytä enää), koska ilman niitä ilmoitus toistuisi."
     },
     "dataWeDoNotCollect": {
       "title": "Mitä emme tee tiedoillasi",
@@ -3886,8 +3886,8 @@
     "homeTeamTab": "Seura: pelaajat, joukkueet, taustahenkilöt, lämmittelysuunnitelma, ikäluokkasi säännöt ja valmennusmateriaalit.",
     "homeCompetitionsTab": "Kilpailut: luo sarjat ja turnaukset pelien ryhmittelyyn.",
     "homeStatsTab": "Tilastot: sarja-, turnaus-, kokonais- ja pelaajatilastot (käytettävissä, kun olet pelannut pelin).",
-    "homeGearBasic": "Ratas-kuvake (oikea yläkulma): asetukset (myös Perusnäkymä/Koko näkymä), varmuuskopiot, tili ja tämä opas.",
-    "homeBasicIntro": "Perusnäkymän etusivu on lyhyt: näet seuraavan pelin ja pääset aloittamaan sen. Ottelu avautuu omalle kentälleen.",
+    "homeGearBasic": "Ratas-kuvake (oikea yläkulma): asetukset (myös Kevennetty näkymä/Koko näkymä), varmuuskopiot, tili ja tämä opas.",
+    "homeBasicIntro": "Kevennetyn näkymän etusivu on lyhyt: näet seuraavan pelin ja pääset aloittamaan sen. Ottelu avautuu omalle kentälleen.",
     "homeBasicNextGame": "Seuraava peli -kortti: päivä, vastustaja ja suunnitelma. Paina \"Aloita ottelu\" pelipäivänä tai \"Merkitse poissaolijat\" ennen sitä; \"Näytä suunnitelma\" avaa suunnitelman.",
     "homeBasicNewGame": "Uusi ottelu: valitse päivä ja vastustaja, niin saat valmiin suunnitelman.",
     "homeBasicTeam": "Joukkue-rivi: avaa pelaajalista, jossa voit muokata nimiä, numeroita ja maalivahtia sekä lisätä tai poistaa pelaajia.",
@@ -4194,7 +4194,7 @@
   "allFeatures": {
     "fullAppLine": "Kevennetty näkymä · Näytä koko sovellus",
     "title": "Kaikki toiminnot",
-    "intro": "Perusnäkymä näyttää pelipäivän tärkeimmät. Koko näkymässä on lisäksi:",
+    "intro": "Kevennetty näkymä näyttää pelipäivän tärkeimmät. Koko näkymässä on lisäksi:",
     "itemTabs": "Koti välilehdillä: pelit, seura, kilpailut ja tilastot",
     "itemPlanner": "Ottelusuunnittelu monelle pelille, esimerkiksi turnauspäivälle",
     "itemCompetitions": "Sarjat ja turnaukset",
@@ -4203,6 +4203,16 @@
     "itemExternal": "Muualla pelatut pelit pelaajatilastoihin",
     "switchToFull": "Vaihda koko näkymään",
     "switchNote": "Mitään ei poisteta. Takaisin pääset Asetuksista."
+  },
+  "layoutNotice": {
+    "title": "Aloitat kevennetyllä näkymällä",
+    "firstGame": "Ensimmäinen ottelu kirjattu ✓",
+    "threeGames": "Kolme ottelua kirjattu ✓",
+    "body": "Piilotimme osan toiminnoista, jotta pääset alkuun helposti. Koko näkymässä on lisäksi esimerkiksi turnauspäivän suunnittelu, sarjat ja turnaukset, tilastot ja taktiikkataulu.",
+    "switchHint": "Voit vaihtaa koko näkymään milloin tahansa etusivun yläreunasta kohdasta <strong>Näytä koko sovellus</strong>.",
+    "ok": "Selvä",
+    "switchNow": "Siirry koko näkymään nyt",
+    "stop": "Älä näytä enää"
   },
   "planShare": {
     "keeper": "{{name}} (MV)",

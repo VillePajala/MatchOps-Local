@@ -49,6 +49,7 @@ import type { TranslationKey } from '@/i18n-types';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import { beginNewAccountOnboarding, hasSeenSetupWizard, recordGameFinished } from '@/utils/onboardingMilestones';
+import { layoutNoticeFacts, observeFinishedGames, type LayoutNoticeFacts } from '@/utils/layoutNotice';
 import { resolveAppLayout } from '@/utils/appLayout';
 import { isSetupWizardEligible } from '@/utils/setupWizardGate';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
@@ -143,9 +144,12 @@ export default function Home() {
    * games in one Seurakausi record. The team choice only narrows Tilastot.
    */
   const [homeStatsSummary, setHomeStatsSummary] = useState<HomeSummary | null>(null);
+  /** The basic-layout notice's facts (utils/layoutNotice.ts), from the same reads. */
+  const [layoutNoticeFactsState, setLayoutNoticeFactsState] = useState<LayoutNoticeFacts | null>(null);
   const publishHomeSummaries = useCallback((args: Parameters<typeof buildHomeSummary>) => {
     setHomeSummary(buildHomeSummary(args[0], { ...args[1], teamFilter: 'all' }));
     setHomeStatsSummary(buildHomeSummary(...args));
+    setLayoutNoticeFactsState(layoutNoticeFacts(args[0], args[1].today, DEFAULT_GAME_ID));
   }, []);
   /**
    * Which team Home is about. Kept here because it decides what the dashboard
@@ -2037,6 +2041,17 @@ export default function Home() {
     );
   }, [setupWizardOpenFor, setupWizardKey, userId, userCreatedAt, queryClient]);
 
+  // The basic-layout notice's session record (utils/layoutNotice.ts): the first
+  // read of the account's games is the baseline, later reads note when a
+  // reminder's finished-game count was reached during this session. Runs on
+  // every screen (a launch straight into a match included), not only on Home.
+  const observedFactsRef = useRef<LayoutNoticeFacts | null>(null);
+  useEffect(() => {
+    if (!layoutNoticeFactsState || observedFactsRef.current === layoutNoticeFactsState) return;
+    observedFactsRef.current = layoutNoticeFactsState;
+    observeFinishedGames(userId ?? 'local', layoutNoticeFactsState.finishedGames);
+  }, [layoutNoticeFactsState, userId]);
+
   // Publish the first-game signal for the marketing-consent prompt's re-gate
   // (PR 22): the prompt waits until the coach has actually arrived.
   useEffect(() => {
@@ -2254,6 +2269,7 @@ export default function Home() {
               onOpenGameById={handleOpenGameById}
               onAdjustTravel={handleAdjustTravel}
               onSetupModalsClosed={refreshSetupSignals}
+              layoutNoticeFacts={layoutNoticeFactsState}
             />
             {signOutWarning}
           </ErrorBoundary>
