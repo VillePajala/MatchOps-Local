@@ -16,7 +16,7 @@ import type { SavedGamesCollection, Player, AppState } from '@/types';
 import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 
-import { buildAndPersistNewGame } from './newGameHandlers';
+import { buildAndPersistNewGame, persistGameFromPlan } from './newGameHandlers';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { getPresetById } from '@/config/formationPresets';
 
@@ -525,5 +525,77 @@ describe('newGameHandlers', () => {
       // Should proceed with game creation
       expect(deps.utilSaveGame).toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * The planner's "Luo kaikki pelit" persist path: the game is saved WITHOUT
+ * becoming the current game, and its plan link is mandatory - an unlinked game
+ * would show as "not created" and invite a duplicate.
+ * @critical
+ */
+describe('persistGameFromPlan', () => {
+  const planRequest = (overrides?: Record<string, unknown>) =>
+    createBaseRequest({
+      isPlayed: false,
+      initialSelectedPlayerIds: ['p1', 'p2'],
+      prefill: {
+        playersOnField: [{ ...mockPlayers[1], relX: 0.5, relY: 0.92, isGoalie: true }],
+        plannedSubs: [{ id: 's', timeSeconds: 600, slotId: 's0', inPlayerId: 'p1', outPlayerId: null }],
+        formationSnapPoints: [{ relX: 0.5, relY: 0.92 }],
+        sourcePlanId: 'plan1',
+        sourcePlanGameId: 'g1',
+      },
+      ...overrides,
+    });
+  const planDeps = (overrides?: Record<string, unknown>) => ({
+    utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => state),
+    deleteGame: jest.fn().mockResolvedValue('x'),
+    setGameSubs: jest.fn().mockResolvedValue(true),
+    setPlanLink: jest.fn().mockResolvedValue(true),
+    availablePlayers: mockPlayers,
+    defaultSubIntervalMinutes: 5,
+    userId: 'u1',
+    ...overrides,
+  });
+
+  it('saves the game with the given creation time, links it and stores its planned subs', async () => {
+    const deps = planDeps();
+    const gameId = await persistGameFromPlan(deps, planRequest(), 1_700_000_000_000);
+    expect(gameId).toMatch(/^game_1700000000000_/);
+    const saved = deps.utilSaveGame.mock.calls[0][1] as AppState;
+    expect(deps.utilSaveGame).toHaveBeenCalledWith(gameId, expect.any(Object), 'u1');
+    expect(saved.createdAt).toBe(new Date(1_700_000_000_000).toISOString());
+    expect(saved.isPlayed).toBe(false);
+    expect(saved.playersOnField.map((p) => p.id)).toEqual(['p2']);
+    expect(deps.setPlanLink).toHaveBeenCalledWith(gameId, { planId: 'plan1', planGameId: 'g1' });
+    expect(deps.setGameSubs).toHaveBeenCalledWith(gameId, expect.any(Array));
+    expect(deps.deleteGame).not.toHaveBeenCalled();
+  });
+
+  it('rolls the game back and reports failure when the link cannot be stored', async () => {
+    const deps = planDeps({ setPlanLink: jest.fn().mockResolvedValue(false) });
+    const gameId = await persistGameFromPlan(deps, planRequest(), 1);
+    expect(gameId).toBeNull();
+    const savedId = deps.utilSaveGame.mock.calls[0][0];
+    expect(deps.deleteGame).toHaveBeenCalledWith(savedId, 'u1');
+    expect(deps.setGameSubs).not.toHaveBeenCalled();
+  });
+
+  it('reports failure without a link or subs when the save throws', async () => {
+    const deps = planDeps({ utilSaveGame: jest.fn().mockRejectedValue(new Error('quota')) });
+    expect(await persistGameFromPlan(deps, planRequest(), 1)).toBeNull();
+    expect(deps.setPlanLink).not.toHaveBeenCalled();
+  });
+
+  it('refuses a request without a plan source', async () => {
+    const deps = planDeps();
+    expect(await persistGameFromPlan(deps, createBaseRequest(), 1)).toBeNull();
+    expect(deps.utilSaveGame).not.toHaveBeenCalled();
+  });
+
+  it('keeps the planned subs best-effort once the game is linked', async () => {
+    const deps = planDeps({ setGameSubs: jest.fn().mockRejectedValue(new Error('x')) });
+    expect(await persistGameFromPlan(deps, planRequest(), 1)).toMatch(/^game_1_/);
   });
 });

@@ -256,6 +256,42 @@ describe('<GameSettingsModal />', () => {
     expect(mockOnPeriodDurationChange).toHaveBeenCalledWith(30);
   });
 
+  /**
+   * The kick-off is one native time picker. A picked time is committed on blur
+   * (state + persistence), not on every change; clearing it stores no time.
+   * @critical
+   */
+  test('kick-off: the native time picker commits HH:MM on blur, and an empty field stores no time', () => {
+    const mutate = defaultProps.updateGameDetailsMutation.mutate as jest.Mock;
+    mutate.mockClear();
+    renderModal();
+    const input = document.getElementById('gameTimeInput') as HTMLInputElement;
+    expect(input).toHaveAttribute('type', 'time');
+    expect(input.value).toBe('14:30');
+    fireEvent.change(input, { target: { value: '19:15' } });
+    expect(mockOnGameTimeChange).not.toHaveBeenCalled();
+    fireEvent.blur(input);
+    expect(mockOnGameTimeChange).toHaveBeenCalledWith('19:15');
+    expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ updates: { gameTime: '19:15' } }), expect.anything());
+
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.blur(input);
+    expect(mockOnGameTimeChange).toHaveBeenLastCalledWith('');
+    expect(mutate).toHaveBeenLastCalledWith(expect.objectContaining({ updates: { gameTime: '' } }), expect.anything());
+    expect(screen.getByTestId('gameTimeInput-empty-hint')).toHaveTextContent('--:--');
+  });
+
+  test('kick-off: a time picked and closed with back (no blur) is applied on close', () => {
+    const { rerender } = renderModal();
+    fireEvent.change(document.getElementById('gameTimeInput') as HTMLInputElement, { target: { value: '08:05' } });
+    rerender(
+      <ToastProvider>
+        <GameSettingsModal {...defaultProps} isOpen={false} />
+      </ToastProvider>
+    );
+    expect(mockOnGameTimeChange).toHaveBeenCalledWith('08:05');
+  });
+
   test('a close before the stored kick-off time reached the fields never writes it away', () => {
     const mutate = defaultProps.updateGameDetailsMutation.mutate as jest.Mock;
     mutate.mockClear();

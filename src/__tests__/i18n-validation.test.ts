@@ -764,7 +764,21 @@ describe('Translation File Validation', () => {
       // +7 / -6 privacy pass (2026-11-23): labs toasts, typed-only report
       //     copy, support-email processor (4 keys); paid-features terms list,
       //     billing, cancellation and data-after-cancel removed. 3739.
-      expect(enKeys.length).toBe(3739);
+      // Master side (for reference; counted from its own base):
+      // (master: privacy pass as above, ending at 3666.)
+      // +8: layoutNotice.* (the basic-layout notice dialog)
+      // +7 demo prep (2026-11-25): taso.shootout; planner formatSummary and
+      //     reapplyDoneNoRoster split into _one/_other; manager.games/players _one/_other. 3681.
+      // -2 fieldTools.planViewGhosts/togglePlannedSubs: the planned-sub
+      //     ghost view is gone; the plan control toggles Lineup <-> Substitutions
+      //     and minutes. 3679.
+      // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
+      // +38 planCreateGames.* (create games from the match planner, 2026-11-25). 3712.
+      // +9 / -5 batch sheet game blocks (count line, headings, summary, optional
+      //     hint); planCreateGames.venue and the four HH/MM time placeholders
+      //     removed (one native time picker). 3716.
+      // Merge of feat/pelitapa (3739) with master (3721): +55 master keys. 3794.
+      expect(enKeys.length).toBe(3794);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -987,7 +1001,17 @@ describe('Translation File Validation', () => {
       // +1 match menu "Ottelun teemat". 3741.
       // -3 Home next-match themes row removed (see EN). 3738.
       // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3739.
-      expect(fiKeys.length).toBe(3739);
+      // Master side (for reference; counted from its own base):
+      // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3666.
+      // +8: layoutNotice.* (the basic-layout notice dialog)
+      // +7 demo prep (2026-11-25): taso.shootout; planner formatSummary and
+      //     reapplyDoneNoRoster split into _one/_other; manager.games/players _one/_other. 3681.
+      // -2 fieldTools.planViewGhosts/togglePlannedSubs (see EN above). 3679.
+      // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
+      // +38 planCreateGames.* (2026-11-25). 3712.
+      // +9 / -5 batch sheet game blocks; venue + HH/MM placeholders removed. 3716.
+      // Merge of feat/pelitapa (3739) with master (3721): +55 master keys. 3794.
+      expect(fiKeys.length).toBe(3794);
     });
   });
 });

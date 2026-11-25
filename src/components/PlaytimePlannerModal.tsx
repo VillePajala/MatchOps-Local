@@ -13,6 +13,7 @@
 import { useRememberedListSetting, isBoolean } from '@/hooks/useRememberedListSetting';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  HiCheck,
   HiChevronDown,
   HiChevronRight,
   HiOutlineArchiveBox,
@@ -102,10 +103,22 @@ import {
   countReapplicableGames,
 } from '@/utils/playtimePlanner/reapply';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
-import { getAllPlanLinks, deletePlanLinksForPlan } from '@/utils/playtimePlanner/planLinks';
+import { getAllPlanLinks, deletePlanLinksForPlan, setPlanLink } from '@/utils/playtimePlanner/planLinks';
+import {
+  createdGameIdsForPlan,
+  createGamesFromPlan,
+  notCreatedPlanGames,
+  type CreateGamesFromPlanResult,
+  type PlanBatchRow,
+  type PlanBatchShared,
+} from '@/utils/playtimePlanner/createFromPlan';
+import { persistGameFromPlan } from '@/components/HomePage/utils/newGameHandlers';
+import PlanCreateGamesSheet from '@/components/PlanCreateGamesSheet';
+import { getAppSettings } from '@/utils/appSettings';
+import { learnVenues, type KnownVenue } from '@/utils/venueBook';
 import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
 import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
-import { getSavedGames, saveGame as utilSaveGame } from '@/utils/savedGames';
+import { getSavedGames, saveGame as utilSaveGame, deleteGame as utilDeleteGame } from '@/utils/savedGames';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -139,11 +152,18 @@ interface PlaytimePlannerModalProps {
    * coach arrives from a match via "this game's plan", so they do not have to
    * find the plan and then the game inside it.
    */
-  initialTarget?: { planId: string; planGameId: string } | null;
+  initialTarget?: { planId: string; planGameId: string; tab?: 'games' | 'plan' } | null;
   /** Consumed once: cleared so a later open lands on the manager as usual. */
   onTargetConsumed?: () => void;
   /** Open a real game created from the planned game. Absent = no jump offered. */
   onOpenGame?: (gameId: string) => void;
+  /**
+   * "Luo ottelu" on one planned game: the host opens the new-game form
+   * prefilled from this plan + planned game (the plan is saved first, so the
+   * form reads what is on screen). Absent = the action is not offered (e.g.
+   * the planner opened as a layer over the compact plan screen).
+   */
+  onCreateGame?: (plan: PlaytimePlan, planGameId: string) => void;
   /**
    * Reports the open plan after every change (Onboarding v3's compact plan
    * screen opens this planner as a layer and must see the edits the moment it
@@ -200,6 +220,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   initialTarget,
   onTargetConsumed,
   onOpenGame,
+  onCreateGame,
   onActivePlanChange,
   singlePlanLayer = false,
 }) => {
@@ -314,6 +335,28 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Open substitution sheet target: which game + slot (null = closed). Game id
   // is part of the target because the grid view edits ALL games at once.
   const [subSheetTarget, setSubSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
+  // "Luo kaikki pelit" sheet (create a game for every planned game without one).
+  const [showCreateAll, setShowCreateAll] = useState(false);
+  /** The venue book for "Create all games" (loaded when the sheet opens). */
+  const [createAllVenues, setCreateAllVenues] = useState<KnownVenue[]>([]);
+  useEffect(() => {
+    if (!showCreateAll) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        // Same book the new-game form completes from: every venue the coach
+        // has used (kept in settings) merged with the matches on hand.
+        const [settings, games] = await Promise.all([getAppSettings(user?.id), getSavedGames(user?.id)]);
+        if (!cancelled) setCreateAllVenues(learnVenues(settings.knownVenues, Object.values(games ?? {})).book);
+      } catch (err) {
+        // The venue field still works as plain text without suggestions.
+        logger.warn('[planner] Could not load the venue book (non-fatal)', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showCreateAll, user?.id]);
   // Undo/redo: full-state snapshots of the ACTIVE plan (standalone-planner
   // style). Refs hold the stack (no re-render per edit); historyTick forces the
   // toolbar's disabled states to refresh. The stack reseeds whenever the plan
@@ -502,7 +545,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             // so the Games tab is also the right landing place for a miss.
             const exists = wanted.games.some((g) => g.id === target.planGameId);
             setEditingGameId(exists ? target.planGameId : null);
-            setView('games');
+            // 'plan' when coming back from "Luo ottelu" (cancelled): the coach
+            // left from the plan tab's game list and lands there again.
+            setView(target.tab ?? 'games');
             onTargetConsumedRef.current?.();
             return;
           }
@@ -967,13 +1012,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         // Same scan, second use: the game each planned game can jump to. Only
         // games that still EXIST are offered - a link outliving its game would
         // otherwise produce a row that opens nothing.
-        const jump: Record<string, string> = {};
-        for (const [gameId, link] of Object.entries(links)) {
-          if (link.planId !== planId) continue;
-          if (!games[gameId]) continue;
-          jump[link.planGameId] = gameId;
-        }
-        setLinkedGameIds(jump);
+        // This is also the planned game's "created" status: a deleted game frees it.
+        setLinkedGameIds(createdGameIdsForPlan(games, links, planId));
       } catch (err) {
         logger.error('[planner] Failed to count linked games (non-fatal)', err);
         setLinkedCounts({});
@@ -1002,6 +1042,75 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       cancelled = true;
     };
   }, [isOpen, activePlan?.id, refreshLinkedCounts]);
+
+  // "Luo ottelu": hand this planned game to the host's new-game form. The plan
+  // is saved first - the form builds its prefill from what is on screen.
+  const handleCreateGame = useCallback(
+    async (planGameId: string) => {
+      const plan = activePlanRef.current;
+      if (!plan || !onCreateGame) return;
+      await flushSave();
+      onCreateGame(plan, planGameId);
+    },
+    [flushSave, onCreateGame],
+  );
+
+  // "Luo kaikki pelit": create every row of the sheet (see createGamesFromPlan
+  // for the duplicate re-check and per-game failure reporting).
+  const handleCreateAllGames = useCallback(
+    async (shared: PlanBatchShared, rows: PlanBatchRow[]): Promise<CreateGamesFromPlanResult> => {
+      const plan = activePlanRef.current;
+      if (!plan) return { created: [], failed: rows.map((r) => r.planGameId), skipped: [] };
+      await flushSave();
+      const result = await createGamesFromPlan(
+        {
+          getAllGames: () => getSavedGames(user?.id),
+          getAllPlanLinks,
+          createGame: (request, createdAtMs) =>
+            persistGameFromPlan(
+              {
+                utilSaveGame,
+                deleteGame: utilDeleteGame,
+                setGameSubs,
+                setPlanLink,
+                availablePlayers: roster,
+                defaultSubIntervalMinutes: 5,
+                userId: user?.id,
+              },
+              request,
+              createdAtMs,
+            ),
+        },
+        plan,
+        shared,
+        rows,
+        roster,
+      );
+      if (result.created.length > 0) {
+        await queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, user?.id] });
+      }
+      await refreshLinkedCounts(plan.id);
+      return result;
+    },
+    [flushSave, user, roster, queryClient, refreshLinkedCounts],
+  );
+
+  const handleCreateAllDone = useCallback(
+    (result: CreateGamesFromPlanResult) => {
+      setShowCreateAll(false);
+      if (result.created.length > 0) {
+        showToast(
+          t('planCreateGames.done', '{{count}} matches created.', {
+            count: result.created.length,
+          }),
+          'success',
+        );
+      } else if (result.skipped.length > 0) {
+        showToast(t('planCreateGames.allExisted', 'These games had already been created.'), 'info');
+      }
+    },
+    [showToast, t],
+  );
 
   // Re-apply the current plan to every unplayed game created from one planned game.
   // Guarded behind the app's ConfirmationModal (not window.confirm): the "update"
@@ -1054,8 +1163,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           showToast(
             t(
               'playtimePlanner.overview.reapplyDoneNoRoster',
-              'Updated {{updated}} games; {{skipped}} had no players in their roster and were left unchanged.',
-              { updated: summary.updated, skipped: summary.skippedNoRoster },
+              'Updated {{count}} games; {{skipped}} had no players in their roster and were left unchanged.',
+              { count: summary.updated, skipped: summary.skippedNoRoster },
             ),
             'info',
           );
@@ -1571,8 +1680,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const plannerOverlayOpen =
     deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null ||
     trimConfirm !== null || showSuggestConfirm || showClearAllGamesConfirm ||
-    actionsMenuId !== null || subSheetTarget !== null;
+    actionsMenuId !== null || subSheetTarget !== null || showCreateAll;
   const closePlannerOverlay = useCallback(() => {
+    if (showCreateAll) { setShowCreateAll(false); return; }
     if (deleteTarget !== null) { setDeleteTarget(null); return; }
     if (removeTarget !== null) { setRemoveQueue((q) => q.slice(1)); return; }
     if (bulkReapplyTarget !== null) { setBulkReapplyTarget(null); return; }
@@ -1581,7 +1691,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (showClearAllGamesConfirm) { setShowClearAllGamesConfirm(false); return; }
     if (actionsMenuId !== null) { setActionsMenuId(null); return; }
     if (subSheetTarget !== null) { setSubSheetTarget(null); return; }
-  }, [deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, actionsMenuId, subSheetTarget]);
+  }, [deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, actionsMenuId, subSheetTarget, showCreateAll]);
 
   // Hardware back:
   //  - the BASE registration closes the planner (manager/loading -> close), the
@@ -1653,6 +1763,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setSubSheetTarget(null);
         return;
       }
+      // Same for the create-all sheet.
+      if (showCreateAll) {
+        setShowCreateAll(false);
+        return;
+      }
       if (isPlanTab(view) && !singlePlanLayer) {
         void handleBackToManager();
       } else {
@@ -1661,7 +1776,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, actionsMenuId, handleBackToManager, singlePlanLayer]);
+  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, showCreateAll, actionsMenuId, handleBackToManager, singlePlanLayer]);
 
   const startNewPlan = () => {
     resetSetupForm(pickableRoster);
@@ -2122,9 +2237,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         )}
                       </span>
                       <span className={`${subtextStyle} block mt-0.5`}>
-                        {t('playtimePlanner.manager.meta', '{{games}} games · {{players}} players', {
-                          games: p.games.length,
-                          players: p.players.length,
+                        {t('playtimePlanner.manager.meta', '{{games}} · {{players}}', {
+                          games: t('playtimePlanner.manager.games', '{{count}} games', { count: p.games.length }),
+                          players: t('playtimePlanner.manager.players', '{{count}} players', { count: p.players.length }),
                         })}
                       </span>
                     </span>
@@ -2318,8 +2433,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     {t('playtimePlanner.setup.formatHeading', 'Games & format')}
                   </span>
                   <span className={subtextStyle}>
-                    {t('playtimePlanner.overview.formatSummary', '{{games}} games · {{periods}}×{{minutes}} min', {
-                      games: activePlan.games.length,
+                    {t('playtimePlanner.overview.formatSummary', '{{count}} games · {{periods}}×{{minutes}} min', {
+                      count: activePlan.games.length,
                       periods: activePlan.games[0]?.numberOfPeriods ?? 0,
                       minutes: activePlan.games[0]?.periodMinutes ?? 0,
                     })}
@@ -2427,6 +2542,32 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 tab's ribbon - no more navigate-only cards. */}
             <div>
               <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
+              {/* Real games made from this plan: how many exist, and one press
+                  to make the rest (a game deleted since counts as not made). */}
+              {(() => {
+                const createdCount = activePlan.games.filter((g) => linkedGameIds[g.id]).length;
+                const remaining = activePlan.games.length - createdCount;
+                return (
+                  <div className="px-1 mb-3 space-y-2">
+                    <p className={subtextStyle} data-testid="planner-created-summary">
+                      {t('planCreateGames.summary', '{{created}}/{{total}} games created', {
+                        created: createdCount,
+                        total: activePlan.games.length,
+                      })}
+                    </p>
+                    {remaining > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateAll(true)}
+                        data-testid="planner-create-all"
+                        className={`${secondaryButtonStyle} w-full`}
+                      >
+                        {t('planCreateGames.createAll', 'Create all games')}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
               <div className={`${groupedListStyle} divide-y divide-hairline`}>
                 {activePlan.games.map((game) => {
                   const slotCount = getGameSlots(game.formationId).length;
@@ -2485,17 +2626,42 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                           })}
                         </button>
                       )}
-                      {/* The other half of the round trip: a match can open its
-                          plan, so a plan should be able to open its match. */}
-                      {onOpenGame && linkedGameIds[game.id] && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenGame(linkedGameIds[game.id])}
-                          data-testid={`planner-open-game-${game.id}`}
-                          className={`${secondaryButtonStyle} w-full`}
-                        >
-                          {t('playtimePlanner.overview.openGame', 'Open the game')}
-                        </button>
+                      {/* Created or not. Created: the other half of the round
+                          trip (a match can open its plan, so a plan opens its
+                          match) and no second create - one planned game, one
+                          game. Not created: "Luo ottelu" opens the new-game
+                          form prefilled from this planned game. */}
+                      {linkedGameIds[game.id] ? (
+                        <div className="flex items-center gap-2 px-1" data-testid={`planner-created-${game.id}`}>
+                          <span className="inline-flex items-center gap-1 text-sm font-semibold text-ink-2">
+                            {t('planCreateGames.created', 'Created')}
+                            <HiCheck aria-hidden="true" className="w-4 h-4 text-action" />
+                          </span>
+                          {onOpenGame && (
+                            <>
+                              <span aria-hidden="true" className="text-ink-3">·</span>
+                              <button
+                                type="button"
+                                onClick={() => onOpenGame(linkedGameIds[game.id])}
+                                data-testid={`planner-open-game-${game.id}`}
+                                className={`${linkStyle} inline-flex items-center min-h-11 text-sm`}
+                              >
+                                {t('playtimePlanner.overview.openGame', 'Open the game')}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        onCreateGame && (
+                          <button
+                            type="button"
+                            onClick={() => void handleCreateGame(game.id)}
+                            data-testid={`planner-create-game-${game.id}`}
+                            className={`${secondaryButtonStyle} w-full`}
+                          >
+                            {t('planCreateGames.createOne', 'Create match')}
+                          </button>
+                        )
                       )}
                     </div>
                   );
@@ -2795,6 +2961,20 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             />
           );
         })()}
+
+      {showCreateAll && activePlan && (
+        <PlanCreateGamesSheet
+          plan={activePlan}
+          games={notCreatedPlanGames(activePlan, linkedGameIds)}
+          teams={teams}
+          seasons={seasons}
+          tournaments={tournaments}
+          knownVenues={createAllVenues}
+          onSubmit={handleCreateAllGames}
+          onDone={handleCreateAllDone}
+          onClose={() => setShowCreateAll(false)}
+        />
+      )}
 
       <ConfirmationModal
         isOpen={showSuggestConfirm}

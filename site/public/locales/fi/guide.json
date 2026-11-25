@@ -29,24 +29,24 @@
   },
   "landing": {
     "title": "Käyttöopas",
-    "subtitle": "Kaikki, mitä tarvitset MatchOpsin käyttöön",
-    "structureIntro": "Mistä aloitat?",
-    "structureExplanation": "Pikaopas vie tilin luonnista ensimmäiseen suunnitelmaan. Koko näkymän käyttöönotto neuvoo, miten pelaajat, sarjat, turnaukset ja joukkueet laitetaan kuntoon. Muut ohjeet käyvät läpi yhden aiheen kerrallaan.",
+    "subtitle": "Näin käytät MatchOpsia",
+    "structureIntro": "Mistä kannattaa aloittaa?",
+    "structureExplanation": "Pikaoppaassa luot tilin ja teet ensimmäisen suunnitelman. Jos käytät Koko näkymää, katso sen ohjeesta, miten pelaajat, sarjat, turnaukset ja joukkueet laitetaan kuntoon. Muissa ohjeissa käydään läpi yksi aihe kerrallaan.",
     "mainPaths": "Aloita tästä",
     "referenceGuides": "Ohjeet aiheittain",
-    "quickStart": "Uusi MatchOpsin käyttäjä?",
-    "startButton": "Aloita Pikaoppaasta"
+    "quickStart": "Uusi käyttäjä?",
+    "startButton": "Aloita pikaoppaasta"
   },
   "lastUpdated": "Päivitetty: {{date}}",
   "readingTime": "Lukuaika {{minutes}} min",
   "sections": {
     "getting-started": {
       "title": "Pikaopas",
-      "description": "Ilmainen tili, joukkue ja ensimmäiset askeleet"
+      "description": "Ilmainen tili, joukkue ja ensimmäinen suunnitelma sekä Kevennetty näkymä ja Koko näkymä"
     },
     "full-setup-path": {
-      "title": "Koko näkymän käyttöönotto",
-      "description": "Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet"
+      "title": "Näin otat Koko näkymän käyttöön",
+      "description": "Pelaajat, taustahenkilöt, sarjat, turnaukset ja joukkueet Koko näkymässä"
     },
     "roster-management": {
       "title": "Pelaajat",
@@ -61,7 +61,7 @@
       "description": "Ottelupäivän kulku yhdellä sivulla"
     },
     "before-the-game": {
-      "title": "Ennen peliä: suunnitelma ja Ketkä ovat paikalla?",
+      "title": "Ennen peliä: suunnitelma ja poissaolijat",
       "description": "Pelin suunnitelma, jakaminen, poissaolijat ja usean pelin suunnittelu"
     },
     "during-the-game": {
@@ -82,14 +82,14 @@
     },
     "data-management": {
       "title": "Tili ja tiedot",
-      "description": "Tili, synkronointi, varmuuskopiot ja asetukset"
+      "description": "Tili, synkronointi, varmuuskopiot, asetukset ja näkymä"
     },
     "troubleshooting": {
-      "title": "Vianetsintä",
-      "description": "Yleiset ongelmat ja ratkaisut"
+      "title": "Ongelmatilanteet",
+      "description": "Yleisimmät ongelmat ja niiden ratkaisut"
     },
     "tips-best-practices": {
-      "title": "Vinkit ja hyvät käytännöt",
+      "title": "Käytännön vinkit",
       "description": "Näin saat MatchOpsista eniten irti"
     },
     "faq": {

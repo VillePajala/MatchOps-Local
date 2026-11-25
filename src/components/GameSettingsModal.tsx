@@ -47,6 +47,7 @@ import { LazyGameThemeRow } from '@/playbook/lazyEntryPoints';
 import { HiOutlineMapPin } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
+import TimeInput from '@/components/TimeInput';
 import { teamMemberIds, activePlayers, sortPlayersByLastName, playerListLabel } from '@/utils/gamePlayerList';
 
 /**
@@ -592,9 +593,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, isShootoutModalOpen]);
 
-  // State for game time
-  const [gameHour, setGameHour] = useState<string>('');
-  const [gameMinute, setGameMinute] = useState<string>('');
+  // The kick-off field's own value ("HH:MM" from the native time picker, or
+  // ''), committed to the game on blur / close - not on every change.
+  const [gameTimeInput, setGameTimeInput] = useState<string>('');
 
   // State for team selection
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teamId || null);
@@ -618,10 +619,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // Tracks the most recent value we ourselves committed up to the parent.
   // Used by the resync effect below to ignore the prop change that comes
-  // back through onGameTimeChange / mutateGameDetails — without this guard
-  // the parent's padded "HH:MM" was being written back into local state
-  // mid-edit, which clobbered the user's raw digits and silently dropped
-  // the second character of two-digit values (e.g. typing 30 → 03).
+  // back through onGameTimeChange / mutateGameDetails, so our own commit never
+  // round-trips into the field mid-edit (it once clobbered typed digits).
   const lastCommittedTimeRef = useRef<string | null>(null);
 
   // Initialize / resync game time state from prop. Only takes effect for
@@ -633,40 +632,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       lastCommittedTimeRef.current = null;
       return;
     }
-    if (gameTime && typeof gameTime === 'string') {
-      const [hour, minute] = gameTime.split(':');
-      setGameHour(hour || '');
-      setGameMinute(minute || '');
-    } else {
-      setGameHour('');
-      setGameMinute('');
-    }
+    setGameTimeInput(typeof gameTime === 'string' ? gameTime : '');
   }, [gameTime]);
 
-  // Push hour + minute up to the parent. Called on blur of either field
-  // (not on every keystroke), so the user's raw digits remain in the local
-  // state until they're done editing — no padding round-trip mid-typing,
-  // and clearing one field never wipes the other.
+  // Push the time up to the parent. Called on blur (and on close, below), not
+  // on every change: a keyboard edit on desktop changes the value once per
+  // segment, and each would otherwise be its own undo step.
   const commitGameTime = () => {
     editedSinceCommitRef.current.gameTime = false;
-    const hasHour = gameHour !== '';
-    const hasMinute = gameMinute !== '';
-
-    let timeValue: string;
-    if (!hasHour && !hasMinute) {
-      timeValue = '';
-    } else if (hasHour && hasMinute) {
-      const formattedHour = gameHour.padStart(2, '0');
-      const formattedMinute = gameMinute.padStart(2, '0');
-      timeValue = `${formattedHour}:${formattedMinute}`;
-    } else {
-      // Partial state (only one of hour/minute filled). Don't push to the
-      // parent — wait for the user to complete or fully clear both fields.
-      // Local state preserves whichever side has a value so the user can
-      // come back and finish.
-      return;
-    }
-
+    // The native field only ever yields a complete "HH:MM" or '' (cleared).
+    const timeValue = /^([01]\d|2[0-3]):[0-5]\d$/.test(gameTimeInput) ? gameTimeInput : '';
     if (timeValue === gameTime) return; // no-op write
     lastCommittedTimeRef.current = timeValue;
     onGameTimeChange(timeValue);
@@ -719,29 +694,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     return () => commitPendingRef.current();
   }, [isOpen]);
 
-  // Handle time changes — local state only; commit happens on blur.
-  const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Time changes are local only; the commit happens on blur / close.
+  const handleGameTimeInputChange = (value: string) => {
     editedSinceCommitRef.current.gameTime = true;
-    const value = e.target.value;
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (numericValue.length <= 2) {
-      const hourNum = parseInt(numericValue, 10);
-      if (numericValue === '' || (hourNum >= 0 && hourNum <= 23)) {
-        setGameHour(numericValue);
-      }
-    }
-  };
-
-  const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    editedSinceCommitRef.current.gameTime = true;
-    const value = e.target.value;
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (numericValue.length <= 2) {
-      const minuteNum = parseInt(numericValue, 10);
-      if (numericValue === '' || (minuteNum >= 0 && minuteNum <= 59)) {
-        setGameMinute(numericValue);
-      }
-    }
+    setGameTimeInput(value);
   };
 
   // --- Effects ---
@@ -1888,44 +1844,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
                 {/* Game Time */}
                 <div className="min-w-0">
-                  <label className={labelStyle}>
+                  <label htmlFor="gameTimeInput" className={labelStyle}>
                     {t('gameSettingsModal.gameTimeLabel', 'Time (Optional)')}
                   </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={2}
-                      value={gameHour}
-                      onChange={handleHourChange}
-                      onBlur={commitGameTime}
-                      placeholder={t('gameSettingsModal.hourPlaceholder', 'HH')}
-                      className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      onFocus={(e) => e.target.select()}
-                    />
-                    <span aria-hidden="true" className="font-ui text-lg font-semibold text-ink-3">:</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={2}
-                      value={gameMinute}
-                      onChange={handleMinuteChange}
-                      onBlur={commitGameTime}
-                      placeholder={t('gameSettingsModal.minutePlaceholder', 'MM')}
-                      className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      onFocus={(e) => e.target.select()}
-                    />
-                  </div>
+                  <TimeInput
+                    id="gameTimeInput"
+                    name="gameTime"
+                    value={gameTimeInput}
+                    onChange={handleGameTimeInputChange}
+                    onBlur={commitGameTime}
+                  />
                 </div>
                 </div>
 

@@ -23,7 +23,8 @@ import {
   venueFor,
 } from '@/utils/newGameDefaults';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
-import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
+import type { PlaytimePlan, PlanGame } from '@/utils/playtimePlanner/types';
+import { opponentFromLabel } from '@/utils/playtimePlanner/createFromPlan';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
@@ -63,6 +64,7 @@ import type { GameTheme } from '@/playbook/gameThemeTypes';
 import { HiOutlineMapPin, HiOutlineArrowPath } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
+import TimeInput from '@/components/TimeInput';
 import { teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
 
 interface NewGameSetupModalProps {
@@ -118,6 +120,15 @@ interface NewGameSetupModalProps {
     gameThemes?: GameTheme[],
   ) => void;
   onCancel: () => void;
+  /**
+   * Opened from the planner's "Luo ottelu" on one planned game: the form opens
+   * prefilled from that plan + planned game exactly as if the coach had picked
+   * it under "Prefill from plan" (line-up, planned subs, period format, squad
+   * limited to players still in the roster, and the plan link), with the
+   * plan's team selected and the opponent taken from the game's label when it
+   * names one. Read once per opening.
+   */
+  planSource?: { plan: PlaytimePlan; planGameId: string } | null;
   /** W1 roster bridge in game creation too: club write returning the saved
    *  player; the modal dup-checks and selects them into this setup. */
   onAddPlayerToRoster?: (name: string, nickname?: string) => Promise<import('@/types').Player | null>;
@@ -191,6 +202,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   onManageTeamRoster,
   onStart,
   onCancel,
+  planSource,
   onAddPlayerToRoster,
   masterRoster,
   seasons,
@@ -233,8 +245,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     },
     [],
   );
-  const [gameHour, setGameHour] = useState<string>('');
-  const [gameMinute, setGameMinute] = useState<string>('');
+  /** "HH:MM" from the native time picker, or '' (no kick-off time yet). */
+  const [gameTime, setGameTime] = useState<string>('');
   const [ageGroup, setAgeGroup] = useState('');
   const [tournamentLevel, setTournamentLevel] = useState('');
   const [leagueId, setLeagueId] = useState('');
@@ -253,6 +265,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const venueFromDefaultsRef = useRef(false);
   /** Assigned every render below (it closes over the handlers); run once per opening. */
   const applyNewGameDefaultsRef = useRef<() => void>(() => {});
+  /** The planner's "Luo ottelu" source, read once per opening (after the defaults). */
+  const planSourceRef = useRef(planSource);
+  planSourceRef.current = planSource;
+  const applyPlanSourceRef = useRef<() => void>(() => {});
+  /** The team the defaults picked this opening (a plan for another team re-picks the competition). */
+  const defaultsTeamIdRef = useRef<string | null>(null);
 
   // State for season/tournament selection
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
@@ -489,8 +507,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setOpponentName('');
     setGameDate(todayIso());
     setGameLocation('');
-    setGameHour('');
-    setGameMinute('');
+    setGameTime('');
     setSelectedSeasonId(null);
     setSelectedTournamentId(null);
     setSelectedTournamentSeriesId(null);
@@ -545,14 +562,20 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setPrefillGameId('');
       setPrefillPayload(undefined);
       setPrefillMissingCount(0);
+      // Opened from the planner's "Luo ottelu": prefill from that planned game.
+      // AFTER the defaults, so the plan's line-up, format and team win over the
+      // previous game's.
+      applyPlanSourceRef.current();
       const loadPlans = async () => {
         try {
           const plans = await getPlans();
+          const sourcePlanId = planSourceRef.current?.plan.id;
           setPlaytimePlans(
             Object.values(plans)
               // Archived plans are hidden in the planner by default; offering them
-              // here as prefill sources made them reappear (review 7.L3).
-              .filter((plan) => !plan.archived)
+              // here as prefill sources made them reappear (review 7.L3). The plan
+              // this form was opened FROM stays listed, so the picker shows it.
+              .filter((plan) => !plan.archived || plan.id === sourcePlanId)
               .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
           );
         } catch (err) {
@@ -597,17 +620,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setPrefillMissingCount(0);
   }, []);
 
-  const handlePrefillGameChange = useCallback(
-    (gameId: string) => {
-      setPrefillGameId(gameId);
-      const plan = playtimePlans.find((p) => p.id === prefillPlanId);
-      const game = plan?.games.find((g) => g.id === gameId);
-      if (!plan || !game) {
-        setPrefillPayload(undefined);
-        setPrefillMissingCount(0);
-        return;
-      }
-      const result = buildPrefillFromPlan(plan, game, availablePlayersForSetup);
+  /** Build + apply the prefill for one planned game (shared by the picker and planSource). */
+  const applyPlanPrefill = useCallback(
+    (plan: PlaytimePlan, game: PlanGame, roster: Player[]) => {
+      const result = buildPrefillFromPlan(plan, game, roster);
       setSelectedPlayerIds(result.selectedPlayerIds);
       // Seed the game's period config from the PLANNED game (still editable):
       // without this a 2x12 plan lands in a 2x10 default game and the planned
@@ -622,12 +638,68 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         // Snap points let the created game rebuild the dotted sub slots + labels.
         formationSnapPoints: result.formationSnapPoints,
         // Link back to the plan so an edited plan can be re-applied later.
-        sourcePlanId: prefillPlanId,
-        sourcePlanGameId: gameId,
+        sourcePlanId: plan.id,
+        sourcePlanGameId: game.id,
       });
       setPrefillMissingCount(result.missingPlayerIds.length);
     },
-    [playtimePlans, prefillPlanId, availablePlayersForSetup],
+    [],
+  );
+
+  applyPlanSourceRef.current = () => {
+    const source = planSourceRef.current;
+    if (!source) return;
+    const game = source.plan.games.find((g) => g.id === source.planGameId);
+    if (!game) return;
+    // The plan's own team, when it still exists and the defaults picked another
+    // one. fromDefaults: no empty-roster prompt interrupts.
+    const planTeam = source.plan.teamId ? teams.find((tm) => tm.id === source.plan.teamId) : undefined;
+    if (planTeam && planTeam.id !== defaultsTeamIdRef.current) {
+      void handleTeamSelection(planTeam.id, { fromDefaults: true });
+      // The defaults' competition belonged to another team: use this team's
+      // own (bound) competition instead, or none.
+      setSelectedSeasonId(null);
+      setSelectedTournamentId(null);
+      setSelectedTournamentSeriesId(null);
+      setTournamentLevel('');
+      setActiveTab('none');
+      applyTeamBoundCompetition(planTeam);
+    }
+    setPrefillPlanId(source.plan.id);
+    setPrefillGameId(game.id);
+    applyPlanPrefill(source.plan, game, pickableRoster);
+    // The plan's squad is the selection: a team roster that loads after this
+    // must not replace it (handleTeamSelection keeps a touched selection).
+    playersTouchedRef.current = true;
+    // A label naming the opponent starts the field; a "(koti)"/"(vieras)" on it
+    // sets the side instead of ending up in the name. Never the coach's own team.
+    const fromLabel = opponentFromLabel(game.label, teams.map((tm) => tm.name));
+    setOpponentName(fromLabel.opponent);
+    if (fromLabel.homeOrAway) {
+      setLocalHomeOrAway(fromLabel.homeOrAway);
+      // A venue from the previous game belongs to that game's side (D26): use
+      // the team's last venue on the side the plan names, or none.
+      if (venueFromDefaultsRef.current) {
+        const teamId = planTeam?.id ?? defaultsTeamIdRef.current;
+        handleVenueChange(venueFor(savedGames, teamId, fromLabel.homeOrAway) ?? { name: '' });
+        setFieldNumber('');
+      }
+    }
+  };
+
+  const handlePrefillGameChange = useCallback(
+    (gameId: string) => {
+      setPrefillGameId(gameId);
+      const plan = playtimePlans.find((p) => p.id === prefillPlanId);
+      const game = plan?.games.find((g) => g.id === gameId);
+      if (!plan || !game) {
+        setPrefillPayload(undefined);
+        setPrefillMissingCount(0);
+        return;
+      }
+      applyPlanPrefill(plan, game, availablePlayersForSetup);
+    },
+    [playtimePlans, prefillPlanId, availablePlayersForSetup, applyPlanPrefill],
   );
 
   // Memoize selected tournament lookup to avoid duplicate find() calls in render
@@ -1104,6 +1176,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       fallbackAgeGroup: getStoredSetupAgeGroup(onboardingUserIdRef.current) ?? undefined,
     });
     const team = defaults.teamId ? teams.find((t) => t.id === defaults.teamId) : undefined;
+    defaultsTeamIdRef.current = team?.id ?? null;
     if (team) {
       void handleTeamSelection(team.id, {
         fromDefaults: true,
@@ -1210,11 +1283,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         return;
     }
 
-    // Format game time properly
-    const formattedHour = gameHour.padStart(2, '0');
-    const formattedMinute = gameMinute.padStart(2, '0');
-    const gameTime = (gameHour && gameMinute) ? `${formattedHour}:${formattedMinute}` : '';
-
     // Validate period duration
     const duration = parseInt(localPeriodDurationString, 10);
     if (isNaN(duration) || duration <= 0) {
@@ -1291,33 +1359,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
   };
 
-
-  // ... handleHourChange and handleMinuteChange functions ...
-  const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Only allow numeric input and limit to 2 characters
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (numericValue.length <= 2) {
-      const hourNum = parseInt(numericValue, 10);
-      // Validate hour range (0-23) if number is complete
-      if (numericValue === '' || (hourNum >= 0 && hourNum <= 23)) {
-        setGameHour(numericValue);
-      }
-    }
-  };
-
-  const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Only allow numeric input and limit to 2 characters
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (numericValue.length <= 2) {
-      const minuteNum = parseInt(numericValue, 10);
-      // Validate minute range (0-59) if number is complete
-      if (numericValue === '' || (minuteNum >= 0 && minuteNum <= 59)) {
-        setGameMinute(numericValue);
-      }
-    }
-  };
 
   const modalTitleId = useId();
 
@@ -1863,46 +1904,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         </div>
 
                         <div className="min-w-0">
-                          <label className={labelStyle}>
+                          <label htmlFor="gameTimeInput" className={labelStyle}>
                             {t('newGameSetupModal.gameTimeLabel', 'Time (Optional)')}
                           </label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              maxLength={2}
-                              value={gameHour}
-                              onChange={handleHourChange}
-                              onKeyDown={handleKeyDown}
-                              placeholder={t('newGameSetupModal.hourPlaceholder', 'HH')}
-                              className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
-                              autoComplete="off"
-                              autoCorrect="off"
-                              autoCapitalize="off"
-                              spellCheck="false"
-
-                              onFocus={(e) => e.target.select()}
-                            />
-                            <span aria-hidden="true" className="font-ui text-lg font-semibold text-ink-3">:</span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              maxLength={2}
-                              value={gameMinute}
-                              onChange={handleMinuteChange}
-                              onKeyDown={handleKeyDown}
-                              placeholder={t('newGameSetupModal.minutePlaceholder', 'MM')}
-                              className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
-                              autoComplete="off"
-                              autoCorrect="off"
-                              autoCapitalize="off"
-                              spellCheck="false"
-
-                              onFocus={(e) => e.target.select()}
-                            />
-                          </div>
+                          <TimeInput
+                            id="gameTimeInput"
+                            name="gameTime"
+                            value={gameTime}
+                            onChange={setGameTime}
+                            onKeyDown={handleKeyDown}
+                          />
                         </div>
 
                       </div>

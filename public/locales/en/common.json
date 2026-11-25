@@ -20,7 +20,7 @@
   "taso": {
     "button": "Match sheet",
     "title": "Match sheet",
-    "subtitle": "The match data, ready to copy.",
+    "subtitle": "Match details ready for filling in the match sheet.",
     "lineupTitle": "Squad",
     "reportTitle": "Match sheet",
     "halfTime": "half-time",
@@ -31,7 +31,8 @@
     "goalie": "GK",
     "captain": "C",
     "unknownPlayer": "unknown",
-    "extraTime": "extra time"
+    "extraTime": "extra time",
+    "shootout": "Penalty shoot-out"
   },
   "evidence": {
     "button": "Share player summary",
@@ -397,9 +398,7 @@
     "addOpponent": "Add Opp",
     "clear": "Clear",
     "reset": "Reset",
-    "togglePlannedSubs": "Show planned substitutions",
-    "planViewLineup": "Lineup only",
-    "planViewGhosts": "Planned substitutions",
+    "planViewLineup": "Lineup",
     "planViewChains": "Substitutions and minutes"
   },
   "gameResult": {
@@ -1097,8 +1096,6 @@
     "locationPlaceholder": "e.g., Central Park",
     "ageGroupLabel": "Age Group (Optional)",
     "gameTimeLabel": "Time (Optional)",
-    "hourPlaceholder": "HH",
-    "minutePlaceholder": "MM",
     "playersSelectedCounter": "Players Selected",
     "seasonLabel": "League",
     "selectSeason": "Select League",
@@ -1218,8 +1215,6 @@
     "gameInfo": "Game Info",
     "gameDateLabel": "Game Date",
     "gameTimeLabel": "Time (Optional)",
-    "hourPlaceholder": "HH",
-    "minutePlaceholder": "MM",
     "locationLabel": "Location (Optional)",
     "locationPlaceholder": "e.g., Central Park",
     "ageGroupLabel": "Age Group (Optional)",
@@ -1470,11 +1465,11 @@
     "clockNext": "Tap the clock to open the large clock. The next planned change is shown there as a block.",
     "clockGoal": "Our goal: tap \"Goal for us\". The goal is logged and the score moves at once. Then pick the scorer from \"Who scored?\" (all squad players) or tap \"Skip\".",
     "clockOpponent": "Opponent goal: tap \"Opponent +1\".",
-    "clockReset": "In the full layout, \"Sub done\" restarts the change timer.",
+    "clockReset": "In the Full view, \"Sub done\" restarts the change timer.",
     "dictationTip": "Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.",
     "finishTitle": "Finishing the match",
     "finishStart": "At full time tap \"Finish this game\".",
-    "finishSheet": "Match sheet: a copy-ready text of the match data that you can paste into any system.",
+    "finishSheet": "Match sheet: every match detail in one place when you fill in the match sheet, for example in Taso.",
     "finishReport": "Match report: your own text - write it, dictate it or make an AI draft. \"Share match report\" sends it on.",
     "drawingTools": "Drawing & Tactical Tools",
     "drawingToolsNote": "After clicking Tactics Board, you can:",
@@ -1929,9 +1924,9 @@
   },
   "settingsModal": {
     "layoutLabel": "Layout",
-    "layoutBasic": "Basic",
-    "layoutFull": "Full",
-    "layoutHint": "The full layout shows every feature. Nothing is removed.",
+    "layoutBasic": "Basic view",
+    "layoutFull": "Full view",
+    "layoutHint": "The Full view shows every feature. Nothing is removed.",
     "title": "Settings",
     "tabs": {
       "general": "General",
@@ -2532,7 +2527,7 @@
   "privacyPolicy": {
     "title": "Privacy Policy for MatchOps",
     "version": "Policy Version: 2026-11",
-    "lastUpdated": "Last Updated: 23 November 2026",
+    "lastUpdated": "Last Updated: 25 November 2026",
     "dataController": {
       "title": "Data Controller",
       "content": "MatchOps is developed and operated by Ville Pajala, based in Finland. We are the controller of your account data (your email, settings, consent records) and of the error reports and usage statistics described below. For the personal data entered about other people (players, staff), the controller is the coach who uses the app - or the club, if the coach uses the app as part of the club's activity - and we act as processor (see Data Processing in the Terms of Service)."
@@ -2610,7 +2605,7 @@
       },
       "personnelDataNote": "This data is stored on your device and synced to your cloud account in the EU (Stockholm, Sweden). Staff contact details (email, phone) are personal data under GDPR. For any personal data you enter about other people (such as players and staff), you - or the club you act for - are the controller and are responsible for having a lawful basis to store it and for informing the people concerned; we process it only on your behalf (see Data Processing in the Terms of Service).",
       "onboardingTitle": "Onboarding Progress and Layout",
-      "onboardingContent": "Unless you turn it off, we store a few timestamps about your onboarding progress (account created, setup finished or skipped, first plan seen, first and second match finished) in your account settings, together with your chosen layout (Basic or Full). We use the timestamps only to improve how new coaches get started. They contain none of your game data, are never shared or sold, and are deleted with your account. To object, turn off Settings → Data → Error reporting and usage statistics: no further timestamps are then recorded. The layout is a setting of the app and is always kept."
+      "onboardingContent": "Unless you turn it off, we store a few timestamps about your onboarding progress (account created, setup finished or skipped, first plan seen, first and second match finished, switch to the Full view) in your account settings, together with your chosen layout (Basic view or Full view). We use the timestamps only to improve how new coaches get started. They contain none of your game data, are never shared or sold, and are deleted with your account. To object, turn off Settings → Data → Error reporting and usage statistics: no further timestamps are then recorded. The layout is a setting of the app and is always kept. So are the layout notice's marks (layout notice shown and when, and your choice Don't show again), because without them the notice would repeat."
     },
     "dataWeDoNotCollect": {
       "title": "What We Do Not Do With Your Data",
@@ -3713,7 +3708,8 @@
     },
     "overview": {
       "gameLabel": "Game {{n}}",
-      "formatSummary": "{{games}} games · {{periods}}×{{minutes}} min",
+      "formatSummary_one": "{{count}} game · {{periods}}×{{minutes}} min",
+      "formatSummary_other": "{{count}} games · {{periods}}×{{minutes}} min",
       "gamesHeading": "Games",
       "deletePlan": "Delete",
       "confirmDelete": "Delete this plan? This cannot be undone.",
@@ -3734,7 +3730,8 @@
       "reapplyDoneMissing_other": "Updated {{count}} games. Not in a game roster, skipped: {{names}}.",
       "reapplyDonePartial_one": "Updated {{count}} game; {{failed}} could not be updated.",
       "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated.",
-      "reapplyDoneNoRoster": "Updated {{updated}} games; {{skipped}} had no players in their roster and were left unchanged.",
+      "reapplyDoneNoRoster_one": "Updated {{count}} game; {{skipped}} had no players in their roster and were left unchanged.",
+      "reapplyDoneNoRoster_other": "Updated {{count}} games; {{skipped}} had no players in their roster and were left unchanged.",
       "suggestButton": "Suggest lineups",
       "suggestConfirmTitle": "Suggest lineups?",
       "suggestConfirmMessage": "Builds lineups and substitutions for every included game so playing time comes out as even as possible and every player gets on the pitch. The goalkeeper is never subbed mid-game.",
@@ -3861,7 +3858,11 @@
     "manager": {
       "title": "Plans",
       "new": "New plan",
-      "meta": "{{games}} games · {{players}} players",
+      "meta": "{{games}} · {{players}}",
+      "games_one": "{{count}} game",
+      "games_other": "{{count}} games",
+      "players_one": "{{count}} player",
+      "players_other": "{{count}} players",
       "actions": "Plan actions",
       "archive": "Archive",
       "unarchive": "Unarchive",
@@ -3888,8 +3889,8 @@
     "homeTeamTab": "Club: your players, teams, staff, the warmup plan, the rules for your age group and coaching materials.",
     "homeCompetitionsTab": "Competitions: set up leagues and tournaments to group your games.",
     "homeStatsTab": "Stats: league, tournament, overall and player statistics (available once you've played a game).",
-    "homeGearBasic": "The gear icon (top-right): settings (including Basic/Full view), backups, your account and this guide.",
-    "homeBasicIntro": "The Basic Home is short: you see the next game and can start it. A match opens on its own field.",
+    "homeGearBasic": "The gear icon (top-right): settings (including Basic view/Full view), backups, your account and this guide.",
+    "homeBasicIntro": "Home in the Basic view is short: you see the next game and can start it. A match opens on its own field.",
     "homeBasicNextGame": "Next game card: the date, opponent and plan. Tap \"Start match\" on game day or \"Mark absences\" before it; \"Show plan\" opens the plan.",
     "homeBasicNewGame": "New game: pick a date and an opponent and you get a ready plan.",
     "homeBasicTeam": "Team row: opens the player list where you edit names, numbers and the keeper, and add or remove players.",
@@ -4194,17 +4195,27 @@
     "allGamesRow": "All games · {{count}}"
   },
   "allFeatures": {
-    "fullAppLine": "Simplified view · See the full app",
+    "fullAppLine": "Basic view · See the full app",
     "title": "All features",
-    "intro": "The basic layout shows what matters on match day. The full layout adds:",
+    "intro": "The Basic view shows what matters on match day. The Full view adds:",
     "itemTabs": "Home with tabs: games, club, competitions and statistics",
     "itemPlanner": "Match planning for several games, such as a tournament day",
     "itemCompetitions": "Leagues and tournaments",
     "itemClub": "Staff, warm-up plan and rules",
     "itemTravel": "Venues and departure times",
     "itemExternal": "Games played elsewhere in player statistics",
-    "switchToFull": "Switch to the full layout",
+    "switchToFull": "Switch to the Full view",
     "switchNote": "Nothing is removed. You can switch back in Settings."
+  },
+  "layoutNotice": {
+    "title": "You are starting with the Basic view",
+    "firstGame": "First match recorded ✓",
+    "threeGames": "Three matches recorded ✓",
+    "body": "We hid some features so getting started is easy. The Full view also has, for example, tournament-day planning, leagues and tournaments, statistics and the tactics board.",
+    "switchHint": "You can switch to the Full view at any time from the top of Home: <strong>See the full app</strong>.",
+    "ok": "Got it",
+    "switchNow": "Switch to the Full view now",
+    "stop": "Don't show again"
   },
   "planShare": {
     "keeper": "{{name}} (GK)",
@@ -4311,5 +4322,53 @@
         "failed": "Something went wrong. Try again."
       }
     }
+  },
+  "planCreateGames": {
+    "title": "Create all games",
+    "countLine_one": "{{count}} game will be created",
+    "countLine_other": "{{count}} games will be created",
+    "intro": "Each game gets its line-up and changes from the plan. Fill in the opponent and date - kick-off and venue can be added later.",
+    "team": "Team",
+    "noTeam": "No team",
+    "teamName": "Your team name",
+    "competition": "League or tournament",
+    "noCompetition": "None",
+    "seasons": "Leagues",
+    "tournaments": "Tournaments",
+    "series": "Level",
+    "gameType": "Sport",
+    "gamesHeading": "Games",
+    "gamesHeadingCount": "Games ({{count}})",
+    "gamesHint": "Tap a game's title to open or close it.",
+    "gameHeading": "Game {{number}} · {{label}}",
+    "gameNumber": "Game {{number}}",
+    "noOpponent": "Opponent missing",
+    "noDate": "Date missing",
+    "opponent": "Opponent",
+    "date": "Date",
+    "time": "Kick-off",
+    "optional": "Optional",
+    "homeAway": "Home or away",
+    "home": "Home",
+    "away": "Away",
+    "errorOpponent": "Enter the opponent.",
+    "errorDate": "Choose the date.",
+    "errorDateInvalid": "Check the date.",
+    "errorTime": "Check the time.",
+    "errorTeam": "Choose a team or enter its name.",
+    "errorTooLong": "Too long.",
+    "errorLength": "This game has no length in the plan. Set its minutes first.",
+    "fixErrors": "Fill in the marked fields. Nothing has been created yet.",
+    "someFailed": "These games could not be created: {{names}}. Your entries are kept - press again to retry.",
+    "creating": "Creating…",
+    "createCount_one": "Create {{count}} game",
+    "createCount_other": "Create {{count}} games",
+    "done_one": "{{count}} match created.",
+    "done_other": "{{count}} matches created.",
+    "allExisted": "These games had already been created.",
+    "summary": "{{created}}/{{total}} games created",
+    "createAll": "Create all games",
+    "createOne": "Create match",
+    "created": "Created"
   }
 }

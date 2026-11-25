@@ -479,7 +479,7 @@
   "privacyPolicy": {
     "title": "Privacy Policy for MatchOps",
     "version": "Policy Version: 2026-11",
-    "lastUpdated": "Last Updated: 23 November 2026",
+    "lastUpdated": "Last Updated: 25 November 2026",
     "dataController": {
       "title": "Data Controller",
       "content": "MatchOps is developed and operated by Ville Pajala, based in Finland. We are the controller of your account data (your email, settings, consent records) and of the error reports and usage statistics described below. For the personal data entered about other people (players, staff), the controller is the coach who uses the app - or the club, if the coach uses the app as part of the club's activity - and we act as processor (see Data Processing in the Terms of Service)."
@@ -557,7 +557,7 @@
       },
       "personnelDataNote": "This data is stored on your device and synced to your cloud account in the EU (Stockholm, Sweden). Staff contact details (email, phone) are personal data under GDPR. For any personal data you enter about other people (such as players and staff), you - or the club you act for - are the controller and are responsible for having a lawful basis to store it and for informing the people concerned; we process it only on your behalf (see Data Processing in the Terms of Service).",
       "onboardingTitle": "Onboarding Progress and Layout",
-      "onboardingContent": "Unless you turn it off, we store a few timestamps about your onboarding progress (account created, setup finished or skipped, first plan seen, first and second match finished) in your account settings, together with your chosen layout (Basic or Full). We use the timestamps only to improve how new coaches get started. They contain none of your game data, are never shared or sold, and are deleted with your account. To object, turn off Settings → Data → Error reporting and usage statistics: no further timestamps are then recorded. The layout is a setting of the app and is always kept."
+      "onboardingContent": "Unless you turn it off, we store a few timestamps about your onboarding progress (account created, setup finished or skipped, first plan seen, first and second match finished, switch to the Full view) in your account settings, together with your chosen layout (Basic view or Full view). We use the timestamps only to improve how new coaches get started. They contain none of your game data, are never shared or sold, and are deleted with your account. To object, turn off Settings → Data → Error reporting and usage statistics: no further timestamps are then recorded. The layout is a setting of the app and is always kept. So are the layout notice's marks (layout notice shown and when, and your choice Don't show again), because without them the notice would repeat."
     },
     "dataWeDoNotCollect": {
       "title": "What We Do Not Do With Your Data",
@@ -943,14 +943,14 @@
       },
       "record": {
         "title": "Record",
-        "desc": "After the game the match sheet is ready to copy, and you can share the match report. Stats build up from every game on their own."
+        "desc": "After the game the match sheet details are ready and the match report can be shared. Stats build up from every game on their own."
       }
     },
     "spotlights": {
       "taso": {
         "eyebrow": "After the game",
-        "title": "Match sheet ready to copy",
-        "desc": "Finish this game brings the result, the line-up and the goals together. The match sheet lists the players with shirt numbers, the goalkeeper and captain, the final and half-time score and every goal with its minute. Copy it and paste it wherever you need it, for example into Taso, the Football Association of Finland's match system."
+        "title": "Match sheet details ready",
+        "desc": "Finish this game brings the result, the line-up and the goals together. The match sheet lists the players with shirt numbers, the goalkeeper and captain, the final and half-time score and every goal with its minute. Everything is in one place when you fill in the match sheet, for example in Taso, the Football Association of Finland's match system."
       },
       "planner": {
         "eyebrow": "Tournament day",
@@ -1096,7 +1096,7 @@
         },
         {
           "q": "Does MatchOps work with Taso?",
-          "a": "The match sheet is ready-made text that you copy and paste into Taso. MatchOps is not connected to Taso directly, but the Taso link is in the app's menu."
+          "a": "The match sheet has everything you need to fill in the Taso match sheet: the line-up with shirt numbers, the final score, the half-time score and the goals with minutes, scorers and assists."
         },
         {
           "q": "Can I delete my data?",

@@ -68,21 +68,51 @@ function creationOrder(id: string, game: AppState): number {
   return Number.isNaN(fromId) ? 0 : fromId;
 }
 
+/** Where a game sits in the playing-time plan it was created from. */
+export type PlanGameOrder = Record<string, { planId: string; index: number }>;
+
 /**
  * Nearest first by date, then by kick-off time (a match without a time after
- * the timed ones that day), then in the order the coach created them (R5).
+ * the timed ones that day), then - for two games created from the SAME plan -
+ * in the plan's game order (a tournament day's games are often booked before
+ * their times are known, and "Peli 1" must come before "Peli 2" however they
+ * were created), then in the order the coach created them (R5).
  */
-function compareFixtures(a: [string, AppState], b: [string, AppState]): number {
-  const byDate = (a[1].gameDate || '').localeCompare(b[1].gameDate || '');
+function compareFixturesWith(planOrder: PlanGameOrder | undefined) {
+  return (a: [string, AppState], b: [string, AppState]): number => {
+    const byDate = (a[1].gameDate || '').localeCompare(b[1].gameDate || '');
+    if (byDate !== 0) return byDate;
+    const ta = a[1].gameTime || '';
+    const tb = b[1].gameTime || '';
+    if (ta !== tb) {
+      if (!ta) return 1;
+      if (!tb) return -1;
+      return ta.localeCompare(tb);
+    }
+    const pa = planOrder?.[a[0]];
+    const pb = planOrder?.[b[0]];
+    if (pa && pb && pa.planId === pb.planId && pa.index !== pb.index) return pa.index - pb.index;
+    return creationOrder(a[0], a[1]) - creationOrder(b[0], b[1]);
+  };
+}
+
+/**
+ * Played matches, newest first: by date, then by kick-off time (later first),
+ * a match without a time after the timed ones that day, then the most recently
+ * created first. Not simply `compareFixtures` reversed, which would put the
+ * untimed match of a day first.
+ */
+function compareNewestFirst(a: [string, AppState], b: [string, AppState]): number {
+  const byDate = (b[1].gameDate || '').localeCompare(a[1].gameDate || '');
   if (byDate !== 0) return byDate;
   const ta = a[1].gameTime || '';
   const tb = b[1].gameTime || '';
   if (ta !== tb) {
     if (!ta) return 1;
     if (!tb) return -1;
-    return ta.localeCompare(tb);
+    return tb.localeCompare(ta);
   }
-  return creationOrder(a[0], a[1]) - creationOrder(b[0], b[1]);
+  return creationOrder(b[0], b[1]) - creationOrder(a[0], a[1]);
 }
 
 export interface HomeRecentGame {
@@ -347,6 +377,11 @@ export interface HomeSummaryOptions {
   /** Leagues and tournaments, for the Kilpailut tab's rows (archived ones are skipped). */
   seasons?: Season[];
   tournaments?: Tournament[];
+  /**
+   * Plan position of games created from a playing-time plan (game id ->
+   * plan + index). Only breaks ties between same-day games of one plan.
+   */
+  planOrder?: PlanGameOrder;
 }
 
 /**
@@ -365,6 +400,7 @@ export function buildHomeSummary(
   opts: HomeSummaryOptions,
 ): HomeSummary {
   const recentLimit = opts.recentLimit ?? 6;
+  const compareFixtures = compareFixturesWith(opts.planOrder);
 
   // Exclude the scratch/unsaved workspace, like every other SavedGamesCollection
   // reader (getLatestGameId, checkAppState, LoadGameModal). A phantom entry must
@@ -450,7 +486,10 @@ export function buildHomeSummary(
       else byTeam.set(key, [g]);
     }
     teamRecords = Array.from(byTeam, ([teamId, teamGames]) => {
-      const newestFirst = [...teamGames].sort((a, b) => (b.gameDate || '').localeCompare(a.gameDate || ''));
+      const newestFirst = teamGames
+        .map((g): [string, AppState] => ['', g])
+        .sort(compareNewestFirst)
+        .map(([, g]) => g);
       return {
         teamId,
         fallbackName: newestFirst[0]?.teamName || '',
@@ -494,7 +533,7 @@ export function buildHomeSummary(
     });
   const playedCount = playedInScope.length;
   const recent: HomeRecentGame[] = playedInScope
-    .sort((a, b) => (b[1].gameDate || '').localeCompare(a[1].gameDate || ''))
+    .sort(compareNewestFirst)
     .slice(0, recentLimit)
     .map(([id, g]) => {
       const ourScore = g.homeOrAway === 'home' ? g.homeScore : g.awayScore;

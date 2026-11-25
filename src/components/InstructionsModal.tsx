@@ -99,14 +99,14 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           <GuideSection title={t('appGuide.homeTitle', 'Home — your club hub')}>
             {isBasic ? (
               <>
-                <p className="font-ui text-[15px] leading-snug text-ink-2">{t('appGuide.homeBasicIntro', 'The Basic Home is short: you see the next game and can start it. A match opens on its own field.')}</p>
+                <p className="font-ui text-[15px] leading-snug text-ink-2">{t('appGuide.homeBasicIntro', 'Home in the Basic view is short: you see the next game and can start it. A match opens on its own field.')}</p>
                 <div>
                   <ul className={list}>
                     <li>{t('appGuide.homeBasicNextGame', 'Next game card: the date, opponent and plan. Tap "Start match" on game day or "Mark absences" before it; "Show plan" opens the plan.')}</li>
                     <li>{t('appGuide.homeBasicNewGame', 'New game: pick a date and an opponent and you get a ready plan.')}</li>
                     <li>{t('appGuide.homeBasicTeam', 'Team row: opens the player list where you edit names, numbers and the keeper, and add or remove players.')}</li>
                     <li>{t('appGuide.homeBasicAll', 'All features: shows what the Full view adds and switches to it. You can switch back in Settings.')}</li>
-                    <li>{t('appGuide.homeGearBasic', 'The gear icon (top-right): settings (including Basic/Full view), backups, your account and this guide.')}</li>
+                    <li>{t('appGuide.homeGearBasic', 'The gear icon (top-right): settings (including Basic view/Full view), backups, your account and this guide.')}</li>
                 {/* The one behaviour in the app that changes what a coach
                     typed. Unexplained it looks like a bug, so it is explained
                     here rather than left to be discovered. */}
@@ -170,7 +170,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                 <li>{t('firstGameGuide.clockNext', 'Tap the clock to open the large clock. The next planned change is shown there as a block.')}</li>
                 <li>{t('firstGameGuide.clockGoal', 'Our goal: tap "Goal for us". The goal is logged and the score moves at once. Then pick the scorer from "Who scored?" (all squad players) or tap "Skip".')}</li>
                 <li>{t('firstGameGuide.clockOpponent', 'Opponent goal: tap "Opponent +1".')}</li>
-                <li>{t('firstGameGuide.clockReset', 'In the full layout, "Sub done" restarts the change timer.')}</li>
+                <li>{t('firstGameGuide.clockReset', 'In the Full view, "Sub done" restarts the change timer.')}</li>
                 <li>{t('firstGameGuide.dictationTip', 'Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.')}</li>
               </ul>
             </div>
@@ -180,7 +180,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div>
               <ul className={list}>
                 <li>{t('firstGameGuide.finishStart', 'At full time tap "Finish this game".')}</li>
-                <li>{t('firstGameGuide.finishSheet', 'Match sheet: a copy-ready text of the match data that you can paste into any system.')}</li>
+                <li>{t('firstGameGuide.finishSheet', 'Match sheet: every match detail in one place when you fill in the match sheet, for example in Taso.')}</li>
                 <li>
                   {labsEnabled
                     ? t('firstGameGuide.finishReport', 'Match report: your own text - write it, dictate it or make an AI draft. "Share match report" sends it on.')

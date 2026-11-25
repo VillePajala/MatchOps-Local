@@ -2,6 +2,65 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
     {
+
+      "date": "2026-11-25",
+
+      "en": [
+
+        "Create matches straight from the match planner: \"Create match\" under a planned game opens the new match form filled in from the plan, and \"Create all games\" makes every planned game at once - you only add the opponent and date (kick-off and venue are optional).",
+
+        "The planner shows which games are already created (\"Created · Open the game\") and how many, e.g. \"3/5 games created\". A game is never created twice from the same planned game.",
+
+        "Kick-off time is now picked with your phone's own time picker in every match form, and a venue entered for one game fills the empty venues of the games after it."
+
+      ],
+
+      "fi": [
+
+        "Ottelut syntyvät nyt suoraan ottelusuunnittelusta: suunnitellun pelin \"Luo ottelu\" avaa uuden ottelun lomakkeen suunnitelmalla täytettynä, ja \"Luo kaikki pelit\" luo kaikki suunnitelman pelit kerralla - lisäät vain vastustajan ja päivän (aloitusaika ja paikka ovat valinnaisia).",
+
+        "Suunnittelu näyttää, mitkä pelit on jo luotu (\"Luotu · Avaa ottelu\") ja montako, esim. \"3/5 peliä luotu\". Samasta suunnitellusta pelistä ei synny ottelua kahdesti.",
+
+        "Aloitusaika valitaan nyt puhelimen omalla kellonajan valitsimella kaikissa ottelulomakkeissa, ja yhdelle pelille kirjoitettu paikka täyttyy seuraavien pelien tyhjiin paikkoihin."
+
+      ]
+
+    },
+    {
+      "date": "2026-11-25",
+      "en": ["The pitch's plan button now switches between just two views: Lineup, with the waiting substitutes on the touchline, and Substitutions and minutes. The faint planned-substitution markers are gone."],
+      "fi": ["Kentän suunnitelmapainike vaihtaa nyt kahden näkymän välillä: Kokoonpano, jossa odottavat vaihtopelaajat ovat vaihtopenkillä, ja Vaihdot ja minuutit. Himmeät suunniteltujen vaihtojen merkit on poistettu."]
+    },
+    {
+      "date": "2026-11-25",
+      "en": ["The match sheet now shows the penalty shoot-out result for a match decided on penalties.", "Recent matches on Home are in kick-off order when there were several on the same day.", "The match planner says \"1 game\" for a single game, and the statistics totals no longer run together on narrow phones."],
+      "fi": ["Pöytäkirjassa näkyy nyt rangaistuspotkukilpailun tulos, kun ottelu ratkesi rangaistuspotkuilla.", "Etusivun Viimeisimmät ovat aloitusajan mukaisessa järjestyksessä, kun samana päivänä oli useita otteluita.", "Ottelusuunnittelussa yksi peli on nyt \"1 peli\", ja tilastojen Yhteensä-rivin luvut eivät enää mene kapealla puhelimella yhteen."]
+    },
+    {
+
+      "date": "2026-11-25",
+
+      "en": ["On the basic Home, the \"Show plan\" button is no longer squeezed on narrow phones."],
+
+      "fi": ["Kevennetyn näkymän etusivulla Näytä suunnitelma -painike ei enää ahtaudu kapealla puhelimella."]
+
+    },
+    {
+      "date": "2026-11-25",
+      "en": ["The simpler layout for new coaches is now called the Basic view, and a short notice tells what the Full view adds and how to switch to it."],
+      "fi": ["Uusien valmentajien yksinkertaisempi näkymä on nyt nimeltään Kevennetty näkymä, ja lyhyt ilmoitus kertoo, mitä Koko näkymässä on lisäksi ja miten siihen vaihdetaan."]
+    },
+    {
+      "date": "2026-11-24",
+      "en": ["Finnish wording polished in the app: clearer names for the connection status, a player's match list and the match menu's extras."],
+      "fi": ["Suomenkielisiä tekstejä on hiottu: yhteyden tila on nyt \"Ei yhteyttä\", pelaajan Otteluloki on \"Pelatut ottelut\" ja ottelun valikon Resurssit on \"Apuvälineet\"."]
+    },
+    {
+      "date": "2026-11-24",
+      "en": ["The match sheet is now described as what it is: all the match details in one place for filling in the official match sheet, for example in Taso."],
+      "fi": ["Pöytäkirjan kuvaus kertoo nyt, mitä se on: kaikki ottelun tiedot yhdessä paikassa pöytäkirjan täyttämiseen, esimerkiksi Tasoon."]
+    },
+    {
       "date": "2026-11-24",
       "en": ["Finnish instructions now say \"paina\" (press) instead of \"napauta\" (tap)."],
       "fi": ["Ohjeissa lukee nyt \"paina\" eikä \"napauta\", samoin kuin sivustollamme."]

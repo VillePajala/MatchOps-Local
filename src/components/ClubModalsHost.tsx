@@ -77,6 +77,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useDataStore } from '@/hooks/useDataStore';
 import { queryKeys } from '@/config/queryKeys';
 import { Z_LAYER } from '@/styles/modalStyles';
+import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 
 const TrainingResourcesModal = lazyModal(() => import('@/components/TrainingResourcesModal'));
 const RulesDirectoryModal = lazyModal(() => import('@/components/RulesDirectoryModal'));
@@ -235,11 +236,20 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     [loadGame.savedGames, teams],
   );
   const clubStats = useClubStatsController();
+  /**
+   * The planner's "Luo ottelu": the plan + planned game the open new-game form
+   * was started from. The planner closes while the form is open (one surface
+   * at a time); cancelling the form returns to that plan.
+   */
+  const [newGamePlanSource, setNewGamePlanSource] = React.useState<
+    { plan: PlaytimePlan; planGameId: string } | null
+  >(null);
   const newGameSetup = useNewGameSetupController({
     flushLiveMatch,
     onGameCreated: () => {
       setIsNewGameSetupModalOpen(false);
       setPlayerIdsForNewGame(null);
+      setNewGamePlanSource(null);
       onEnterMatch?.();
     },
   });
@@ -300,6 +310,22 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     newGameSetup.handleCancelNewGameSetup();
     setIsNewGameSetupModalOpen(false);
     setPlayerIdsForNewGame(null);
+    setNewGamePlanSource(null);
+  };
+  /**
+   * Cancel / back out of the form. Started from the planner's "Luo ottelu":
+   * return to that plan's game list rather than dropping the coach on Home.
+   * Only the form's own Cancel: leaving for the team manager must not reopen
+   * the planner on top of it, and hardware back stays a plain close (opening
+   * another layer inside a back navigation fights the history guards).
+   */
+  const handleCancelNewGameSetup = () => {
+    const source = newGamePlanSource;
+    handleCloseNewGameSetup();
+    if (source) {
+      setPlannerTarget({ planId: source.plan.id, planGameId: source.planGameId, tab: 'plan' });
+      setIsPlaytimePlannerOpen(true);
+    }
   };
 
   // New-user experience: when the empty-roster guard sends the coach to the
@@ -506,7 +532,8 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           }}
           onStart={newGameSetup.handleStartNewGameWithSetup}
           onAddPlayerToRoster={(name, nickname) => rosterSettings.handleAddPlayerReturning({ name, nickname })}
-          onCancel={handleCloseNewGameSetup}
+          onCancel={handleCancelNewGameSetup}
+          planSource={newGamePlanSource}
           masterRoster={newGameSetup.masterRoster}
           seasons={seasonTournament.seasons}
           tournaments={seasonTournament.tournaments}
@@ -576,6 +603,14 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
             setIsPlaytimePlannerOpen(false);
             setPlannerTarget(null);
             void loadGame.handleLoadGame(gameId);
+          }}
+          /* "Luo ottelu": the new-game form, prefilled from this planned game. */
+          onCreateGame={(plan, planGameId) => {
+            setIsPlaytimePlannerOpen(false);
+            setPlannerTarget(null);
+            setPlayerIdsForNewGame(null);
+            setNewGamePlanSource({ plan, planGameId });
+            setIsNewGameSetupModalOpen(true);
           }}
         />
       )}
