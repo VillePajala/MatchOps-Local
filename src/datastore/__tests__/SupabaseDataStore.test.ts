@@ -7,6 +7,8 @@
  * Note: Game methods are stubbed in PR #3 and will be tested in PR #4.
  */
 
+import fs from 'fs';
+import path from 'path';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Player, TeamPlayer, Season, Tournament } from '@/types';
 import type { AppState } from '@/types/game';
@@ -22,6 +24,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 
 // Create a typed mock for Supabase query builder
 interface MockQueryBuilder {
@@ -2406,6 +2409,156 @@ describe('SupabaseDataStore', () => {
 
         const result = await dataStore.updateTournament(tournament);
         expect(result).toBeNull();
+      });
+    });
+
+    /**
+     * @critical - the coach's report text on a league / tournament (migration
+     * 068). updateSeason and updateTournament hand-build their payloads, so the
+     * column must be asserted on the UPDATE payload as well as on insert/upsert
+     * (migration 043's defect class). Blank is NULL in the cloud and absent
+     * locally, so both stores read it back the same way.
+     */
+    describe('report text (migration 068)', () => {
+      const mockSettings = () => {
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+      };
+      const baseRow = {
+        archived: false,
+        club_season: '26/27',
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        user_id: 'user_123',
+      };
+      const spyUpdate = () => {
+        const updateSpy = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        });
+        mockQueryBuilder.update = updateSpy;
+        return updateSpy;
+      };
+
+      it.each([
+        ['text', 'Hyvä kevät.', 'Hyvä kevät.'],
+        ['null', null, undefined],
+        ['a stray empty string', '', undefined],
+      ])('reads a season row with %s as reportText %p', async (_label, column, expected) => {
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [{ ...baseRow, id: 'season_1', name: 'Sarja', report_text: column }],
+          error: null,
+        });
+        mockSettings();
+
+        const [season] = await dataStore.getSeasons();
+
+        expect(season.reportText).toBe(expected);
+      });
+
+      it('reads a tournament row\'s report_text as reportText', async () => {
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({
+          data: [{ ...baseRow, id: 'tournament_1', name: 'Cup', series: null, report_text: 'Kolme voittoa.' }],
+          error: null,
+        });
+        mockSettings();
+
+        const [tournament] = await dataStore.getTournaments();
+
+        expect(tournament.reportText).toBe('Kolme voittoa.');
+      });
+
+      it('writes the season report on UPDATE, and a blank one as NULL', async () => {
+        const existingRow = { ...baseRow, id: 'season_123', name: 'Sarja', report_text: 'Vanha.' };
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: existingRow, error: null });
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({ data: [existingRow], error: null });
+        const updateSpy = spyUpdate();
+        mockSettings();
+
+        const saved = await dataStore.updateSeason({ id: 'season_123', name: 'Sarja', reportText: 'Uusi.' } as Season);
+        expect(updateSpy).toHaveBeenLastCalledWith(expect.objectContaining({ report_text: 'Uusi.' }));
+        expect(saved?.reportText).toBe('Uusi.');
+
+        const cleared = await dataStore.updateSeason({ id: 'season_123', name: 'Sarja', reportText: '  ' } as Season);
+        expect(updateSpy).toHaveBeenLastCalledWith(expect.objectContaining({ report_text: null }));
+        expect(cleared).not.toHaveProperty('reportText');
+      });
+
+      it('keeps the stored season report when the update does not carry the field', async () => {
+        const existingRow = { ...baseRow, id: 'season_123', name: 'Sarja', report_text: 'Säilyy.' };
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: existingRow, error: null });
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({ data: [existingRow], error: null });
+        const updateSpy = spyUpdate();
+        mockSettings();
+
+        await dataStore.updateSeason({ id: 'season_123', name: 'Sarja', archived: true } as Season);
+
+        expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ report_text: 'Säilyy.' }));
+      });
+
+      it('writes the tournament report on UPDATE', async () => {
+        const existingRow = { ...baseRow, id: 'tournament_123', name: 'Cup', series: null, report_text: null };
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({ data: existingRow, error: null });
+        mockQueryBuilder.eq = jest.fn().mockReturnThis();
+        mockQueryBuilder.order = jest.fn().mockResolvedValue({ data: [existingRow], error: null });
+        const updateSpy = spyUpdate();
+        mockSettings();
+
+        await dataStore.updateTournament({ id: 'tournament_123', name: 'Cup', reportText: 'Turnaus meni hyvin.' } as Tournament);
+
+        expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ report_text: 'Turnaus meni hyvin.' }));
+      });
+
+      it('upserts the report (sync push / migration), blank as NULL', async () => {
+        mockSettings();
+
+        await dataStore.upsertSeason({ id: 'season_9', name: 'Sarja', reportText: 'Teksti.' });
+        expect(mockQueryBuilder.upsert).toHaveBeenLastCalledWith(
+          expect.objectContaining({ report_text: 'Teksti.' }),
+          expect.anything(),
+        );
+
+        await dataStore.upsertTournament({ id: 'tournament_9', name: 'Cup', reportText: '' });
+        expect(mockQueryBuilder.upsert).toHaveBeenLastCalledWith(
+          expect.objectContaining({ report_text: null }),
+          expect.anything(),
+        );
+      });
+
+      it('rejects a report over the game-notes cap before writing', async () => {
+        mockSettings();
+        const tooLong = 'x'.repeat(VALIDATION_LIMITS.GAME_NOTES_MAX + 1);
+
+        await expect(
+          dataStore.upsertSeason({ id: 'season_9', name: 'Sarja', reportText: tooLong }),
+        ).rejects.toThrow(ValidationError);
+        await expect(
+          dataStore.upsertTournament({ id: 'tournament_9', name: 'Cup', reportText: tooLong }),
+        ).rejects.toThrow(ValidationError);
+        expect(mockQueryBuilder.upsert).not.toHaveBeenCalled();
+      });
+
+      it('the migration adds both columns nullable, with no default and no backfill', () => {
+        const migration = fs.readFileSync(
+          path.join(process.cwd(), 'supabase/migrations/068_competition_report_text.sql'),
+          'utf8',
+        );
+        expect(migration).toContain('ALTER TABLE public.seasons ADD COLUMN IF NOT EXISTS report_text text;');
+        expect(migration).toContain('ALTER TABLE public.tournaments ADD COLUMN IF NOT EXISTS report_text text;');
+        const sql = migration.replace(/--.*$/gm, '');
+        expect(sql).not.toMatch(/NOT NULL|DEFAULT|UPDATE\s/i);
       });
     });
 

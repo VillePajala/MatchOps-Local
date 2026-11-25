@@ -268,25 +268,53 @@ describe('PlanDayReportModal', () => {
     });
   });
 
-  /** Competition reports: no stored text (no field without a migration). */
+  /** Competition reports: the text is saved on the league / tournament (migration 068). */
   describe('league report (Sarjaraportti)', () => {
     const seasonInputs: DayReportGameInput[] = inputs.map((i, n) => ({
       ...i,
       game: { ...i.game, gameDate: `2026-09-2${n}` },
     }));
 
-    it('shows totals, writes straight into an unsaved editor and shares in the day-report style', async () => {
+    /** @critical the league text is saved only on Save, and shared in the day-report style */
+    it('shows totals, saves the text only on Save and shares it', async () => {
       const writeText = jest.fn(async () => undefined);
       Object.assign(navigator, { clipboard: { writeText }, share: undefined });
-      renderModal({ kind: 'season', subject: { name: 'Harrastesarja', players: [] }, inputs: seasonInputs, onSave: undefined, savedText: undefined });
+      // A host that keeps what was saved, as SeasonTournamentManagementModal does.
+      const onSave = jest.fn();
+      const Host = () => {
+        const [saved, setSaved] = React.useState<string | undefined>(undefined);
+        return (
+          <PlanDayReportModal
+            kind="season"
+            subject={{ name: 'Harrastesarja', players: [] }}
+            savedText={saved}
+            inputs={seasonInputs}
+            roster={roster}
+            onSave={(text) => {
+              onSave(text);
+              setSaved(text || undefined);
+            }}
+            onClose={jest.fn()}
+          />
+        );
+      };
+      render(<Host />);
+      const props = { onSave };
       expect(screen.getByText('League report')).toBeInTheDocument();
       expect(screen.getByTestId('series-report-players')).toHaveTextContent('GK ×1');
-      // The editor is open from the start, with no Save, and says it is not kept.
-      expect(screen.queryByTestId('day-report-save')).not.toBeInTheDocument();
-      expect(screen.getByTestId('day-report-not-saved')).toBeInTheDocument();
+      expect(screen.getByTestId('day-report-open-editor')).toHaveTextContent('Nothing written yet. Press here to write the report.');
+      await openEditor();
+      // No "not saved" notice any more: the text is kept.
+      expect(screen.queryByTestId('day-report-not-saved')).not.toBeInTheDocument();
       await act(async () => {
         fireEvent.change(screen.getByTestId('day-report-text'), { target: { value: 'Hyvä syksy.' } });
       });
+      expect(props.onSave).not.toHaveBeenCalled();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('day-report-save'));
+      });
+      expect(props.onSave).toHaveBeenCalledWith('Hyvä syksy.');
+      expect(mockShowToast).toHaveBeenCalledWith('Report saved.', 'success');
       await act(async () => {
         fireEvent.click(screen.getByTestId('day-report-share'));
       });
@@ -308,9 +336,30 @@ describe('PlanDayReportModal', () => {
       );
     });
 
-    it('asks before closing with text written, since it is not kept', async () => {
-      const props = renderModal({ kind: 'tournament', subject: { name: 'Joulucup', players: [] }, onSave: undefined });
+    it('shows the saved text when reopened, and clearing it saves an empty text', async () => {
+      const props = renderModal({ kind: 'tournament', subject: { name: 'Joulucup', players: [] }, savedText: 'Kolme voittoa.' });
+      expect(screen.getByTestId('day-report-open-editor')).toHaveTextContent('Kolme voittoa.');
+      await openEditor();
+      expect((screen.getByTestId('day-report-text') as HTMLTextAreaElement).value).toBe('Kolme voittoa.');
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('day-report-text'), { target: { value: '  ' } });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('day-report-save'));
+      });
+      expect(props.onSave).toHaveBeenCalledWith('');
+    });
+
+    it('asks before closing with unsaved changes, and not when nothing changed', async () => {
+      const props = renderModal({ kind: 'tournament', subject: { name: 'Joulucup', players: [] }, savedText: undefined });
       expect(screen.getByText('Tournament report')).toBeInTheDocument();
+      // Nothing written: closes straight away.
+      await act(async () => {
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      expect(props.onClose).toHaveBeenCalledTimes(1);
+
+      await openEditor();
       await act(async () => {
         fireEvent.change(screen.getByTestId('day-report-text'), { target: { value: 'Kesken' } });
       });
@@ -318,8 +367,9 @@ describe('PlanDayReportModal', () => {
         (document.activeElement as HTMLElement | null)?.blur();
         fireEvent.keyDown(document, { key: 'Escape' });
       });
-      expect(screen.getByText('The text you wrote is not saved. Share the report first if you want to keep it.')).toBeInTheDocument();
-      expect(props.onClose).not.toHaveBeenCalled();
+      expect(screen.getByText('The report text you wrote has not been saved.')).toBeInTheDocument();
+      expect(props.onClose).toHaveBeenCalledTimes(1);
+      expect(props.onSave).not.toHaveBeenCalled();
     });
   });
 });

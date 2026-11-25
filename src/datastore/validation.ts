@@ -128,3 +128,43 @@ export function isNewCompositeDuplicate<T extends { id: string }>(
   if (own && keyOf(own) === newKey) return false;
   return records.some((record) => record.id !== id && keyOf(record) === newKey);
 }
+
+/**
+ * The coach's report text on a league or tournament ("Sarjaraportti" /
+ * "Turnauksen raportti", migration 068). Same cap as a game's report
+ * (GAME_NOTES_MAX) - the same editor writes both. Blank means "no report"
+ * and becomes undefined, so a local record and its cloud copy (where blank is
+ * stored as NULL) read back the same. The text itself is kept as written: no
+ * trimming, as with game notes.
+ *
+ * Used by both data stores on create / update / upsert.
+ * @throws ValidationError when over the cap
+ */
+export function normalizeReportText(
+  value: string | null | undefined,
+  entity: 'Season' | 'Tournament',
+): string | undefined {
+  if (typeof value !== 'string' || value.trim() === '') return undefined;
+  if (value.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
+    throw new ValidationError(
+      `${entity} report cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${value.length})`,
+      'reportText',
+      value,
+    );
+  }
+  return value;
+}
+
+/**
+ * `record` with its reportText normalized (normalizeReportText): a blank one
+ * is dropped as a key, not left as `reportText: undefined`.
+ * @throws ValidationError when over the cap
+ */
+export function withNormalizedReportText<T extends { reportText?: string }>(
+  record: T,
+  entity: 'Season' | 'Tournament',
+): T {
+  const reportText = normalizeReportText(record.reportText, entity);
+  const { reportText: _previous, ...rest } = record;
+  return (reportText === undefined ? rest : { ...rest, reportText }) as T;
+}

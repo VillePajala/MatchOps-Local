@@ -756,6 +756,7 @@ export type Database = {
           opponents: string[] | null
           period_count: number | null
           period_duration: number | null
+          report_text: string | null
           start_date: string | null
           team_placements: Json | null
           updated_at: string | null
@@ -781,6 +782,7 @@ export type Database = {
           opponents?: string[] | null
           period_count?: number | null
           period_duration?: number | null
+          report_text?: string | null
           start_date?: string | null
           team_placements?: Json | null
           updated_at?: string | null
@@ -806,6 +808,7 @@ export type Database = {
           opponents?: string[] | null
           period_count?: number | null
           period_duration?: number | null
+          report_text?: string | null
           start_date?: string | null
           team_placements?: Json | null
           updated_at?: string | null
@@ -982,6 +985,7 @@ export type Database = {
           notes: string | null
           period_count: number | null
           period_duration: number | null
+          report_text: string | null
           series: Json | null
           start_date: string | null
           team_placements: Json | null
@@ -1007,6 +1011,7 @@ export type Database = {
           notes?: string | null
           period_count?: number | null
           period_duration?: number | null
+          report_text?: string | null
           series?: Json | null
           start_date?: string | null
           team_placements?: Json | null
@@ -1032,6 +1037,7 @@ export type Database = {
           notes?: string | null
           period_count?: number | null
           period_duration?: number | null
+          report_text?: string | null
           series?: Json | null
           start_date?: string | null
           team_placements?: Json | null

@@ -296,6 +296,7 @@ CREATE TABLE seasons (
   team_placements jsonb DEFAULT '{}'::jsonb,  -- { [teamId]: { placement: 1, award?: "Champion", note?: "..." } }
 
   opponents text[] NOT NULL DEFAULT '{}',  -- Season opponent list (migration 046)
+  report_text text,  -- Coach's league report (Sarjaraportti), NULL = none (migration 068)
 
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
@@ -358,6 +359,8 @@ CREATE TABLE tournaments (
 
   -- Tournament series (multiple competition levels)
   series jsonb DEFAULT '[]'::jsonb,  -- [{ id: "series_...", level: "Elite" }, ...]
+
+  report_text text,  -- Coach's tournament report (Turnauksen raportti), NULL = none (migration 068)
 
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()

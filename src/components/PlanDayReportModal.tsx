@@ -14,16 +14,13 @@
  * the position in each game plus the day's goals and assists (see
  * dayReport.ts). No playing time - the app does not measure it.
  *
- * The coach's text is ONE day report under the same headings as the match
+ * The coach's text is ONE report under the same headings as the match
  * report template. While writing, each game's own match report is shown read
- * only below the editor, so the coach can summarise them. The text is saved
- * on the plan (`onSave`), never automatically: an AI draft (labs + the coach's
- * own provider only) lands in the editor and waits for the coach's Save.
- *
- * A competition report has no stored text (`onSave` absent): a tournament or
- * a league has no field for one without a schema migration, so its text is
- * written here, shared, and not kept - the view says so, and closing with text
- * written asks first.
+ * only below the editor, so the coach can summarise them. The host stores the
+ * text (`onSave`) - on the plan (`dayReport`), or on the tournament / league
+ * (`reportText`, migration 068) - only when the coach presses Save, never
+ * automatically: an AI draft (labs + the coach's own provider only) lands in
+ * the editor and waits for that Save. Closing with unsaved changes asks first.
  */
 
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -75,14 +72,14 @@ export interface PlanDayReportModalProps {
   kind?: ReportKind;
   /** The plan, or the competition's name (players: [] - rows sorted by name). */
   subject: DayReportSubject;
-  /** The stored text (the plan's `dayReport`). */
+  /** The stored text (the plan's `dayReport`, the competition's `reportText`). */
   savedText?: string;
   /** The games, in report order (orderDayGames / orderCompetitionGames). */
   inputs: DayReportGameInput[];
   /** Master roster: names, and every name the AI request must redact. */
   roster: Player[];
-  /** Store the coach's text. Absent: the text is not stored (competition reports). */
-  onSave?: (text: string) => void;
+  /** Store the coach's text ('' = remove it). The host reports a failed write. */
+  onSave: (text: string) => void;
   onClose: () => void;
   /**
    * Filled with this modal's own close request (which asks before throwing
@@ -126,11 +123,9 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
     () => (kind === 'season' ? buildSeriesReport(subject.name, inputs, roster, tr) : null),
     [kind, subject.name, inputs, roster, tr],
   );
-  // Without a store the text is never "saved": the editor is simply open.
-  const stored = Boolean(onSave);
-  const saved = stored ? savedText ?? '' : '';
+  const saved = savedText ?? '';
 
-  const [editing, setEditing] = useState(!stored);
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(saved);
   const [showShare, setShowShare] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -141,7 +136,7 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
   // Leaving mid-request must not leave a request running on the coach's key.
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const dirty = stored ? editing && draft !== saved : draft.trim() !== '';
+  const dirty = editing && draft !== saved;
   const onScreenText = editing ? draft : saved;
   const shareText = useMemo(
     () =>
@@ -200,10 +195,12 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
   };
 
   const handleSave = () => {
-    if (!onSave) return;
     onSave(draft.trim() ? draft : '');
     setEditing(false);
-    showToast(t('planDayReport.saved', 'Day report saved.'), 'success');
+    showToast(
+      kind === 'day' ? t('planDayReport.saved', 'Day report saved.') : t('competitionReport.saved', 'Report saved.'),
+      'success',
+    );
   };
 
   const handleCancel = () => {
@@ -255,12 +252,7 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
       setDraft((current) =>
         (current.trim() ? `${current.trimEnd()}\n\n${composed}` : composed).slice(0, VALIDATION_LIMITS.GAME_NOTES_MAX),
       );
-      showToast(
-        stored
-          ? t('planDayReport.aiInserted', 'Draft added to the text. Check it and save.')
-          : t('competitionReport.aiInserted', 'Draft added to the text. Check it before you share.'),
-        'success',
-      );
+      showToast(t('planDayReport.aiInserted', 'Draft added to the text. Check it and save.'), 'success');
     } catch (error) {
       if (controller.signal.aborted) return;
       const kind = error instanceof DraftingError ? error.kind : 'network';
@@ -283,7 +275,7 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
       if (abortRef.current === controller) abortRef.current = null;
       setAiWorking(false);
     }
-  }, [aiEstimate, aiPacket, aiWorking, showToast, stored, t]);
+  }, [aiEstimate, aiPacket, aiWorking, showToast, t]);
 
   const gk = tr('positions.GK', 'GK');
   const subtitle = [
@@ -531,14 +523,6 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
                   className={`${inputBaseStyle} h-64 min-h-[10rem] resize-y text-[15px]! leading-relaxed`}
                   placeholder={textPlaceholder}
                 />
-                {!stored && (
-                  <p className="text-sm text-ink-2" data-testid="day-report-not-saved">
-                    {t(
-                      'competitionReport.notSaved',
-                      'This text is not saved. Share or copy the report before you close.',
-                    )}
-                  </p>
-                )}
                 <p className="text-sm text-ink-3">
                   {t('privacyHints.noHealthData', 'Do not record health information.')}
                 </p>
@@ -563,29 +547,17 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
                         : t('planDayReport.aiDraft', 'Draft a summary with AI')}
                     </button>
                     <p className={`${subtextStyle} text-[13px]`}>
-                      {stored
-                        ? ai.pseudonymize
-                          ? t(
-                              'planDayReport.aiScope',
-                              'Sends the results and match reports of {{count}} games to your own AI provider. Player names are replaced with codes. The draft goes into the text above - nothing is saved until you press Save.',
-                              { count: playedCount },
-                            )
-                          : t(
-                              'planDayReport.aiScopeNames',
-                              'Sends the results and match reports of {{count}} games, with player names, to your own AI provider. The draft goes into the text above - nothing is saved until you press Save.',
-                              { count: playedCount },
-                            )
-                        : ai.pseudonymize
-                          ? t(
-                              'competitionReport.aiScope',
-                              'Sends the results and match reports of {{count}} games to your own AI provider. Player names are replaced with codes. The draft goes into the text above.',
-                              { count: playedCount },
-                            )
-                          : t(
-                              'competitionReport.aiScopeNames',
-                              'Sends the results and match reports of {{count}} games, with player names, to your own AI provider. The draft goes into the text above.',
-                              { count: playedCount },
-                            )}
+                      {ai.pseudonymize
+                        ? t(
+                            'planDayReport.aiScope',
+                            'Sends the results and match reports of {{count}} games to your own AI provider. Player names are replaced with codes. The draft goes into the text above - nothing is saved until you press Save.',
+                            { count: playedCount },
+                          )
+                        : t(
+                            'planDayReport.aiScopeNames',
+                            'Sends the results and match reports of {{count}} games, with player names, to your own AI provider. The draft goes into the text above - nothing is saved until you press Save.',
+                            { count: playedCount },
+                          )}
                     </p>
                     {aiWorking && (
                       <WorkingIndicator
@@ -595,21 +567,19 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
                     )}
                   </div>
                 )}
-                {stored && (
-                  <div className="flex gap-2">
-                    <button type="button" onClick={handleCancel} className={`${secondaryButtonStyle} flex-1 min-w-0 px-3!`}>
-                      {t('common.cancel', 'Cancel')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      className={`${primaryButtonStyle} flex-[2] min-w-0 px-3!`}
-                      data-testid="day-report-save"
-                    >
-                      {t('common.save', 'Save')}
-                    </button>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <button type="button" onClick={handleCancel} className={`${secondaryButtonStyle} flex-1 min-w-0 px-3!`}>
+                    {t('common.cancel', 'Cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    className={`${primaryButtonStyle} flex-[2] min-w-0 px-3!`}
+                    data-testid="day-report-save"
+                  >
+                    {t('common.save', 'Save')}
+                  </button>
+                </div>
 
                 {/* The games' own reports, read only, to summarise from. */}
                 <div className="pt-2" data-testid="day-report-game-reports">
@@ -647,7 +617,9 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
                 >
                   {saved || (
                     <span className="italic text-ink-3">
-                      {t('planDayReport.noText', 'Nothing written yet. Press here to write the day report.')}
+                      {kind === 'day'
+                        ? t('planDayReport.noText', 'Nothing written yet. Press here to write the day report.')
+                        : t('competitionReport.noText', 'Nothing written yet. Press here to write the report.')}
                     </span>
                   )}
                 </button>
@@ -684,9 +656,9 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
         isOpen={confirmDiscard}
         title={t('planDayReport.discardTitle', 'Discard changes?')}
         message={
-          stored
+          kind === 'day'
             ? t('planDayReport.discardMessage', 'The day report text you wrote has not been saved.')
-            : t('competitionReport.discardMessage', 'The text you wrote is not saved. Share the report first if you want to keep it.')
+            : t('competitionReport.discardMessage', 'The report text you wrote has not been saved.')
         }
         confirmLabel={t('planDayReport.discardConfirm', 'Discard')}
         cancelLabel={t('planDayReport.keepEditing', 'Keep writing')}

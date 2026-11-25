@@ -769,7 +769,7 @@ describe('Translation File Validation', () => {
       //     hint); planCreateGames.venue and the four HH/MM time placeholders
       //     removed (one native time picker). 3716.
       // +36 planDayReport.* (tournament day report, 2026-11-25). 3757.
-      expect(enKeys.length).toBe(3787); // +10 planDayReport.* (day-report headings, Home/finish prompts) +20 competitionReport.* (tournament + league reports); before: 3757
+      expect(enKeys.length).toBe(3784); // competitionReport: -6 (notSaved, aiScope*, aiInserted) +3 (saved, saveError, noText), report text saved (migration 068). 3787 before. +10 planDayReport.* (day-report headings, Home/finish prompts) +20 competitionReport.* (tournament + league reports); before: 3757
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -994,7 +994,7 @@ describe('Translation File Validation', () => {
       // +38 planCreateGames.* (2026-11-25). 3712.
       // +9 / -5 batch sheet game blocks; venue + HH/MM placeholders removed. 3716.
       // +36 planDayReport.* (tournament day report, 2026-11-25). 3757.
-      expect(fiKeys.length).toBe(3787); // +10 planDayReport.* (day-report headings, Home/finish prompts) +20 competitionReport.* (tournament + league reports); before: 3757
+      expect(fiKeys.length).toBe(3784); // competitionReport: -6 (notSaved, aiScope*, aiInserted) +3 (saved, saveError, noText), report text saved (migration 068). 3787 before. +10 planDayReport.* (day-report headings, Home/finish prompts) +20 competitionReport.* (tournament + league reports); before: 3757
     });
   });
 });

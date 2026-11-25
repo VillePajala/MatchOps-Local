@@ -4342,8 +4342,10 @@
     "textHeading": "Raportin teksti",
     "textPlaceholderTournament": "Miten turnaus meni?",
     "textPlaceholderSeason": "Miten sarja on mennyt?",
-    "notSaved": "Tätä tekstiä ei tallenneta. Jaa tai kopioi raportti ennen kuin suljet.",
-    "discardMessage": "Kirjoittamaasi tekstiä ei tallenneta. Jaa raportti ensin, jos haluat pitää sen.",
+    "discardMessage": "Kirjoittamaasi raportin tekstiä ei ole tallennettu.",
+    "saved": "Raportti tallennettu.",
+    "saveError": "Raporttia ei saatu tallennettua. Yritä uudelleen.",
+    "noText": "Ei vielä kirjoitettu. Kirjoita raportti painamalla tästä.",
     "shareTitleTournament": "Jaa turnauksen raportti",
     "shareTitleSeason": "Jaa sarjaraportti",
     "goalsLine": "maalit {{for}}–{{against}}",
@@ -4351,11 +4353,6 @@
     "resultsHeading": "Tulokset",
     "gamesColumn": "Pelit",
     "positionsColumn": "Pelipaikat",
-    "seasonPlayersHint": "Pelit = pelatut pelit · M+S = maalit + syötöt · pelipaikat: monessako pelissä missäkin (vaihdosta aloitetut eivät näy)",
-    "aiScope_one": "Lähettää {{count}} pelin tuloksen ja otteluraportin omalle tekoälypalvelullesi. Pelaajien nimet korvataan koodeilla. Luonnos tulee yllä olevaan tekstiin.",
-    "aiScope_other": "Lähettää {{count}} pelin tulokset ja otteluraportit omalle tekoälypalvelullesi. Pelaajien nimet korvataan koodeilla. Luonnos tulee yllä olevaan tekstiin.",
-    "aiScopeNames_one": "Lähettää {{count}} pelin tuloksen ja otteluraportin pelaajien nimineen omalle tekoälypalvelullesi. Luonnos tulee yllä olevaan tekstiin.",
-    "aiScopeNames_other": "Lähettää {{count}} pelin tulokset ja otteluraportit pelaajien nimineen omalle tekoälypalvelullesi. Luonnos tulee yllä olevaan tekstiin.",
-    "aiInserted": "Luonnos lisätty tekstiin. Tarkista se ennen kuin jaat."
+    "seasonPlayersHint": "Pelit = pelatut pelit · M+S = maalit + syötöt · pelipaikat: monessako pelissä missäkin (vaihdosta aloitetut eivät näy)"
   }
 }

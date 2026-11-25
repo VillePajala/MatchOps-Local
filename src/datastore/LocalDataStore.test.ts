@@ -1185,6 +1185,71 @@ describe('LocalDataStore', () => {
   // ============================================================
   // TOURNAMENT TESTS
   // ============================================================
+  /**
+   * @critical - the coach's report text on a league / tournament (migration
+   * 068). Stored as written; blank is dropped (no key), which is what the cloud
+   * copy reads back as (NULL -> undefined), so local and cloud agree.
+   */
+  describe('competition report text (migration 068)', () => {
+    const lastWritten = (key: string) => {
+      const call = [...mockSetStorageItem.mock.calls].reverse().find(([k]) => k === key);
+      return JSON.parse(call?.[1] ?? '[]');
+    };
+
+    it('saves a season report on update and reads it back as written', async () => {
+      mockGetStorageItem.mockResolvedValue(JSON.stringify([{ id: 'season_1', name: 'Sarja' }]));
+
+      const text = 'Yleiskuva:\n  Hyvä kevät. ';
+      const updated = await dataStore.updateSeason({ id: 'season_1', name: 'Sarja', reportText: text });
+
+      expect(updated?.reportText).toBe(text);
+      expect(lastWritten(SEASONS_LIST_KEY)[0].reportText).toBe(text);
+    });
+
+    it('drops a blank report instead of storing it', async () => {
+      mockGetStorageItem.mockResolvedValue(
+        JSON.stringify([{ id: 'season_1', name: 'Sarja', reportText: 'Vanha.' }]),
+      );
+
+      const updated = await dataStore.updateSeason({ id: 'season_1', name: 'Sarja', reportText: '   ' });
+
+      expect(updated).not.toHaveProperty('reportText');
+      expect(lastWritten(SEASONS_LIST_KEY)[0]).not.toHaveProperty('reportText');
+    });
+
+    it('keeps a tournament report when an update does not carry the field', async () => {
+      mockGetStorageItem.mockResolvedValue(
+        JSON.stringify([{ id: 'tournament_1', name: 'Cup', reportText: 'Säilyy.' }]),
+      );
+
+      const updated = await dataStore.updateTournament({ id: 'tournament_1', name: 'Cup', archived: true });
+
+      expect(updated?.reportText).toBe('Säilyy.');
+    });
+
+    it('keeps the report through upsert (restore, reverse migration, sync pull)', async () => {
+      mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+
+      const season = await dataStore.upsertSeason({ id: 'season_9', name: 'Sarja', reportText: 'Teksti.' });
+      const tournament = await dataStore.upsertTournament({ id: 'tournament_9', name: 'Cup', reportText: '' });
+
+      expect(season.reportText).toBe('Teksti.');
+      expect(tournament).not.toHaveProperty('reportText');
+    });
+
+    it('rejects a report over the game-notes cap, as the cloud store does', async () => {
+      mockGetStorageItem.mockResolvedValue(JSON.stringify([{ id: 'season_1', name: 'Sarja' }]));
+      const tooLong = 'x'.repeat(4001);
+
+      await expect(
+        dataStore.updateSeason({ id: 'season_1', name: 'Sarja', reportText: tooLong }),
+      ).rejects.toThrow(ValidationError);
+      await expect(
+        dataStore.createTournament('Cup', { reportText: tooLong }),
+      ).rejects.toThrow(ValidationError);
+    });
+  });
+
   describe('Tournaments', () => {
     const mockTournament: Tournament = {
       id: 'tournament_123',
