@@ -122,7 +122,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     // How many of each item's games are PLAYED (the report is offered from one).
     const [playedCounts, setPlayedCounts] = useState<Record<string, number>>({});
     // "Turnauksen raportti" / "Sarjaraportti" over one item's played games.
-    const [report, setReport] = useState<{ name: string; inputs: DayReportGameInput[] } | null>(null);
+    // `text` is the item's saved reportText, updated at once on Save (the
+    // lists refresh only after the store write).
+    const [report, setReport] = useState<{ id: string; name: string; inputs: DayReportGameInput[]; text?: string } | null>(null);
 
     const [searchText, setSearchText] = useState('');
     // Remembered on this device, per list (review 7.L10).
@@ -237,11 +239,36 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         try {
             const { getSavedGames } = await import('@/utils/savedGames');
             const games = await getSavedGames(userId);
-            setReport({ name: item.name, inputs: orderCompetitionGames(games, kind, item.id) });
+            setReport({ id: item.id, name: item.name, inputs: orderCompetitionGames(games, kind, item.id), text: item.reportText });
         } catch (error) {
             logger.error('[SeasonTournamentManagementModal] Failed to load games for the report:', error);
             showToast(t('planDayReport.loadError', 'Could not load the games. Try again.'), 'error');
         }
+    };
+    // Save the report text on the item (migration 068). Shown at once; the
+    // write follows and is reported if it fails. The item is taken from the
+    // current list, so the write carries its latest other fields.
+    const handleSaveReport = (text: string) => {
+        if (!report) return;
+        const item = (kind === 'season' ? seasons : tournaments).find((d) => d.id === report.id);
+        if (!item) {
+            showToast(t('competitionReport.saveError', 'Could not save the report. Try again.'), 'error');
+            return;
+        }
+        setReport((current) => (current && current.id === item.id ? { ...current, text: text || undefined } : current));
+        const { reportText: _previous, ...rest } = item;
+        const next = text ? { ...rest, reportText: text } : rest;
+        const write = kind === 'season'
+            ? updateSeasonMutation.mutateAsync(next as Season)
+            : updateTournamentMutation.mutateAsync(next as Tournament);
+        write
+            .then((saved) => {
+                if (!saved) throw new Error('update returned null');
+            })
+            .catch((error) => {
+                logger.error('[SeasonTournamentManagementModal] Failed to save the report text:', error);
+                showToast(t('competitionReport.saveError', 'Could not save the report. Try again.'), 'error');
+            });
     };
     const reportLabel = kind === 'season'
         ? t('competitionReport.seasonTitle', 'League report')
@@ -645,14 +672,16 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         />
       )}
       <OpponentNameSweepModal isOpen={showNameSweep} onClose={() => setShowNameSweep(false)} />
-      {/* Last: above an open details sheet (same layer). The text is not
-          stored - a competition has no field for it (see PlanDayReportModal). */}
+      {/* Last: above an open details sheet (same layer). The text is saved on
+          the item (reportText) - see handleSaveReport. */}
       {report && (
         <PlanDayReportModal
           kind={kind}
           subject={{ name: report.name, players: [] }}
+          savedText={report.text}
           inputs={report.inputs}
           roster={masterRoster}
+          onSave={handleSaveReport}
           onClose={() => setReport(null)}
           ownHardwareBack
         />

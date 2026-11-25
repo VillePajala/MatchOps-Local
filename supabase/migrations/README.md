@@ -23,6 +23,14 @@ This directory contains SQL migration files for the MatchOps-Local cloud backend
 | `014_update_rpc_for_composite_keys.sql` | Updates save_game_with_relations for composite keys |
 | `015_composite_fk_indexes.sql` | Performance indexes for composite FK CASCADE operations (optional) |
 | `016_optimize_rls_policies_initplan.sql` | **PERFORMANCE**: Optimizes RLS policies to cache auth.uid() once per query |
+| `068_competition_report_text.sql` | Adds nullable `report_text` to `seasons` and `tournaments` (saved league / tournament report). Apply BEFORE releasing the client that writes it. |
+
+The table lists 000-016 and selected later files; every migration's own header
+explains what it does and what it depends on.
+
+**Numbering:** 064-067 are reserved by the unmerged `feat/pelitapa` branch -
+do not reuse them. 068 does not depend on them (different objects), so the
+two can be applied in either order. Next free number after 068: 069.
 
 ## Deployment Order
 

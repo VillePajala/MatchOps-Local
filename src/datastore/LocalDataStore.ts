@@ -32,7 +32,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString, isNewCompositeDuplicate } from '@/datastore/validation';
+import { validateGame, normalizeOptionalString, isNewCompositeDuplicate, withNormalizedReportText } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import { validateUserId } from '@/datastore/userDatabase';
@@ -1159,12 +1159,12 @@ export class LocalDataStore implements DataStore {
         throw new AlreadyExistsError('season', trimmedName);
       }
 
-      const newSeason: Season = {
+      const newSeason: Season = withNormalizedReportText({
         id: generateId('season'),
         name: trimmedName,
         ...(extra || {}),
         clubSeason: newClubSeason,
-      };
+      }, 'Season');
 
       await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify([...currentSeasons, newSeason]));
       return newSeason;
@@ -1228,11 +1228,11 @@ export class LocalDataStore implements DataStore {
         throw new AlreadyExistsError('season', trimmedName);
       }
 
-      const updatedSeason: Season = {
+      const updatedSeason: Season = withNormalizedReportText({
         ...season,
         name: trimmedName,
         clubSeason: newClubSeason,
-      };
+      }, 'Season');
       currentSeasons[seasonIndex] = updatedSeason;
       await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
 
@@ -1299,7 +1299,7 @@ export class LocalDataStore implements DataStore {
       // Only a record without a label is computed.
       const clubSeason = season.clubSeason ?? calculateClubSeason(season.startDate, start, end);
 
-      const normalizedSeason: Season = {
+      const normalizedSeason: Season = withNormalizedReportText({
         ...season,
         name: trimmedName,
         ageGroup: normalizedAgeGroup ?? undefined,
@@ -1308,7 +1308,7 @@ export class LocalDataStore implements DataStore {
         // Set timestamps: preserve createdAt if exists, always update updatedAt
         createdAt: season.createdAt ?? (existingIndex !== -1 ? currentSeasons[existingIndex].createdAt : now),
         updatedAt: now,
-      };
+      }, 'Season');
 
       if (existingIndex !== -1) {
         // Update existing
@@ -1394,14 +1394,14 @@ export class LocalDataStore implements DataStore {
       }
 
       const { level, ageGroup, ...rest } = extra || {};
-      const newTournament: Tournament = {
+      const newTournament: Tournament = withNormalizedReportText({
         id: generateId('tournament'),
         name: trimmedName,
         ...rest,
         ...(level ? { level } : {}),
         ...(ageGroup ? { ageGroup } : {}),
         clubSeason: newClubSeason,
-      };
+      }, 'Tournament');
 
       await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify([...currentTournaments, newTournament]));
       return newTournament;
@@ -1455,12 +1455,12 @@ export class LocalDataStore implements DataStore {
         throw new AlreadyExistsError('tournament', trimmedName);
       }
 
-      const updatedTournament: Tournament = {
+      const updatedTournament: Tournament = withNormalizedReportText({
         ...currentTournaments[tournamentIndex],
         ...tournament,
         name: trimmedName,
         clubSeason: newClubSeason,
-      };
+      }, 'Tournament');
 
       currentTournaments[tournamentIndex] = updatedTournament;
       await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
@@ -1559,7 +1559,7 @@ export class LocalDataStore implements DataStore {
       // Only a record without a label is computed.
       const clubSeason = tournament.clubSeason ?? calculateClubSeason(tournament.startDate, start, end);
 
-      const normalizedTournament: Tournament = {
+      const normalizedTournament: Tournament = withNormalizedReportText({
         ...tournament,
         name: trimmedName,
         ageGroup: normalizedAgeGroup ?? undefined,
@@ -1569,7 +1569,7 @@ export class LocalDataStore implements DataStore {
         // Set timestamps: preserve createdAt if exists, always update updatedAt
         createdAt: tournament.createdAt ?? (existingIndex !== -1 ? currentTournaments[existingIndex].createdAt : now),
         updatedAt: now,
-      };
+      }, 'Tournament');
 
       if (existingIndex !== -1) {
         // Update existing

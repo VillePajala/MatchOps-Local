@@ -4342,8 +4342,10 @@
     "textHeading": "Report text",
     "textPlaceholderTournament": "How did the tournament go?",
     "textPlaceholderSeason": "How has the league gone?",
-    "notSaved": "This text is not saved. Share or copy the report before you close.",
-    "discardMessage": "The text you wrote is not saved. Share the report first if you want to keep it.",
+    "discardMessage": "The report text you wrote has not been saved.",
+    "saved": "Report saved.",
+    "saveError": "Could not save the report. Try again.",
+    "noText": "Nothing written yet. Press here to write the report.",
     "shareTitleTournament": "Share tournament report",
     "shareTitleSeason": "Share league report",
     "goalsLine": "goals {{for}}–{{against}}",
@@ -4351,11 +4353,6 @@
     "resultsHeading": "Results",
     "gamesColumn": "Games",
     "positionsColumn": "Positions",
-    "seasonPlayersHint": "Games = games played · G+A = goals + assists · positions: in how many games each (bench starts not shown)",
-    "aiScope_one": "Sends the result and match report of {{count}} game to your own AI provider. Player names are replaced with codes. The draft goes into the text above.",
-    "aiScope_other": "Sends the results and match reports of {{count}} games to your own AI provider. Player names are replaced with codes. The draft goes into the text above.",
-    "aiScopeNames_one": "Sends the result and match report of {{count}} game, with player names, to your own AI provider. The draft goes into the text above.",
-    "aiScopeNames_other": "Sends the results and match reports of {{count}} games, with player names, to your own AI provider. The draft goes into the text above.",
-    "aiInserted": "Draft added to the text. Check it before you share."
+    "seasonPlayersHint": "Games = games played · G+A = goals + assists · positions: in how many games each (bench starts not shown)"
   }
 }

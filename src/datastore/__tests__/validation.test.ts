@@ -1,5 +1,6 @@
-import { validateGame } from '../validation';
+import { validateGame, normalizeReportText, withNormalizedReportText } from '../validation';
 import { ValidationError } from '@/interfaces/DataStoreErrors';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import type { AppState } from '@/types';
 
 const baseGame = {
@@ -41,5 +42,30 @@ describe('validateGame - Kirjuri note events (migration 041)', () => {
   it('ignores text rules for other event types', () => {
     const goal = { id: 'g1', type: 'goal' as const, time: 10, scorerId: 'p1' };
     expect(() => validateGame({ ...baseGame, gameEvents: [goal] } as AppState)).not.toThrow();
+  });
+});
+
+/**
+ * The league / tournament report text (migration 068), shared by both stores.
+ * @edge-case
+ */
+describe('normalizeReportText', () => {
+  it('keeps the text exactly as written', () => {
+    expect(normalizeReportText('  Yleiskuva:\nHyvä. ', 'Season')).toBe('  Yleiskuva:\nHyvä. ');
+  });
+
+  it.each([undefined, null, '', '   \n'])('reads %p as no report', (value) => {
+    expect(normalizeReportText(value, 'Tournament')).toBeUndefined();
+  });
+
+  it('accepts the cap and rejects one over it', () => {
+    const max = VALIDATION_LIMITS.GAME_NOTES_MAX;
+    expect(normalizeReportText('x'.repeat(max), 'Season')).toHaveLength(max);
+    expect(() => normalizeReportText('x'.repeat(max + 1), 'Season')).toThrow(ValidationError);
+  });
+
+  it('drops a blank report as a key, not as reportText: undefined', () => {
+    expect(withNormalizedReportText({ id: 's', name: 'S', reportText: ' ' }, 'Season')).toStrictEqual({ id: 's', name: 'S' });
+    expect(withNormalizedReportText({ id: 's', name: 'S', reportText: 'T' }, 'Season')).toStrictEqual({ id: 's', name: 'S', reportText: 'T' });
   });
 });
