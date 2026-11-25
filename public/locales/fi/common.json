@@ -397,9 +397,7 @@
     "addOpponent": "Lisää vast.",
     "clear": "Tyhjennä",
     "reset": "Nollaa",
-    "togglePlannedSubs": "Näytä suunnitellut vaihdot",
-    "planViewLineup": "Vain kokoonpano",
-    "planViewGhosts": "Suunnitellut vaihdot",
+    "planViewLineup": "Kokoonpano",
     "planViewChains": "Vaihdot ja minuutit"
   },
   "gameResult": {

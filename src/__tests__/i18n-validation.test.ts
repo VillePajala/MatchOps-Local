@@ -758,7 +758,10 @@ describe('Translation File Validation', () => {
       //     copy, support-email processor (4 keys); paid-features terms list,
       //     billing, cancellation and data-after-cancel removed. 3666.
       // +8: layoutNotice.* (the basic-layout notice dialog)
-      expect(enKeys.length).toBe(3674);
+      // -2 fieldTools.planViewGhosts/togglePlannedSubs: the planned-sub
+      //     ghost view is gone; the plan control toggles Lineup <-> Substitutions
+      //     and minutes. 3672.
+      expect(enKeys.length).toBe(3672);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -976,7 +979,8 @@ describe('Translation File Validation', () => {
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
       // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3666.
       // +8: layoutNotice.* (the basic-layout notice dialog)
-      expect(fiKeys.length).toBe(3674);
+      // -2 fieldTools.planViewGhosts/togglePlannedSubs (see EN above). 3672.
+      expect(fiKeys.length).toBe(3672);
     });
   });
 });

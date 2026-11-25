@@ -13,7 +13,6 @@ import {
 import tinycolor from 'tinycolor2';
 import logger from '@/utils/logger';
 import { isSidelinePosition, getPositionLabel } from '@/utils/positionLabels';
-import type { PlannedGhost } from '@/utils/playtimePlanner/ghostSubs';
 import type { PlannedChain } from '@/utils/playtimePlanner/plannedChains';
 import type { SubSlot } from '@/utils/formations';
 
@@ -59,14 +58,6 @@ interface SoccerFieldProps {
   formationSnapPoints?: Point[];
   /** Sub slots for substitution planning - shows labeled positions on sideline */
   subSlots?: SubSlot[];
-  /**
-   * Faint markers for planned entries no real disc represents - a player the
-   * plan brings on at a position they are not currently waiting at.
-   *
-   * Purely drawn: never hit-tested, never dragged, never part of `players`.
-   * They are a reminder of the plan, not a record of the match.
-   */
-  plannedGhosts?: PlannedGhost[];
   /** Full plan view: one divided pill per position. Drawn on an otherwise
    *  empty field - the caller withholds discs, sideline and opponents. */
   plannedChains?: PlannedChain[];
@@ -233,9 +224,7 @@ export function subRailIndexFor(relX: number, relY: number, slots: readonly SubS
  * How close (relY) a sub parked by hand has to be to a slot to be drawn in
  * it. Wider than SUB_SLOT_OCCUPATION_THRESHOLD on purpose: a sub nudged a
  * little off its slot used to sit half over the neighbouring slot, and on the
- * rail it would sit over a different slot entirely. The planned-sub ghosts
- * already treat such a disc as occupying the slot (ghostSubs uses half the
- * slot spacing), so drawing it there matches them.
+ * rail it would sit over a different slot entirely.
  */
 const SUB_RAIL_CAPTURE = 0.07;
 
@@ -394,138 +383,6 @@ function positionChipFor(
     y: spot.y + spot.r + 1 * scale,
     size: 12,
   };
-}
-
-/**
- * Draw the planned-substitution markers.
- *
- * ONE function for both render paths on purpose. These markers first shipped
- * wired into the export path only, so the toggle appeared and the live field
- * stayed blank; a shared helper makes that particular mistake impossible to
- * repeat rather than merely unlikely.
- *
- * The mark is deliberately not another ring. The sideline slot already draws a
- * dashed circle here, so a ghost ring inside it put two dashed circles and a
- * grey position label in one spot. Instead the EXISTING slot circle is filled
- * and given a solid edge - "this empty slot is spoken for" - and a dotted
- * thread runs back to the player's real disc, because the same name appearing
- * twice on the field only means something once you can see the two are one
- * player.
- *
- * A ghost never overlaps a real disc. A sub parked by hand a little off its
- * slot (the owner's Eino) used to sit half on top of the neighbouring ghost
- * (Niilo): the ghost now slides along the rail, up to one radius, to the
- * nearest spot clear of every real disc and every ghost already drawn. If
- * there is no such spot the real disc is effectively standing on that slot,
- * and the ghost is left out - the same rule as a disc sitting exactly on it.
- */
-function drawPlannedGhosts(
-  ctx: CanvasRenderingContext2D,
-  ghosts: readonly PlannedGhost[],
-  W: number,
-  place: (relX: number, relY: number) => { x: number; y: number; r: number },
-  discs: readonly { x: number; y: number; r: number }[] = [],
-): void {
-  const placed: { x: number; y: number; r: number }[] = [];
-  ctx.save();
-  ghosts.forEach((ghost) => {
-    // A ghost stands in a sub slot, so it is drawn where the slot is (the rail).
-    const spot = place(ghost.relX, ghost.relY);
-    const radius = spot.r;
-    const gx = spot.x;
-    const gy = findClearGhostY(gx, spot.y, radius, [...discs, ...placed]);
-    if (gy === null) return;
-    placed.push({ x: gx, y: gy, r: radius });
-
-    // The thread home, drawn first so the circle sits on top of its end.
-    if (typeof ghost.fromRelX === 'number' && typeof ghost.fromRelY === 'number') {
-      const from = place(ghost.fromRelX, ghost.fromRelY);
-      const fx = from.x;
-      const fy = from.y;
-      const dx = gx - fx;
-      const dy = gy - fy;
-      const len = Math.hypot(dx, dy);
-      // Start and end on the circles' edges, not their centres, so the thread
-      // never crosses either disc's face.
-      if (len > radius + from.r) {
-        const ux = dx / len;
-        const uy = dy / len;
-        ctx.beginPath();
-        ctx.setLineDash([3, 4]);
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = 'rgba(226, 232, 240, 0.3)';
-        ctx.moveTo(fx + ux * from.r, fy + uy * from.r);
-        ctx.lineTo(gx - ux * radius, gy - uy * radius);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-    }
-
-    // The booked slot: a faint face plus a solid edge, covering the dashed
-    // empty-slot ring already drawn underneath at this same radius.
-    ctx.beginPath();
-    ctx.arc(gx, gy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(226, 232, 240, 0.1)';
-    ctx.fill();
-    ctx.setLineDash([]);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(226, 232, 240, 0.5)';
-    ctx.stroke();
-
-    // The name. The sideline column sits at relX 0.96, so on a narrow phone a
-    // centred name runs off the canvas - clamp it back inside rather than let
-    // it be sliced.
-    // 13px, shrinking (to 11px) to stay inside the circle.
-    let size = 13;
-    ctx.font = `700 ${size}px ${discFontFamily()}`;
-    while (size > 11 && ctx.measureText(ghost.name).width > radius * 2 - 4) {
-      size -= 1;
-      ctx.font = `700 ${size}px ${discFontFamily()}`;
-    }
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const half = ctx.measureText(ghost.name).width / 2;
-    const tx = Math.min(Math.max(gx, half + 2), W - half - 2);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-    ctx.lineWidth = 2.5;
-    ctx.strokeText(ghost.name, tx, gy);
-    ctx.fillStyle = 'rgba(226, 232, 240, 0.9)';
-    ctx.fillText(ghost.name, tx, gy);
-  });
-  ctx.restore();
-}
-
-/** Where each placed player's disc is drawn, for keeping ghosts off them. */
-function placedDiscs(
-  players: readonly Player[],
-  place: (p: Player) => { x: number; y: number; r: number },
-): { x: number; y: number; r: number }[] {
-  return players
-    .filter((p) => typeof p.relX === 'number' && typeof p.relY === 'number')
-    .map(place);
-}
-
-/** Breathing room kept between a ghost and any disc next to it. */
-const GHOST_CLEARANCE = 2;
-
-/**
- * The y nearest `y0` (within one radius, 2px steps) where a ghost of `radius`
- * centred at `x` overlaps none of `others`; null when there is none.
- * Exported for tests.
- */
-export function findClearGhostY(
-  x: number,
-  y0: number,
-  radius: number,
-  others: readonly { x: number; y: number; r: number }[],
-): number | null {
-  const clear = (y: number) =>
-    others.every((o) => Math.hypot(o.x - x, o.y - y) >= o.r + radius + GHOST_CLEARANCE);
-  for (let d = 0; d <= radius; d += 2) {
-    if (clear(y0 - d)) return y0 - d;
-    if (d > 0 && clear(y0 + d)) return y0 + d;
-  }
-  return null;
 }
 
 /** Rounded rectangle path, by hand - ctx.roundRect is not everywhere yet. */
@@ -1215,7 +1072,6 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   isDrawingEnabled,
   formationSnapPoints,
   subSlots,
-  plannedGhosts,
   plannedChains,
 }, ref) => {
   const { t } = useTranslation();
@@ -1462,12 +1318,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       });
     }
 
-    // Planned-sub ghosts: drawn BEFORE the players so a real disc always wins
-    // the pixels, and skipped entirely on the tactics board, which is about
-    // shapes rather than the squad.
-    if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
-      drawPlannedGhosts(ctx, plannedGhosts, W, scene.coords, placedDiscs(players, scene.player));
-    }
+    // The plan's chain view, skipped entirely on the tactics board, which is
+    // about shapes rather than the squad.
     if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
       drawPlannedChains(ctx, plannedChains, W, H);
     }
@@ -1549,7 +1401,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     return exportCanvas;
-  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, showPositionLabels, gameType, formationSnapPoints, subSlots, plannedGhosts, plannedChains, t]);
+  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames, showPositionLabels, gameType, formationSnapPoints, subSlots, plannedChains, t]);
 
   // Expose canvas via ref for export functionality
   useImperativeHandle(ref, () => ({
@@ -1850,13 +1702,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       });
     }
 
-    // --- Draw Planned Ghosts ---
-    // Faint name markers on rail slots a planned sub enters later but no
-    // disc is waiting at. Drawn AFTER the empty slots (so the slot ring stays
-    // underneath) and BEFORE the players, so a real disc always wins.
-    if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
-      drawPlannedGhosts(context, plannedGhosts, W, scene.coords, placedDiscs(players, scene.player));
-    }
+    // --- Draw Planned Chains ---
     if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
       drawPlannedChains(context, plannedChains, W, H);
     }
@@ -1913,7 +1759,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     // --- End of draw ---
-  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, draggingPlayerId, subSlots, t, formationSnapPoints, plannedGhosts, plannedChains]);
+  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, draggingPlayerId, subSlots, t, formationSnapPoints, plannedChains]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {
