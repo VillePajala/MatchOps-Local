@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   HiBars3,
   HiOutlineChevronLeft,
@@ -30,6 +30,9 @@ import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
 import logger from '@/utils/logger';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
+import { useFeatureEnabled } from '@/contexts/AccountFeaturesProvider';
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
+import { LazyGameThemesMenuRow, LazyGameThemesLauncher } from '@/playbook/lazyEntryPoints';
 import { matchCapsuleStyle, matchCapsuleButtonStyle, sectionLabelStyle, dialogTitleStyle } from '@/styles/modalStyles';
 
 // Design tokens for consistent sizing and spacing
@@ -136,6 +139,12 @@ interface ControlBarProps {
    * Absent once the match has started - the sheet can no longer change it.
    */
   onOpenAttendance?: () => void;
+  /**
+   * The saved game whose Playbook themes "Match themes" opens (absent while no
+   * real game is loaded). The row shows only for accounts with the playbook
+   * flag; nobody else loads any of its code.
+   */
+  themesGameId?: string;
   /** R6: game-day reference material stays reachable mid-match. */
   onOpenTraining?: () => void;
   onOpenRules?: () => void;
@@ -190,6 +199,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenPlanner,
   onOpenThisGamePlan,
   onOpenAttendance,
+  themesGameId: themesGameIdProp,
   onOpenTraining,
   onOpenRules,
   onOpenAppSettings,
@@ -204,6 +214,11 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   const venueMapUrl = mapsDirectionsUrl(locationLat, locationLng, locationAddress);
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  // Playbook "Match themes": flagged accounts only, for a saved game.
+  const playbookOn = useFeatureEnabled(PLAYBOOK_FEATURE);
+  const themesGameId = playbookOn ? themesGameIdProp : undefined;
+  const [themesOpen, setThemesOpen] = useState(false);
+  const closeThemes = useCallback(() => setThemesOpen(false), []);
   // The formations sheet covers the screen; the capsule steps out of its way.
   const [isFormationSheetOpen, setIsFormationSheetOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
@@ -595,6 +610,11 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         )}
       </div>
 
+      {/* Outside the side panel: its drag handlers must not see the overlays' touches. */}
+      {themesGameId && themesOpen && (
+        <LazyGameThemesLauncher key={themesGameId} gameId={themesGameId} isOpen onClose={closeThemes} />
+      )}
+
       {/* Settings Menu Overlay */}
       {isSettingsMenuOpen && (
         <div className="fixed inset-0 bg-[rgb(2_6_23/0.6)] z-40" onClick={handleOverlayClick} aria-hidden="true" />
@@ -664,6 +684,15 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 <HiOutlineUserGroup className={MENU_ICON} />
                 {t('controlBar.attendance', 'Who is here?')}
               </button>
+            )}
+            {/* The game's Playbook themes: played in order, or picked first when none is. */}
+            {themesGameId && (
+              <LazyGameThemesMenuRow
+                gameId={themesGameId}
+                onOpen={wrapModal(() => setThemesOpen(true))}
+                className={MENU_ROW}
+                iconClassName={MENU_ICON}
+              />
             )}
             {onOpenPlayerAssessmentModal && (
               <button
@@ -810,7 +839,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   // MAINTAINER NOTE: If you add a new DATA prop (not a callback), add it here!
   // Current data props: timeElapsedInSeconds, isTimerRunning, canUndo, canRedo,
   // canTacticalUndo, canTacticalRedo, isTacticsBoardView, isDrawingEnabled, isGameLoaded,
-  // selectedPlayerCount, onGoToStartScreen (truthiness), onOpenTeamStats (truthiness)
+  // selectedPlayerCount, onGoToStartScreen (truthiness), onOpenTeamStats (truthiness), themesGameId
   //
   // Return true = props equal (skip re-render), false = props changed (re-render)
   return (
@@ -825,7 +854,8 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
     prevProps.isGameLoaded === nextProps.isGameLoaded &&
     prevProps.selectedPlayerCount === nextProps.selectedPlayerCount &&
     !!prevProps.onGoToStartScreen === !!nextProps.onGoToStartScreen &&
-    !!prevProps.onOpenTeamStats === !!nextProps.onOpenTeamStats
+    !!prevProps.onOpenTeamStats === !!nextProps.onOpenTeamStats &&
+    prevProps.themesGameId === nextProps.themesGameId
   );
 });
 

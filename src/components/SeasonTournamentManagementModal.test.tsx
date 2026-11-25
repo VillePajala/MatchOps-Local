@@ -11,6 +11,9 @@ import { getFilteredGames } from '@/utils/savedGames';
 import { ToastProvider } from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AppState } from '@/types/game';
+import type { Player } from '@/types';
+import { TestFixtures } from '../../tests/fixtures';
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -57,6 +60,8 @@ jest.mock('@/hooks/useDataStore', () => ({
 
 const mockMutation = () => ({
   mutate: jest.fn(),
+  // The report text save resolves with the stored item (null = not found).
+  mutateAsync: jest.fn().mockImplementation(async (item: unknown) => item),
   isPending: false,
 });
 
@@ -1040,4 +1045,164 @@ describe('opened from a Home card', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText('Season 1')).toBeInTheDocument();
   });
+
+  describe('competition report (Turnauksen raportti / Sarjaraportti)', () => {
+    const played = (over: Partial<AppState>): AppState =>
+      TestFixtures.games.completed({
+        teamName: 'Kotkat P11',
+        homeOrAway: 'home',
+        availablePlayers: [{ id: 'p1', name: 'Test Player' } as Player],
+        selectedPlayerIds: ['p1'],
+        playersOnField: [],
+        playerPositions: { p1: ['st'] },
+        gameEvents: [],
+        shootoutKicks: undefined,
+        isPlayed: true,
+        seasonId: 's1',
+        tournamentId: 't1',
+        ...over,
+      });
+    const actionsFor = (name: string) =>
+      screen.getByLabelText(i18n.t('seasonTournamentModal.itemActions', { name, defaultValue: 'Actions for {{name}}' }));
+
+    it('is not offered before the competition has a played game', async () => {
+      renderWithProviders({ kind: 'tournament' });
+      await act(async () => {});
+      fireEvent.click(actionsFor('Tournament 1'));
+      expect(screen.queryByTestId('competition-report-t1')).not.toBeInTheDocument();
+    });
+
+    /** @critical tournament report: same game-by-game layout, games in date/time order */
+    it('opens the tournament report over its played games in date/time order', async () => {
+      const games = {
+        late: played({ gameDate: '2026-12-12', gameTime: '13:00', opponentName: 'Late FC', homeScore: 0, awayScore: 1 }),
+        early: played({ gameDate: '2026-12-12', gameTime: '09:00', opponentName: 'Early FC', homeScore: 2, awayScore: 0 }),
+        unplayed: played({ gameDate: '2026-12-13', opponentName: 'Tomorrow FC', gameStatus: 'notStarted', homeScore: 0, awayScore: 0 }),
+      };
+      mockGetFilteredGames.mockResolvedValue(Object.entries(games));
+      mockGetSavedGames.mockResolvedValue(games);
+      renderWithProviders({ kind: 'tournament' });
+      await act(async () => {});
+      fireEvent.click(actionsFor('Tournament 1'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('competition-report-t1'));
+      });
+      const view = await screen.findByTestId('plan-day-report');
+      expect(within(view).getByTestId('day-report-game-1')).toHaveTextContent('Early FC');
+      expect(within(view).getByTestId('day-report-game-2')).toHaveTextContent('Late FC');
+      expect(within(view).queryByText('Tomorrow FC')).not.toBeInTheDocument();
+      expect(within(view).queryByTestId('day-report-not-saved')).not.toBeInTheDocument();
+    });
+
+    /** @critical the report text is saved on the tournament (migration 068), only on Save */
+    it('saves the tournament report text on the tournament, and shows it as saved', async () => {
+      const games = { a: played({ gameDate: '2026-12-12', opponentName: 'Early FC', homeScore: 2, awayScore: 0 }) };
+      mockGetFilteredGames.mockResolvedValue(Object.entries(games));
+      mockGetSavedGames.mockResolvedValue(games);
+      renderWithProviders({
+        kind: 'tournament',
+        tournaments: [{ id: 't1', name: 'Tournament 1', location: 'Halli' }] as Tournament[],
+      });
+      await act(async () => {});
+      fireEvent.click(actionsFor('Tournament 1'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('competition-report-t1'));
+      });
+      const view = await screen.findByTestId('plan-day-report');
+      await act(async () => {
+        fireEvent.click(within(view).getByTestId('day-report-open-editor'));
+      });
+      await act(async () => {
+        fireEvent.change(within(view).getByTestId('day-report-text'), { target: { value: 'Hyvä turnaus.' } });
+      });
+      expect(defaultProps.updateTournamentMutation.mutateAsync).not.toHaveBeenCalled();
+      await act(async () => {
+        fireEvent.click(within(view).getByTestId('day-report-save'));
+      });
+      // The whole item with the text: its other fields go along unchanged.
+      expect(defaultProps.updateTournamentMutation.mutateAsync).toHaveBeenCalledWith({
+        id: 't1',
+        name: 'Tournament 1',
+        location: 'Halli',
+        reportText: 'Hyvä turnaus.',
+      });
+      expect(within(view).getByTestId('day-report-open-editor')).toHaveTextContent('Hyvä turnaus.');
+    });
+
+    it('opens with the saved text, and clearing it removes the field', async () => {
+      const games = { a: played({ gameDate: '2026-09-20', opponentName: 'Kallion Kiri', homeScore: 2, awayScore: 1 }) };
+      mockGetFilteredGames.mockResolvedValue(Object.entries(games));
+      mockGetSavedGames.mockResolvedValue(games);
+      renderWithProviders({
+        kind: 'season',
+        seasons: [{ id: 's1', name: 'Season 1', reportText: 'Syksy meni hyvin.' }] as Season[],
+      });
+      await act(async () => {});
+      fireEvent.click(actionsFor('Season 1'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('competition-report-s1'));
+      });
+      const view = await screen.findByTestId('plan-day-report');
+      expect(within(view).getByTestId('day-report-open-editor')).toHaveTextContent('Syksy meni hyvin.');
+      await act(async () => {
+        fireEvent.click(within(view).getByTestId('day-report-open-editor'));
+      });
+      await act(async () => {
+        fireEvent.change(within(view).getByTestId('day-report-text'), { target: { value: '' } });
+      });
+      await act(async () => {
+        fireEvent.click(within(view).getByTestId('day-report-save'));
+      });
+      expect(defaultProps.updateSeasonMutation.mutateAsync).toHaveBeenCalledWith({ id: 's1', name: 'Season 1' });
+    });
+
+    it('tells the coach when the save fails', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const games = { a: played({ gameDate: '2026-12-12', opponentName: 'Early FC', homeScore: 2, awayScore: 0 }) };
+      mockGetFilteredGames.mockResolvedValue(Object.entries(games));
+      mockGetSavedGames.mockResolvedValue(games);
+      (defaultProps.updateTournamentMutation.mutateAsync as jest.Mock).mockRejectedValueOnce(new Error('offline'));
+      renderWithProviders({ kind: 'tournament' });
+      await act(async () => {});
+      fireEvent.click(actionsFor('Tournament 1'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('competition-report-t1'));
+      });
+      const view = await screen.findByTestId('plan-day-report');
+      await act(async () => {
+        fireEvent.click(within(view).getByTestId('day-report-open-editor'));
+      });
+      await act(async () => {
+        fireEvent.change(within(view).getByTestId('day-report-text'), { target: { value: 'Teksti' } });
+      });
+      await act(async () => {
+        fireEvent.click(within(view).getByTestId('day-report-save'));
+      });
+      expect(await screen.findByText('Could not save the report. Try again.')).toBeInTheDocument();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to save the report text'),
+        expect.any(Error),
+      );
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('opens the league report (totals) from the league\'s details sheet', async () => {
+      const games = {
+        a: played({ gameDate: '2026-09-20', opponentName: 'Kallion Kiri', homeScore: 2, awayScore: 1 }),
+        b: played({ gameDate: '2026-09-27', opponentName: 'Harjun Haukat', homeScore: 0, awayScore: 0 }),
+      };
+      mockGetFilteredGames.mockResolvedValue(Object.entries(games));
+      mockGetSavedGames.mockResolvedValue(games);
+      renderWithProviders({ kind: 'season' });
+      await act(async () => {});
+      fireEvent.click(screen.getByText('Season 1'));
+      await act(async () => {
+        fireEvent.click(await screen.findByTestId('competition-details-report'));
+      });
+      const view = await screen.findByTestId('plan-day-report');
+      expect(within(view).getByTestId('series-report-game-1')).toHaveTextContent('20.9.');
+      expect(within(view).getByTestId('series-report-players')).toHaveTextContent('ST ×2');
+    });
+  });
 });
+

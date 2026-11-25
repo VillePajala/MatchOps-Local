@@ -31,6 +31,7 @@ import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
+import type { GameTheme, GameThemesCollection } from '@/playbook/gameThemeTypes';
 import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
@@ -102,6 +103,8 @@ export interface PushAllToCloudResult {
   playtimePlanLinks: number;
   /** Number of successfully pushed playtime game-sub entries */
   playtimeGameSubs: number;
+  /** Number of games whose Playbook themes were pushed */
+  gameThemes?: number;
   /**
    * How many of the failed items were handed to the sync queue, so the engine keeps
    * retrying them like any other unsent change (review 3.16).
@@ -135,6 +138,8 @@ export interface PushAllToCloudResult {
     playtimePlanLinks: string[];
     /** Game IDs whose planned subs failed to push */
     playtimeGameSubs: string[];
+    /** Game IDs whose Playbook themes failed to push */
+    gameThemes?: string[];
   };
   /**
    * Warnings about orphaned references that were fixed during push.
@@ -1209,6 +1214,7 @@ export class SyncedDataStore implements DataStore {
       playtimePlans: 0,
       playtimePlanLinks: 0,
       playtimeGameSubs: 0,
+      gameThemes: 0,
       failures: {
         players: [] as string[],
         teams: [] as string[],
@@ -1223,6 +1229,7 @@ export class SyncedDataStore implements DataStore {
         playtimePlans: [] as string[],
         playtimePlanLinks: [] as string[],
         playtimeGameSubs: [] as string[],
+        gameThemes: [] as string[],
       },
     };
 
@@ -1647,6 +1654,23 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
+      // 10b. Playbook game themes (per real game, like the planned subs).
+      const allGameThemes = await this.localStore.getAllGameThemes();
+      for (const [gameId, themes] of Object.entries(allGameThemes)) {
+        if (themes.length === 0) continue;
+        try {
+          await retryWithBackoff(
+            () => remoteStore.setGameThemes(gameId, themes),
+            { operationName: `setGameThemes(${gameId})` }
+          );
+          summary.gameThemes = (summary.gameThemes ?? 0) + 1;
+        } catch (error) {
+          summary.failures.gameThemes?.push(gameId);
+          logger.error(`[SyncedDataStore] Failed game themes for game ${gameId} after retries:`,
+            getSafeErrorMessage(error));
+        }
+      }
+
       // 11. Player adjustments
       // Assumption: Typically 0-20 adjustments per import (0-2 per player, ~10 players).
       // Sequential processing is acceptable at this scale. If imports regularly
@@ -1701,6 +1725,9 @@ export class SyncedDataStore implements DataStore {
       }
       for (const gameId of f.playtimeGameSubs) {
         if (allGameSubs[gameId]) requeue.push(['playtimeGameSubs', gameId, allGameSubs[gameId]]);
+      }
+      for (const gameId of f.gameThemes ?? []) {
+        if (allGameThemes[gameId]) requeue.push(['gameThemes', gameId, allGameThemes[gameId]]);
       }
       for (const [type, id, data] of requeue) {
         // queueSync never throws; a change it cannot queue is kept as a missed op (3.9).
@@ -1918,6 +1945,32 @@ export class SyncedDataStore implements DataStore {
     const ok = await this.localStore.setPlaytimeGameSubs(gameId, subs);
     if (ok) {
       await this.queueSync('playtimeGameSubs', gameId, 'update', subs);
+    }
+    return ok;
+  }
+
+  async getGameThemes(gameId: string): Promise<GameTheme[]> {
+    return this.localStore.getGameThemes(gameId);
+  }
+
+  async getAllGameThemes(): Promise<GameThemesCollection> {
+    return this.localStore.getAllGameThemes();
+  }
+
+  async setGameThemes(gameId: string, themes: GameTheme[]): Promise<boolean> {
+    const ok = await this.localStore.setGameThemes(gameId, themes);
+    if (ok) {
+      // The stored (cleaned) list, so the cloud gets exactly what is local.
+      const stored = await this.localStore.getGameThemes(gameId);
+      await this.queueSync('gameThemes', gameId, stored.length > 0 ? 'update' : 'delete', stored.length > 0 ? stored : null);
+    }
+    return ok;
+  }
+
+  async deleteGameThemes(gameId: string): Promise<boolean> {
+    const ok = await this.localStore.deleteGameThemes(gameId);
+    if (ok) {
+      await this.queueSync('gameThemes', gameId, 'delete', null);
     }
     return ok;
   }

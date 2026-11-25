@@ -24,6 +24,8 @@ import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import { createLocalPlanStore, type LocalPlanStore } from '@/utils/playtimePlanner/localPlanStore';
+import { createLocalGameThemeStore, type LocalGameThemeStore } from '@/playbook/localGameThemeStore';
+import type { GameTheme, GameThemesCollection } from '@/playbook/gameThemeTypes';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
@@ -32,7 +34,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString, isNewCompositeDuplicate } from '@/datastore/validation';
+import { validateGame, normalizeOptionalString, isNewCompositeDuplicate, withNormalizedReportText } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import { validateUserId } from '@/datastore/userDatabase';
@@ -359,6 +361,7 @@ export class LocalDataStore implements DataStore {
    * Set during initialize() based on userId.
    */
   private planStore: LocalPlanStore | null = null;
+  private gameThemeStore: LocalGameThemeStore | null = null;
   private adapter: StorageAdapter | null = null;
 
   /**
@@ -500,21 +503,24 @@ export class LocalDataStore implements DataStore {
       }
       throw lastError;
     };
-    this.planStore = createLocalPlanStore({
+    const jsonIO = {
       getJSON: async <T,>(key: string, defaultValue: T): Promise<T> => {
         const raw = await withIoRetry(() => this.storageGetItem(key));
         if (raw === null) return defaultValue;
         try {
           return JSON.parse(raw) as T;
         } catch (error) {
-          logger.warn(`[LocalDataStore] Corrupt JSON for planner key "${key}", using default`, { error });
+          logger.warn(`[LocalDataStore] Corrupt JSON for key "${key}", using default`, { error });
           return defaultValue;
         }
       },
       setJSON: async (key: string, value: unknown): Promise<void> => {
         await withIoRetry(() => this.storageSetItem(key, JSON.stringify(value)));
       },
-    });
+    };
+    this.planStore = createLocalPlanStore(jsonIO);
+    // Playbook game themes: the same per-instance database and IO rules.
+    this.gameThemeStore = createLocalGameThemeStore(jsonIO);
 
     this.initialized = true;
   }
@@ -1159,12 +1165,12 @@ export class LocalDataStore implements DataStore {
         throw new AlreadyExistsError('season', trimmedName);
       }
 
-      const newSeason: Season = {
+      const newSeason: Season = withNormalizedReportText({
         id: generateId('season'),
         name: trimmedName,
         ...(extra || {}),
         clubSeason: newClubSeason,
-      };
+      }, 'Season');
 
       await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify([...currentSeasons, newSeason]));
       return newSeason;
@@ -1228,11 +1234,11 @@ export class LocalDataStore implements DataStore {
         throw new AlreadyExistsError('season', trimmedName);
       }
 
-      const updatedSeason: Season = {
+      const updatedSeason: Season = withNormalizedReportText({
         ...season,
         name: trimmedName,
         clubSeason: newClubSeason,
-      };
+      }, 'Season');
       currentSeasons[seasonIndex] = updatedSeason;
       await this.storageSetItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
 
@@ -1299,7 +1305,7 @@ export class LocalDataStore implements DataStore {
       // Only a record without a label is computed.
       const clubSeason = season.clubSeason ?? calculateClubSeason(season.startDate, start, end);
 
-      const normalizedSeason: Season = {
+      const normalizedSeason: Season = withNormalizedReportText({
         ...season,
         name: trimmedName,
         ageGroup: normalizedAgeGroup ?? undefined,
@@ -1308,7 +1314,7 @@ export class LocalDataStore implements DataStore {
         // Set timestamps: preserve createdAt if exists, always update updatedAt
         createdAt: season.createdAt ?? (existingIndex !== -1 ? currentSeasons[existingIndex].createdAt : now),
         updatedAt: now,
-      };
+      }, 'Season');
 
       if (existingIndex !== -1) {
         // Update existing
@@ -1394,14 +1400,14 @@ export class LocalDataStore implements DataStore {
       }
 
       const { level, ageGroup, ...rest } = extra || {};
-      const newTournament: Tournament = {
+      const newTournament: Tournament = withNormalizedReportText({
         id: generateId('tournament'),
         name: trimmedName,
         ...rest,
         ...(level ? { level } : {}),
         ...(ageGroup ? { ageGroup } : {}),
         clubSeason: newClubSeason,
-      };
+      }, 'Tournament');
 
       await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify([...currentTournaments, newTournament]));
       return newTournament;
@@ -1455,12 +1461,12 @@ export class LocalDataStore implements DataStore {
         throw new AlreadyExistsError('tournament', trimmedName);
       }
 
-      const updatedTournament: Tournament = {
+      const updatedTournament: Tournament = withNormalizedReportText({
         ...currentTournaments[tournamentIndex],
         ...tournament,
         name: trimmedName,
         clubSeason: newClubSeason,
-      };
+      }, 'Tournament');
 
       currentTournaments[tournamentIndex] = updatedTournament;
       await this.storageSetItem(TOURNAMENTS_LIST_KEY, JSON.stringify(currentTournaments));
@@ -1559,7 +1565,7 @@ export class LocalDataStore implements DataStore {
       // Only a record without a label is computed.
       const clubSeason = tournament.clubSeason ?? calculateClubSeason(tournament.startDate, start, end);
 
-      const normalizedTournament: Tournament = {
+      const normalizedTournament: Tournament = withNormalizedReportText({
         ...tournament,
         name: trimmedName,
         ageGroup: normalizedAgeGroup ?? undefined,
@@ -1569,7 +1575,7 @@ export class LocalDataStore implements DataStore {
         // Set timestamps: preserve createdAt if exists, always update updatedAt
         createdAt: tournament.createdAt ?? (existingIndex !== -1 ? currentTournaments[existingIndex].createdAt : now),
         updatedAt: now,
-      };
+      }, 'Tournament');
 
       if (existingIndex !== -1) {
         // Update existing
@@ -2703,6 +2709,38 @@ export class LocalDataStore implements DataStore {
 
   async restorePlaytimeGameSubs(incoming: GameSubsCollection): Promise<number> {
     return this.plans().restoreGameSubs(incoming);
+  }
+
+  // ==========================================================================
+  // PLAYBOOK GAME THEMES (key-locked IndexedDB collection, localGameThemeStore)
+  // ==========================================================================
+
+  private themes(): LocalGameThemeStore {
+    if (!this.gameThemeStore) {
+      throw new NotInitializedError('LocalDataStore');
+    }
+    return this.gameThemeStore;
+  }
+
+  async getGameThemes(gameId: string): Promise<GameTheme[]> {
+    return this.themes().getGameThemes(gameId);
+  }
+
+  async getAllGameThemes(): Promise<GameThemesCollection> {
+    return this.themes().getAllGameThemes();
+  }
+
+  async setGameThemes(gameId: string, themes: GameTheme[]): Promise<boolean> {
+    return this.themes().setGameThemes(gameId, themes);
+  }
+
+  async deleteGameThemes(gameId: string): Promise<boolean> {
+    return this.themes().deleteGameThemes(gameId);
+  }
+
+  /** Cloud hydration / reverse migration: fill in games with no local entry (local edits win). */
+  async restoreGameThemes(incoming: GameThemesCollection): Promise<number> {
+    return this.themes().restoreGameThemes(incoming);
   }
 
   async getTeamReferences(teamId: string): Promise<EntityReferences> {

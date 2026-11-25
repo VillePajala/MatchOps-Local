@@ -36,6 +36,8 @@ import PlayerPositionsEditor from './PlayerPositionsEditor';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import GameRecapModal from './GameRecapModal';
+import PlanDayReportLauncher from './PlanDayReportLauncher';
+import { useLastDayGamePlan } from '@/hooks/useDayReportPrompt';
 import GameNoteComposer from './GameStatsModal/components/GameNoteComposer';
 import { buildTasoReport } from '@/utils/tasoReport';
 import GameWrapUpCard from './GameWrapUpCard';
@@ -760,6 +762,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         : undefined,
     [savedGame, gameNotes, localGameEvents, playerPositions],
   );
+  // "Päivän viimeinen peli pelattu · Turnauspäivän raportti": this game was
+  // made from a plan and was the last of that plan's games to be played.
+  const lastDayPlanId = useLastDayGamePlan(currentGameId, currentGame, isOpen && activeTab === 'currentGame');
+  const [dayReportPlanId, setDayReportPlanId] = useState<string | null>(null);
   const lastEvent = useMemo(
     () => localGameEvents.reduce<GameEvent | undefined>((latest, e) => (!latest || e.time > latest.time ? e : latest), undefined),
     [localGameEvents],
@@ -1049,13 +1055,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't close if a child dialog (delete confirmation) is open or user is editing a goal
-      if (e.key === 'Escape' && !isEditingNotes && !goalEditorHook.showDeleteConfirm && goalEditorHook.editingGoalId === null) {
+      // The day report above this screen handles its own Escape.
+      if (e.key === 'Escape' && !isEditingNotes && !goalEditorHook.showDeleteConfirm && goalEditorHook.editingGoalId === null && dayReportPlanId === null) {
         onClose();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, isEditingNotes, goalEditorHook.showDeleteConfirm, goalEditorHook.editingGoalId]);
+  }, [isOpen, onClose, isEditingNotes, goalEditorHook.showDeleteConfirm, goalEditorHook.editingGoalId, dayReportPlanId]);
 
   if (!isOpen) return null;
 
@@ -1270,6 +1277,25 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         </>
       ),
     });
+    // The day's last game made from a plan: the day report, one tap away.
+    if (lastDayPlanId) {
+      spineSteps.push({
+        key: 'dayReport',
+        content: (
+          <button
+            type="button"
+            onClick={() => setDayReportPlanId(lastDayPlanId)}
+            data-testid="spine-day-report"
+            className={`${secondaryButtonStyle} w-full flex-col gap-0.5! py-2.5! h-auto!`}
+          >
+            <span className="text-[13px] font-normal text-ink-2">
+              {t('planDayReport.lastGameDone', "The day's last game is played")}
+            </span>
+            <span>{t('planDayReport.open', 'Tournament day report')}</span>
+          </button>
+        ),
+      });
+    }
     // The rest of the record, as a checklist that scrolls to each editor below.
     if (currentGameCompleteness?.applicable) {
       spineSteps.push({
@@ -1824,6 +1850,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           variant="danger"
           isConfirming={goalEditorHook.isDeletingEvent}
         />
+        {dayReportPlanId && (
+          <PlanDayReportLauncher
+            planId={dayReportPlanId}
+            gameOverrides={currentGameId && currentGame ? { [currentGameId]: currentGame } : undefined}
+            onClose={() => setDayReportPlanId(null)}
+          />
+        )}
         <GameRecapModal
           isOpen={showRecap}
           onClose={() => setShowRecap(false)}

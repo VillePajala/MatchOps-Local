@@ -28,6 +28,28 @@ export type Database = {
   }
   public: {
     Tables: {
+      // Migration 064. Clients can only SELECT their own rows (no write grant/policy).
+      account_features: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       game_events: {
         Row: {
           assister_id: string | null
@@ -154,6 +176,33 @@ export type Database = {
             referencedColumns: ["user_id", "id"]
           },
         ]
+      }
+      game_themes: {
+        Row: {
+          concept_id: string
+          game_id: string
+          playbook_id: string
+          sort: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          concept_id: string
+          game_id: string
+          playbook_id: string
+          sort?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          concept_id?: string
+          game_id?: string
+          playbook_id?: string
+          sort?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       game_tactical_data: {
         Row: {
@@ -391,6 +440,78 @@ export type Database = {
             referencedColumns: ["user_id", "id"]
           },
         ]
+      }
+      playbook_access: {
+        Row: {
+          granted_at: string
+          playbook_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          playbook_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          playbook_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playbook_concepts: {
+        Row: {
+          data: Json
+          format: string
+          id: string
+          phase: string
+          playbook_id: string
+          sort: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          data: Json
+          format: string
+          id: string
+          phase: string
+          playbook_id: string
+          sort?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          data?: Json
+          format?: string
+          id?: string
+          phase?: string
+          playbook_id?: string
+          sort?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      playbooks: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name: string
+          owner_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_note?: string | null
+        }
+        Relationships: []
       }
       playtime_game_subs: {
         Row: {
@@ -756,6 +877,7 @@ export type Database = {
           opponents: string[] | null
           period_count: number | null
           period_duration: number | null
+          report_text: string | null
           start_date: string | null
           team_placements: Json | null
           updated_at: string | null
@@ -781,6 +903,7 @@ export type Database = {
           opponents?: string[] | null
           period_count?: number | null
           period_duration?: number | null
+          report_text?: string | null
           start_date?: string | null
           team_placements?: Json | null
           updated_at?: string | null
@@ -806,6 +929,7 @@ export type Database = {
           opponents?: string[] | null
           period_count?: number | null
           period_duration?: number | null
+          report_text?: string | null
           start_date?: string | null
           team_placements?: Json | null
           updated_at?: string | null
@@ -982,6 +1106,7 @@ export type Database = {
           notes: string | null
           period_count: number | null
           period_duration: number | null
+          report_text: string | null
           series: Json | null
           start_date: string | null
           team_placements: Json | null
@@ -1007,6 +1132,7 @@ export type Database = {
           notes?: string | null
           period_count?: number | null
           period_duration?: number | null
+          report_text?: string | null
           series?: Json | null
           start_date?: string | null
           team_placements?: Json | null
@@ -1032,6 +1158,7 @@ export type Database = {
           notes?: string | null
           period_count?: number | null
           period_duration?: number | null
+          report_text?: string | null
           series?: Json | null
           start_date?: string | null
           team_placements?: Json | null
@@ -1237,6 +1364,7 @@ export type Database = {
         }
         Returns: Json
       }
+      redeem_playbook_code: { Args: { p_code: string }; Returns: Json }
       revoke_user_consent: {
         Args: {
           p_consent_type: string
@@ -1256,6 +1384,10 @@ export type Database = {
           p_tactical_data: Json
         }
         Returns: number
+      }
+      set_game_themes: {
+        Args: { p_game_id: string; p_themes: Json }
+        Returns: undefined
       }
       set_team_roster: {
         Args: { p_roster: Json[]; p_team_id: string }

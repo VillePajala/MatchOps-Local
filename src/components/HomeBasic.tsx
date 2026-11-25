@@ -79,6 +79,8 @@ export interface HomeBasicProps {
   onViewStats?: () => void;
   /** "Vaihda koko näkymään". */
   onSwitchToFull?: () => void;
+  /** "<plan> valmis · Tee raportti" (DayReportPromptRow), when a played day has no report yet. */
+  dayReportPrompt?: React.ReactNode;
   locale: string;
   t: TFunction;
 }
@@ -280,6 +282,7 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
   today,
   onViewStats,
   onSwitchToFull,
+  dayReportPrompt,
   locale,
   t,
 }) => {
@@ -357,6 +360,8 @@ const HomeBasic: React.FC<HomeBasicProps> = ({
           t={t}
         />
       )}
+
+      {dayReportPrompt}
 
       <div className={`${HOME_CARD} flex flex-col`}>
         <BasicRow

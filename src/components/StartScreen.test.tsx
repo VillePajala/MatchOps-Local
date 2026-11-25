@@ -1,3 +1,4 @@
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
 import React from 'react';
 import { render, screen, fireEvent, within, cleanup, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -20,7 +21,30 @@ jest.mock('@/utils/appSettings', () => ({
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
+const mockHasFeature = jest.fn((_feature: string) => false);
+jest.mock('@/hooks/useAccountFeatures', () => ({
+  useAccountFeatures: () => ({ hasFeature: mockHasFeature }),
+}));
+jest.mock('@/playbook/PlaybookLibrary', () => ({
+  __esModule: true,
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="playbook-stub">
+      <button onClick={onClose}>close-playbook</button>
+    </div>
+  ),
+}));
 jest.mock('@/utils/playtimePlanner/planLinks', () => ({ getPlanLink: jest.fn().mockResolvedValue(null) }));
+// The day-report prompts read plans, links and games; they have their own
+// suites (useDayReportPrompt / dayReportPrompts / dayReportEntryPoints).
+const mockDayReportPrompt = jest.fn((): { planId: string; planName: string; lastGameDate: string } | null => null);
+jest.mock('@/hooks/useDayReportPrompt', () => ({
+  useDayReportPrompt: () => mockDayReportPrompt(),
+  useLastDayGamePlan: () => null,
+}));
+jest.mock('@/components/PlanDayReportLauncher', () => ({
+  __esModule: true,
+  default: ({ planId }: { planId: string }) => <div data-testid="day-report-launcher">{planId}</div>,
+}));
 jest.mock('@/utils/playtimePlanner/storage', () => ({
   ...jest.requireActual('@/utils/playtimePlanner/storage'),
   getPlan: jest.fn().mockResolvedValue(null),
@@ -596,6 +620,33 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // Back to Games restores the front page.
     fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
     expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+  });
+
+  /**
+   * Playbook is hidden behind a server-controlled account flag: without it the
+   * club panel is exactly as before.
+   * @critical
+   */
+  it('Club panel: no Playbook row without the account flag', () => {
+    mockHasFeature.mockReturnValue(false);
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.queryByTestId('club-playbook')).not.toBeInTheDocument();
+    expect(mockHasFeature).toHaveBeenCalledWith(PLAYBOOK_FEATURE);
+  });
+
+  it('Club panel: with the flag, "Playbook" opens the library', async () => {
+    mockHasFeature.mockReturnValue(true);
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.queryByTestId('playbook-stub')).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('club-playbook'));
+    });
+    expect(await screen.findByTestId('playbook-stub')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('close-playbook'));
+    await waitFor(() => expect(screen.queryByTestId('playbook-stub')).not.toBeInTheDocument());
+    mockHasFeature.mockReturnValue(false);
   });
 
   it('Seasons and Stats are REAL panels: tabs switch, the rows open the surfaces (3.1b)', () => {
@@ -1304,6 +1355,28 @@ describe('Home guide + empty-state guidance', () => {
       render(<StartScreen {...shellProps()} homeSummary={summary} />);
       expect(screen.queryByTestId('home-basic')).not.toBeInTheDocument();
       expect(screen.getByRole('tablist')).toBeInTheDocument();
+    });
+
+    /** Home entry for the day report: a played plan day with no report yet (rule: dayReportPrompts.test). */
+    it.each([['full', undefined], ['basic', 'basic' as const]])(
+      '%s: shows "<plan> done · Write the report" while a day is waiting, and opens the day report',
+      async (_name, appLayout) => {
+        mockDayReportPrompt.mockReturnValue({ planId: 'plan1', planName: 'Joulufutis 12.12.', lastGameDate: '2026-12-12' });
+        render(<StartScreen {...shellProps()} appLayout={appLayout} homeSummary={summary} />);
+        const row = screen.getByTestId('home-day-report-prompt');
+        expect(row).toHaveTextContent('Joulufutis 12.12. done · Write the report');
+        await act(async () => {
+          fireEvent.click(row);
+        });
+        expect(screen.getByTestId('day-report-launcher')).toHaveTextContent('plan1');
+        mockDayReportPrompt.mockReturnValue(null);
+      },
+    );
+
+    it('shows no day-report row when no day is waiting', () => {
+      mockDayReportPrompt.mockReturnValue(null);
+      render(<StartScreen {...shellProps()} homeSummary={summary} />);
+      expect(screen.queryByTestId('home-day-report-prompt')).not.toBeInTheDocument();
     });
 
     it('loading: neither layout renders (no flash of the wrong one)', () => {

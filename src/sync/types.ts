@@ -34,7 +34,8 @@ export type SyncEntityType =
   | 'warmupPlan'
   | 'playtimePlan' // Playing-time planner: one op per plan (opaque blob)
   | 'playtimePlanLink' // Keyed per real game; delete with data.planId = delete-for-plan
-  | 'playtimeGameSubs'; // Keyed per real game (planned subs array)
+  | 'playtimeGameSubs' // Keyed per real game (planned subs array)
+  | 'gameThemes'; // Playbook themes, keyed per real game (array; [] / delete clears)
 
 /**
  * Types of sync operations.

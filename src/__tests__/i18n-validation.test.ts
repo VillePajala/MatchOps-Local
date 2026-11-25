@@ -754,9 +754,18 @@ describe('Translation File Validation', () => {
       // +6 / -4 Home "Joukkueet" card (dashTeamsCard, dashHomeAway, dashAtHome, dashAway,
       //     dashNoTeam, dashNoGames); top scorers removed (dashTopScorers, clubTopScorer,
       //     dashGoalsWord _one/_other) (2026-11-21). 3665.
+      // +13 Playbook (flagged): startScreen.rowPlaybook/clubPlaybookSub + 11 playbook.* (2026-11-21). 3678.
+      // +22 Playbook library: 16 playbook.library.* (steps _one/_other) + 6 playbook.library.phase.*. 3700.
+      // +1 playbook.focusMode (Playbook focus mode button). 3701.
+      // +21 Playbook game themes: playbook.nextTheme/themeOf + 19 playbook.themes.*. 3722.
+      // +18 playbook.previousTheme + 17 playbook.code.* (club code sheet). 3740.
+      // +1 playbook.themes.menuItem (match menu "Match themes"). 3741.
+      // -3 playbook.themes.choose/themeOne/themesMany (Home next-match themes row removed). 3738.
       // +7 / -6 privacy pass (2026-11-23): labs toasts, typed-only report
       //     copy, support-email processor (4 keys); paid-features terms list,
-      //     billing, cancellation and data-after-cancel removed. 3666.
+      //     billing, cancellation and data-after-cancel removed. 3739.
+      // Master side (for reference; counted from its own base):
+      // (master: privacy pass as above, ending at 3666.)
       // +8: layoutNotice.* (the basic-layout notice dialog)
       // +7 demo prep (2026-11-25): taso.shootout; planner formatSummary and
       //     reapplyDoneNoRoster split into _one/_other; manager.games/players _one/_other. 3681.
@@ -768,7 +777,11 @@ describe('Translation File Validation', () => {
       // +9 / -5 batch sheet game blocks (count line, headings, summary, optional
       //     hint); planCreateGames.venue and the four HH/MM time placeholders
       //     removed (one native time picker). 3716.
-      expect(enKeys.length).toBe(3721); // merge of planCreateGames (+42 net) with master (3679)
+      // +36 planDayReport.* (tournament day report, 2026-11-25). 3757.
+      // master: competitionReport -6/+3 (migration 068) and +10 planDayReport.* +20 competitionReport.*. 3784.
+      // Merge of feat/pelitapa with master (3784): +73 pelitapa keys. 3857.
+      // +2 privacyPolicy.dataWeCollect.featureAccess* (feature / content access records). 3859.
+      expect(enKeys.length).toBe(3859);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -984,6 +997,14 @@ describe('Translation File Validation', () => {
       // +1 playerStats.goalsAssistsShort (match log G+A figure). 3657.
       // +8 / -2 league & tournament cards (record line, starts-in chip). 3663.
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
+      // +22 Playbook library. 3700.
+      // +1 Playbook focus mode. 3701.
+      // +21 Playbook game themes (see EN). 3722.
+      // +18 club code sheet (see EN). 3740.
+      // +1 match menu "Ottelun teemat". 3741.
+      // -3 Home next-match themes row removed (see EN). 3738.
+      // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3739.
+      // Master side (for reference; counted from its own base):
       // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3666.
       // +8: layoutNotice.* (the basic-layout notice dialog)
       // +7 demo prep (2026-11-25): taso.shootout; planner formatSummary and
@@ -992,7 +1013,11 @@ describe('Translation File Validation', () => {
       // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
       // +38 planCreateGames.* (2026-11-25). 3712.
       // +9 / -5 batch sheet game blocks; venue + HH/MM placeholders removed. 3716.
-      expect(fiKeys.length).toBe(3721); // merge of planCreateGames (+42 net) with master (3679)
+      // +36 planDayReport.* (tournament day report, 2026-11-25). 3757.
+      // master: competitionReport -6/+3 (migration 068) and +10 planDayReport.* +20 competitionReport.*. 3784.
+      // Merge of feat/pelitapa with master (3784): +73 pelitapa keys. 3857.
+      // +2 privacyPolicy.dataWeCollect.featureAccess* (feature / content access records). 3859.
+      expect(fiKeys.length).toBe(3859);
     });
   });
 });

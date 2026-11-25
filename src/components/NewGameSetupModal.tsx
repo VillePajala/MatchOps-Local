@@ -57,6 +57,10 @@ import { officialFieldSize } from '@/config/officialFieldSize';
 import { getStoredSetupAgeGroup, getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { useFeatureEnabled } from '@/contexts/AccountFeaturesProvider';
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
+import { LazyGameThemeField } from '@/playbook/lazyEntryPoints';
+import type { GameTheme } from '@/playbook/gameThemeTypes';
 import { HiOutlineMapPin, HiOutlineArrowPath } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
@@ -112,6 +116,8 @@ interface NewGameSetupModalProps {
     // Friendly / practice match: excluded from competitive stat totals by default.
     isFriendly?: boolean,
     formationPresetId?: string | null,
+    // Playbook themes picked in the form (flagged accounts), stored with the new game's id.
+    gameThemes?: GameTheme[],
   ) => void;
   onCancel: () => void;
   /**
@@ -315,6 +321,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // (null = auto). Validated against the CURRENT squad size's presets at use,
   // so a stale pick from another size silently falls back to auto.
   const [formationPresetId, setFormationPresetId] = useState<string | null>(null);
+  // Playbook themes (flagged accounts): saved with the new game's id after it is created.
+  const playbookOn = useFeatureEnabled(PLAYBOOK_FEATURE);
+  const [gameThemes, setGameThemes] = useState<GameTheme[]>([]);
 
   // Gender state - optional, can be prefilled from season/tournament
   const [gender, setGender] = useState<Gender | undefined>(undefined);
@@ -547,6 +556,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // over the coach's edits.
       applyNewGameDefaultsRef.current();
 
+      setGameThemes([]);
       // Reset + load Playing-Time Planner plans for the optional "Prefill from plan".
       setPrefillPlanId('');
       setPrefillGameId('');
@@ -1329,6 +1339,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // Any KNOWN preset is valid regardless of squad size (owner round 6);
       // then the resolved default; "Automatic" falls back to the squad size.
       explicitPreset?.id ?? resolvedFormation?.presetId ?? getDefaultPresetIdForSize(preferredFormationSize),
+      // Only when themes were picked (flagged accounts), so the call is unchanged otherwise.
+      ...(playbookOn && gameThemes.length > 0 ? ([gameThemes] as const) : ([] as const)),
     );
 
     // Modal will be closed by parent component after onStart
@@ -2057,6 +2069,18 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </div>
               </div>
             </section>
+
+            {/* Playbook themes for the match (accounts with the playbook flag only). */}
+            {playbookOn && (
+              <section data-testid="new-game-themes">
+                <h3 className={`${sectionLabelStyle} px-1 mb-2.5`}>
+                  {t('playbook.themes.sectionTitle', 'Playbook themes')}
+                </h3>
+                <div className={cardStyle}>
+                  <LazyGameThemeField value={gameThemes} onChange={setGameThemes} />
+                </div>
+              </section>
+            )}
           </div>
 
           {/* Chrome slimming: the ONE commit action as a sticky bottom bar
