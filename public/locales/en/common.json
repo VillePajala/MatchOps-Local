@@ -31,7 +31,8 @@
     "goalie": "GK",
     "captain": "C",
     "unknownPlayer": "unknown",
-    "extraTime": "extra time"
+    "extraTime": "extra time",
+    "shootout": "Penalty shoot-out"
   },
   "evidence": {
     "button": "Share player summary",
@@ -3709,7 +3710,8 @@
     },
     "overview": {
       "gameLabel": "Game {{n}}",
-      "formatSummary": "{{games}} games · {{periods}}×{{minutes}} min",
+      "formatSummary_one": "{{count}} game · {{periods}}×{{minutes}} min",
+      "formatSummary_other": "{{count}} games · {{periods}}×{{minutes}} min",
       "gamesHeading": "Games",
       "deletePlan": "Delete",
       "confirmDelete": "Delete this plan? This cannot be undone.",
@@ -3730,7 +3732,8 @@
       "reapplyDoneMissing_other": "Updated {{count}} games. Not in a game roster, skipped: {{names}}.",
       "reapplyDonePartial_one": "Updated {{count}} game; {{failed}} could not be updated.",
       "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated.",
-      "reapplyDoneNoRoster": "Updated {{updated}} games; {{skipped}} had no players in their roster and were left unchanged.",
+      "reapplyDoneNoRoster_one": "Updated {{count}} game; {{skipped}} had no players in their roster and were left unchanged.",
+      "reapplyDoneNoRoster_other": "Updated {{count}} games; {{skipped}} had no players in their roster and were left unchanged.",
       "suggestButton": "Suggest lineups",
       "suggestConfirmTitle": "Suggest lineups?",
       "suggestConfirmMessage": "Builds lineups and substitutions for every included game so playing time comes out as even as possible and every player gets on the pitch. The goalkeeper is never subbed mid-game.",
@@ -3857,7 +3860,11 @@
     "manager": {
       "title": "Plans",
       "new": "New plan",
-      "meta": "{{games}} games · {{players}} players",
+      "meta": "{{games}} · {{players}}",
+      "games_one": "{{count}} game",
+      "games_other": "{{count}} games",
+      "players_one": "{{count}} player",
+      "players_other": "{{count}} players",
       "actions": "Plan actions",
       "archive": "Archive",
       "unarchive": "Unarchive",
