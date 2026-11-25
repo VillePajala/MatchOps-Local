@@ -911,6 +911,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         periodDurationMinutes: periodDurationMinutes ?? 0,
         extraTimePeriods,
         extraTimeMinutes,
+        shootoutKicks,
         playerPositions,
         playersOnField: savedPlayersOnField,
       },
@@ -918,7 +919,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       (key, fallback) => t(key, fallback) as string,
     );
     return r.text;
-  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, playerPositions, savedPlayersOnField, availablePlayers, t]);
+  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, extraTimePeriods, extraTimeMinutes, shootoutKicks, playerPositions, savedPlayersOnField, availablePlayers, t]);
 
   // Completeness for the current game: live-editable fields from props over the
   // saved snapshot (which carries competition/team/assessments).
