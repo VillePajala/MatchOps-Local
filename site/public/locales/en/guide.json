@@ -42,11 +42,11 @@
   "sections": {
     "getting-started": {
       "title": "Quick Start",
-      "description": "Free account, your team, the first plan, and the basic and full layouts"
+      "description": "Free account, your team, the first plan, and the Basic and Full views"
     },
     "full-setup-path": {
       "title": "Recommended Setup",
-      "description": "Players, staff, leagues, tournaments and teams in the full layout"
+      "description": "Players, staff, leagues, tournaments and teams in the Full view"
     },
     "roster-management": {
       "title": "Roster Management",

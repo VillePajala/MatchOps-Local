@@ -479,7 +479,7 @@
   "privacyPolicy": {
     "title": "MatchOpsin tietosuojakäytäntö",
     "version": "Käytännön versio: 2026-11",
-    "lastUpdated": "Päivitetty: 23.11.2026",
+    "lastUpdated": "Päivitetty: 25.11.2026",
     "dataController": {
       "title": "Rekisterinpitäjä",
       "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Olemme rekisterinpitäjä tilisi tiedoille (sähköpostiosoite, asetukset, suostumustiedot) sekä alla kuvatuille virheraporteille ja käyttötilastoille. Muista henkilöistä (pelaajat, henkilöstö) syötettyjen henkilötietojen rekisterinpitäjä on sovellusta käyttävä valmentaja - tai seura, jos valmentaja käyttää sovellusta osana seuran toimintaa - ja me olemme henkilötietojen käsittelijä (ks. käyttöehtojen kohta Henkilötietojen käsittely)."
@@ -557,7 +557,7 @@
       },
       "personnelDataNote": "Nämä tiedot tallennetaan laitteellesi ja synkronoidaan pilvitilillesi EU:ssa (Tukholma, Ruotsi). Henkilöstön yhteystiedot (sähköposti, puhelin) ovat GDPR:n mukaisia henkilötietoja. Muista henkilöistä (kuten pelaajista ja henkilöstöstä) syöttämiesi henkilötietojen rekisterinpitäjä olet sinä - tai seura, jonka puolesta toimit - ja vastaat siitä, että tallentamiselle on oikeusperuste ja että asianomaisia informoidaan; me käsittelemme niitä vain puolestasi (ks. käyttöehtojen kohta Henkilötietojen käsittely).",
       "onboardingTitle": "Käyttöönoton eteneminen ja näkymä",
-      "onboardingContent": "Ellet kytke sitä pois, tallennamme tilisi asetuksiin muutaman aikaleiman käyttöönoton etenemisestä (tili luotu, aloitusohjattu asetus valmis tai ohitettu, ensimmäinen suunnitelma nähty, ensimmäinen ja toinen ottelu viimeistelty) sekä valitsemasi näkymän (Perusnäkymä tai Koko näkymä). Käytämme aikaleimoja vain uusien valmentajien käyttöönoton parantamiseen. Ne eivät sisällä pelitietojasi, niitä ei jaeta eikä myydä kenellekään, ja ne poistetaan tilisi mukana. Voit vastustaa käsittelyä kytkemällä pois kohdan Asetukset → Tiedot → Virheraportit ja käyttötilastot: sen jälkeen uusia aikaleimoja ei tallenneta. Näkymä on sovelluksen asetus ja säilyy aina."
+      "onboardingContent": "Ellet kytke sitä pois, tallennamme tilisi asetuksiin muutaman aikaleiman käyttöönoton etenemisestä (tili luotu, aloitusohjattu asetus valmis tai ohitettu, ensimmäinen suunnitelma nähty, ensimmäinen ja toinen ottelu viimeistelty, vaihto koko näkymään) sekä valitsemasi näkymän (Kevennetty näkymä tai Koko näkymä). Käytämme aikaleimoja vain uusien valmentajien käyttöönoton parantamiseen. Ne eivät sisällä pelitietojasi, niitä ei jaeta eikä myydä kenellekään, ja ne poistetaan tilisi mukana. Voit vastustaa käsittelyä kytkemällä pois kohdan Asetukset → Tiedot → Virheraportit ja käyttötilastot: sen jälkeen uusia aikaleimoja ei tallenneta. Näkymä on sovelluksen asetus ja säilyy aina. Samoin säilyvät aina näkymäilmoituksen merkinnät (näkymäilmoitus näytetty ja milloin sekä valintasi Älä näytä enää), koska ilman niitä ilmoitus toistuisi."
     },
     "dataWeDoNotCollect": {
       "title": "Mitä emme tee tiedoillasi",

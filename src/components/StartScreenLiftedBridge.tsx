@@ -26,6 +26,8 @@ import { useModalContext } from '@/contexts/ModalProvider';
 import { useAppLayout, useSetAppLayout } from '@/hooks/useAppLayout';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
+import { LayoutNoticeHost } from '@/components/LayoutNoticeDialog';
+import type { LayoutNoticeFacts } from '@/utils/layoutNotice';
 
 /** "Milloin seuraava peli?" + the plan screen (basic Home's "Uusi ottelu", R1). */
 const NextGameFlow = lazyModal(() => import('@/components/NextGameFlow'));
@@ -67,9 +69,11 @@ export type StartScreenLiftedBridgeProps = Omit<StartScreenProps, LiftedHandlerP
       closes, so page.tsx can re-check its Home flags - adding players there must
       graduate a first-time user off the first-run panel to the normal Home. */
   onSetupModalsClosed?: () => void;
+  /** Facts for the basic-layout notice (see utils/layoutNotice.ts); null until read. */
+  layoutNoticeFacts?: LayoutNoticeFacts | null;
 };
 
-export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props }: StartScreenLiftedBridgeProps) {
+export default function StartScreenLiftedBridge({ onSetupModalsClosed, layoutNoticeFacts = null, ...props }: StartScreenLiftedBridgeProps) {
   const {
     setIsLoadGameModalOpen,
     setIsExternalGamesOpen,
@@ -104,6 +108,9 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     planQuickViewTarget,
     setPlanQuickViewTarget,
     isPlaytimePlannerOpen,
+    isTrainingResourcesOpen,
+    isRulesDirectoryOpen,
+    isInstructionsModalOpen,
   } = useModalContext();
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -164,6 +171,15 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
     prevOpen.current = anyHomeAffectingModalOpen;
   }, [anyHomeAffectingModalOpen, onSetupModalsClosed]);
 
+  // "Kaikki toiminnot" and the basic-layout notice switch the same way.
+  const switchToFullLayout = () => {
+    void setAppLayout('full').then((ok) => {
+      if (!ok) showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
+      // Home's summary depends on the layout (R2): rebuild it.
+      else onSetupModalsClosed?.();
+    });
+  };
+
   const openFullNewGame = () => {
     // From Home there is no live selection to carry over - null lets the
     // modal default to the full roster. (Match-side openers prefill the
@@ -216,13 +232,7 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
       onOpenAccount={() => openSettingsToTab('account')}
       onOpenSettings={() => setIsSettingsModalOpen(true)}
       appLayout={layout ?? 'loading'}
-      onSwitchToFullLayout={() => {
-        void setAppLayout('full').then((ok) => {
-          if (!ok) showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
-          // Home's summary depends on the layout (R2): rebuild it.
-          else onSetupModalsClosed?.();
-        });
-      }}
+      onSwitchToFullLayout={switchToFullLayout}
       onOpenAttendance={(gameId, mode) =>
         setAttendanceRequest({
           gameId,
@@ -245,6 +255,15 @@ export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props 
         return created;
       }}
     />
+    {/* The basic-layout notice: Home only, never over another Home window.
+        Home's "Näytä koko sovellus" line stays as it is either way. */}
+    {isBasic && typeof document !== 'undefined' && (
+      <LayoutNoticeHost
+        facts={layoutNoticeFacts}
+        blocked={anyHomeAffectingModalOpen || isTrainingResourcesOpen || isRulesDirectoryOpen || isInstructionsModalOpen}
+        onSwitchToFull={switchToFullLayout}
+      />
+    )}
     {nextGameFlowOpen &&
       typeof document !== 'undefined' &&
       createPortal(
