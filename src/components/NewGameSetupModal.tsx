@@ -24,7 +24,7 @@ import {
 } from '@/utils/newGameDefaults';
 import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
 import type { PlaytimePlan, PlanGame } from '@/utils/playtimePlanner/types';
-import { defaultOpponentFromLabel } from '@/utils/playtimePlanner/createFromPlan';
+import { opponentFromLabel } from '@/utils/playtimePlanner/createFromPlan';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
@@ -60,6 +60,7 @@ import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { HiOutlineMapPin, HiOutlineArrowPath } from 'react-icons/hi2';
 import { mapsSearchUrl } from '@/config/externalLinks';
 import VenueInput from '@/components/VenueInput';
+import TimeInput from '@/components/TimeInput';
 import { teamMemberIds, activePlayers } from '@/utils/gamePlayerList';
 
 interface NewGameSetupModalProps {
@@ -238,8 +239,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     },
     [],
   );
-  const [gameHour, setGameHour] = useState<string>('');
-  const [gameMinute, setGameMinute] = useState<string>('');
+  /** "HH:MM" from the native time picker, or '' (no kick-off time yet). */
+  const [gameTime, setGameTime] = useState<string>('');
   const [ageGroup, setAgeGroup] = useState('');
   const [tournamentLevel, setTournamentLevel] = useState('');
   const [leagueId, setLeagueId] = useState('');
@@ -497,8 +498,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setOpponentName('');
     setGameDate(todayIso());
     setGameLocation('');
-    setGameHour('');
-    setGameMinute('');
+    setGameTime('');
     setSelectedSeasonId(null);
     setSelectedTournamentId(null);
     setSelectedTournamentSeriesId(null);
@@ -661,7 +661,20 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     // The plan's squad is the selection: a team roster that loads after this
     // must not replace it (handleTeamSelection keeps a touched selection).
     playersTouchedRef.current = true;
-    setOpponentName(defaultOpponentFromLabel(game.label));
+    // A label naming the opponent starts the field; a "(koti)"/"(vieras)" on it
+    // sets the side instead of ending up in the name. Never the coach's own team.
+    const fromLabel = opponentFromLabel(game.label, teams.map((tm) => tm.name));
+    setOpponentName(fromLabel.opponent);
+    if (fromLabel.homeOrAway) {
+      setLocalHomeOrAway(fromLabel.homeOrAway);
+      // A venue from the previous game belongs to that game's side (D26): use
+      // the team's last venue on the side the plan names, or none.
+      if (venueFromDefaultsRef.current) {
+        const teamId = planTeam?.id ?? defaultsTeamIdRef.current;
+        handleVenueChange(venueFor(savedGames, teamId, fromLabel.homeOrAway) ?? { name: '' });
+        setFieldNumber('');
+      }
+    }
   };
 
   const handlePrefillGameChange = useCallback(
@@ -1260,11 +1273,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         return;
     }
 
-    // Format game time properly
-    const formattedHour = gameHour.padStart(2, '0');
-    const formattedMinute = gameMinute.padStart(2, '0');
-    const gameTime = (gameHour && gameMinute) ? `${formattedHour}:${formattedMinute}` : '';
-
     // Validate period duration
     const duration = parseInt(localPeriodDurationString, 10);
     if (isNaN(duration) || duration <= 0) {
@@ -1339,33 +1347,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
   };
 
-
-  // ... handleHourChange and handleMinuteChange functions ...
-  const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Only allow numeric input and limit to 2 characters
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (numericValue.length <= 2) {
-      const hourNum = parseInt(numericValue, 10);
-      // Validate hour range (0-23) if number is complete
-      if (numericValue === '' || (hourNum >= 0 && hourNum <= 23)) {
-        setGameHour(numericValue);
-      }
-    }
-  };
-
-  const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Only allow numeric input and limit to 2 characters
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (numericValue.length <= 2) {
-      const minuteNum = parseInt(numericValue, 10);
-      // Validate minute range (0-59) if number is complete
-      if (numericValue === '' || (minuteNum >= 0 && minuteNum <= 59)) {
-        setGameMinute(numericValue);
-      }
-    }
-  };
 
   const modalTitleId = useId();
 
@@ -1911,46 +1892,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         </div>
 
                         <div className="min-w-0">
-                          <label className={labelStyle}>
+                          <label htmlFor="gameTimeInput" className={labelStyle}>
                             {t('newGameSetupModal.gameTimeLabel', 'Time (Optional)')}
                           </label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              maxLength={2}
-                              value={gameHour}
-                              onChange={handleHourChange}
-                              onKeyDown={handleKeyDown}
-                              placeholder={t('newGameSetupModal.hourPlaceholder', 'HH')}
-                              className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
-                              autoComplete="off"
-                              autoCorrect="off"
-                              autoCapitalize="off"
-                              spellCheck="false"
-
-                              onFocus={(e) => e.target.select()}
-                            />
-                            <span aria-hidden="true" className="font-ui text-lg font-semibold text-ink-3">:</span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              maxLength={2}
-                              value={gameMinute}
-                              onChange={handleMinuteChange}
-                              onKeyDown={handleKeyDown}
-                              placeholder={t('newGameSetupModal.minutePlaceholder', 'MM')}
-                              className={`${inputBaseStyle} min-w-0 flex-1 px-1! text-center tabular-nums`}
-                              autoComplete="off"
-                              autoCorrect="off"
-                              autoCapitalize="off"
-                              spellCheck="false"
-
-                              onFocus={(e) => e.target.select()}
-                            />
-                          </div>
+                          <TimeInput
+                            id="gameTimeInput"
+                            name="gameTime"
+                            value={gameTime}
+                            onChange={setGameTime}
+                            onKeyDown={handleKeyDown}
+                          />
                         </div>
 
                       </div>

@@ -57,15 +57,46 @@ export function notCreatedPlanGames(plan: PlaytimePlan, created: Record<string, 
 /** "Peli 3" / "Game 3" / "Ottelu 3" - the planner's default labels, not a team name. */
 const PLACEHOLDER_LABEL = /^(peli|game|ottelu|match)\s*\d*$/i;
 
-/**
- * The opponent to start from for a planned game: its label when the coach has
- * named it (planners often label games by opponent), else empty so the field
- * asks for one instead of creating a match against "Peli 2".
- */
-export function defaultOpponentFromLabel(label: string): string {
+/** True for the planner's default game labels ("Peli 3"), which name no opponent. */
+export function isPlaceholderLabel(label: string): boolean {
   const trimmed = label.trim();
-  if (!trimmed || PLACEHOLDER_LABEL.test(trimmed)) return '';
-  return trimmed.slice(0, VALIDATION_LIMITS.TEAM_NAME_MAX);
+  return !trimmed || PLACEHOLDER_LABEL.test(trimmed);
+}
+
+/** A trailing "(koti)" / "(vieras)" / "(home)" / "(away)" - the side, not part of a name. */
+const SIDE_SUFFIX = /\s*\((koti|vieras|home|away)\)\s*$/i;
+
+export interface LabelOpponent {
+  /** The opponent to start from, or '' when the label names none. */
+  opponent: string;
+  /** The side the label states, when it states one. */
+  homeOrAway?: 'home' | 'away';
+}
+
+/**
+ * What a planned game's label says about the fixture. Planners often label
+ * games by opponent ("HJK", "PePo / Valkoinen (koti)"), so a named label
+ * starts the opponent field - without its "(koti)"/"(vieras)" suffix, which
+ * sets home/away instead. Nothing is prefilled from a default label ("Peli 2")
+ * or from a label that is the coach's own team: a match against yourself
+ * helps nobody.
+ */
+export function opponentFromLabel(label: string, ownTeamNames: readonly string[] = []): LabelOpponent {
+  const trimmed = label.trim();
+  const side = SIDE_SUFFIX.exec(trimmed)?.[1]?.toLowerCase();
+  const homeOrAway = side === 'koti' || side === 'home' ? 'home' : side ? 'away' : undefined;
+  const name = trimmed.replace(SIDE_SUFFIX, '').trim();
+  const own = new Set(ownTeamNames.map((n) => n.trim().toLocaleLowerCase()).filter(Boolean));
+  const opponent =
+    isPlaceholderLabel(name) || own.has(name.toLocaleLowerCase())
+      ? ''
+      : name.slice(0, VALIDATION_LIMITS.TEAM_NAME_MAX);
+  return homeOrAway ? { opponent, homeOrAway } : { opponent };
+}
+
+/** The opponent part of `opponentFromLabel`. */
+export function defaultOpponentFromLabel(label: string, ownTeamNames: readonly string[] = []): string {
+  return opponentFromLabel(label, ownTeamNames).opponent;
 }
 
 /** Choices made once for every game in the batch. */
@@ -92,7 +123,12 @@ export interface PlanBatchRow {
   gameDate: string;
   /** HH:MM, or '' when not known yet (tournament times often are not). */
   gameTime: string;
+  /** What the coach calls the venue (the stored, displayed location). */
   gameLocation: string;
+  /** The venue's map pin and street address, set only by picking (VenueInput). */
+  locationLat?: number;
+  locationLng?: number;
+  locationAddress?: string;
   homeOrAway: 'home' | 'away';
 }
 
@@ -179,6 +215,10 @@ export function buildPlanGameRequest(
     gameDate: row.gameDate,
     gameLocation: row.gameLocation.trim(),
     fieldNumber: '',
+    // The venue's pin + street address, passed on exactly as the new-game form does.
+    locationLat: row.locationLat,
+    locationLng: row.locationLng,
+    locationAddress: row.locationAddress,
     gameTime: row.gameTime,
     seasonId: shared.seasonId,
     tournamentId: shared.tournamentId,

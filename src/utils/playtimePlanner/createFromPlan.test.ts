@@ -5,6 +5,7 @@ import {
   createdGameIdsForPlan,
   defaultOpponentFromLabel,
   notCreatedPlanGames,
+  opponentFromLabel,
   planGameOrder,
   teamDefaultCompetition,
   validatePlanBatch,
@@ -114,6 +115,24 @@ describe('defaultOpponentFromLabel', () => {
     expect(defaultOpponentFromLabel('Ottelu 1')).toBe('');
     expect(defaultOpponentFromLabel('')).toBe('');
   });
+
+  /** @critical "(koti)" in a label is the side, not part of the opponent's name */
+  it('strips a home/away suffix into the side, in Finnish and English', () => {
+    expect(opponentFromLabel('PePo / Valkoinen (koti)')).toEqual({ opponent: 'PePo / Valkoinen', homeOrAway: 'home' });
+    expect(opponentFromLabel('Ilves (vieras)')).toEqual({ opponent: 'Ilves', homeOrAway: 'away' });
+    expect(opponentFromLabel('HJK (Home) ')).toEqual({ opponent: 'HJK', homeOrAway: 'home' });
+    expect(opponentFromLabel('KuPS (away)')).toEqual({ opponent: 'KuPS', homeOrAway: 'away' });
+    // A placeholder with a side still sets the side, but names no opponent.
+    expect(opponentFromLabel('Peli 2 (vieras)')).toEqual({ opponent: '', homeOrAway: 'away' });
+    // Brackets that are not a side stay in the name.
+    expect(opponentFromLabel('HJK (P10)')).toEqual({ opponent: 'HJK (P10)' });
+  });
+
+  it("never prefills the coach's own team as the opponent", () => {
+    expect(opponentFromLabel('FC Koti', ['FC Koti'])).toEqual({ opponent: '' });
+    expect(opponentFromLabel('fc koti (koti)', ['FC Koti'])).toEqual({ opponent: '', homeOrAway: 'home' });
+    expect(defaultOpponentFromLabel('HJK', ['FC Koti'])).toBe('HJK');
+  });
 });
 
 describe('validatePlanBatch', () => {
@@ -165,6 +184,21 @@ describe('buildPlanGameRequest', () => {
     expect(req.tournamentId).toBe('t1');
     expect(req.teamId).toBe('team1');
     expect(req.prefill?.plannedSubs).toHaveLength(1);
+  });
+
+  it("passes the venue's pin and street address on with its name", () => {
+    const plan = makePlan();
+    const req = buildPlanGameRequest(
+      plan,
+      plan.games[1],
+      shared(),
+      row('g2', { gameLocation: ' Areena ', locationLat: 61.87, locationLng: 28.88, locationAddress: 'Muurarinkatu 4' }),
+      roster,
+    );
+    expect(req).toMatchObject({ gameLocation: 'Areena', locationLat: 61.87, locationLng: 28.88, locationAddress: 'Muurarinkatu 4' });
+    const plain = buildPlanGameRequest(plan, plan.games[1], shared(), row('g2', { gameLocation: 'Tali' }), roster);
+    expect(plain.locationLat).toBeUndefined();
+    expect(plain.locationAddress).toBeUndefined();
   });
 
   it('leaves archived players out like the new-game form does', () => {

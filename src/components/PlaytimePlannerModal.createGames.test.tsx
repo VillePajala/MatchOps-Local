@@ -67,6 +67,7 @@ jest.mock('@/utils/teams', () => ({
   getTeamDisplayName: jest.requireActual('@/utils/teams').getTeamDisplayName,
   sortTeamsByName: jest.requireActual('@/utils/teams').sortTeamsByName,
 }));
+jest.mock('@/utils/appSettings', () => ({ getAppSettings: jest.fn(async () => ({ knownVenues: [] })) }));
 jest.mock('@/utils/seasons', () => ({ getSeasons: jest.fn(async () => []) }));
 jest.mock('@/utils/tournaments', () => ({ getTournaments: jest.fn(async () => []) }));
 
@@ -185,8 +186,13 @@ describe('planner: games created from the plan', () => {
       fireEvent.click(await screen.findByTestId('planner-create-all'));
     });
     const dialog = await screen.findByRole('dialog', { name: 'Create all games' });
+    expect(within(dialog).getByTestId('plan-create-games-count')).toHaveTextContent('2 games will be created');
     // Only the not-created games, g2 prefilled from its label, g3 (placeholder) empty.
     expect(within(dialog).queryByTestId('plan-create-row-g1')).not.toBeInTheDocument();
+    // The first game is open; open the second too.
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId('plan-create-toggle-g3'));
+    });
     const opponents = within(dialog).getAllByLabelText('Opponent') as HTMLInputElement[];
     expect(opponents.map((i) => i.value)).toEqual(['HJK', '']);
 
@@ -232,6 +238,9 @@ describe('planner: games created from the plan', () => {
       fireEvent.click(await screen.findByTestId('planner-create-all'));
     });
     const dialog = await screen.findByRole('dialog', { name: 'Create all games' });
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId('plan-create-toggle-g3'));
+    });
     const opponents = within(dialog).getAllByLabelText('Opponent');
     await act(async () => {
       fireEvent.change(within(dialog).getAllByLabelText('Date')[0], { target: { value: '2026-12-06' } });

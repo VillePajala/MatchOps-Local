@@ -5,11 +5,13 @@
       "date": "2026-11-25",
       "en": [
         "Create matches straight from the match planner: \"Create match\" under a planned game opens the new match form filled in from the plan, and \"Create all games\" makes every planned game at once - you only add the opponent and date (kick-off and venue are optional).",
-        "The planner shows which games are already created (\"Created · Open the game\") and how many, e.g. \"3/5 games created\". A game is never created twice from the same planned game."
+        "The planner shows which games are already created (\"Created · Open the game\") and how many, e.g. \"3/5 games created\". A game is never created twice from the same planned game.",
+        "Kick-off time is now picked with your phone's own time picker in every match form, and a venue entered for one game fills the empty venues of the games after it."
       ],
       "fi": [
         "Ottelut syntyvät nyt suoraan ottelusuunnittelusta: suunnitellun pelin \"Luo ottelu\" avaa uuden ottelun lomakkeen suunnitelmalla täytettynä, ja \"Luo kaikki pelit\" luo kaikki suunnitelman pelit kerralla - lisäät vain vastustajan ja päivän (aloitusaika ja paikka ovat valinnaisia).",
-        "Suunnittelu näyttää, mitkä pelit on jo luotu (\"Luotu · Avaa ottelu\") ja montako, esim. \"3/5 peliä luotu\". Samasta suunnitellusta pelistä ei synny ottelua kahdesti."
+        "Suunnittelu näyttää, mitkä pelit on jo luotu (\"Luotu · Avaa ottelu\") ja montako, esim. \"3/5 peliä luotu\". Samasta suunnitellusta pelistä ei synny ottelua kahdesti.",
+        "Aloitusaika valitaan nyt puhelimen omalla kellonajan valitsimella kaikissa ottelulomakkeissa, ja yhdelle pelille kirjoitettu paikka täyttyy seuraavien pelien tyhjiin paikkoihin."
       ]
     },
     {

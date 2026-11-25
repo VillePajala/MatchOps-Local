@@ -6,10 +6,18 @@
  *
  * Team, competition and game type are chosen once at the top; each planned
  * game gets its own opponent, date, kick-off (optional - tournament times are
- * often not known yet), venue (optional) and home/away. Every row is checked
+ * often not known yet), venue (optional, the same venue field as the new-game
+ * form) and home/away. A date or venue entered in one game fills the empty
+ * ones after it. Every row is checked
  * before anything is created, so a missing opponent never leaves half the
  * games made. If a game still fails to save, the sheet keeps that row (and
  * what was typed in it) and says which one; the games that were made drop out.
+ *
+ * SEVERAL GAMES, VISIBLY. The owner's first look read the sheet as one game:
+ * the first game's fields filled the phone screen. So the top says how many
+ * games will be made, and each game is its own block headed "Peli N · label"
+ * that folds to a one-line summary (opponent · date · time · side). Only the
+ * first is open at the start, so the others show below it.
  *
  * The sheet only collects input. Creating is the caller's job (`onSubmit`),
  * which reports per planned game what happened.
@@ -17,12 +25,17 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HiOutlineChevronDown } from 'react-icons/hi2';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import VenueInput from '@/components/VenueInput';
+import TimeInput from '@/components/TimeInput';
+import type { KnownVenue } from '@/utils/venueBook';
 import {
   Z_LAYER,
   cardStyle,
   dialogTitleStyle,
   fieldErrorStyle,
+  fieldHintStyle,
   inputBaseStyle,
   inputErrorStyle,
   labelStyle,
@@ -38,7 +51,8 @@ import {
 import {
   buildBatchShared,
   defaultGameType,
-  defaultOpponentFromLabel,
+  isPlaceholderLabel,
+  opponentFromLabel,
   teamDefaultCompetition,
   validSeries,
   validatePlanBatch,
@@ -59,6 +73,8 @@ interface PlanCreateGamesSheetProps {
   teams: Team[];
   seasons: Season[];
   tournaments: Tournament[];
+  /** The coach's venue book, for the venue field's own-venue suggestions. */
+  knownVenues?: readonly KnownVenue[];
   onSubmit: (shared: PlanBatchShared, rows: PlanBatchRow[]) => Promise<CreateGamesFromPlanResult>;
   /** Every row was created (or already existed): the caller closes the sheet. */
   onDone: (result: CreateGamesFromPlanResult) => void;
@@ -74,11 +90,12 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
   teams,
   seasons,
   tournaments,
+  knownVenues,
   onSubmit,
   onDone,
   onClose,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, true);
   useEffect(() => {
@@ -107,15 +124,26 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
 
   const [rows, setRows] = useState<PlanBatchRow[]>(() => {
     const venue = competitionVenue(teamDefaultCompetition(initialTeam, tournaments));
-    return games.map((g) => ({
-      planGameId: g.id,
-      opponentName: defaultOpponentFromLabel(g.label),
-      gameDate: '',
-      gameTime: '',
-      gameLocation: venue,
-      homeOrAway: 'home' as const,
-    }));
+    const ownNames = teams.map((tm) => tm.name);
+    return games.map((g) => {
+      const fromLabel = opponentFromLabel(g.label, ownNames);
+      return {
+        planGameId: g.id,
+        opponentName: fromLabel.opponent,
+        gameDate: '',
+        gameTime: '',
+        gameLocation: venue,
+        homeOrAway: fromLabel.homeOrAway ?? 'home',
+      };
+    });
   });
+  /**
+   * Rows whose venue nobody typed (the competition's venue, or filled down
+   * from an earlier game): a venue entered higher up may replace them.
+   */
+  const [autoVenue, setAutoVenue] = useState<Set<string>>(() => new Set(games.map((g) => g.id)));
+  /** Open game blocks. Only the first at the start, so the rest show below it. */
+  const [openRows, setOpenRows] = useState<Set<string>>(() => new Set(games.slice(0, 1).map((g) => g.id)));
   const [validation, setValidation] = useState<PlanBatchValidation | null>(null);
   const [busy, setBusy] = useState(false);
   const [failedLabels, setFailedLabels] = useState<string[]>([]);
@@ -128,13 +156,62 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
 
   const labelOf = (planGameId: string) => plan.games.find((g) => g.id === planGameId)?.label ?? '';
 
+  const planNumberOf = (planGameId: string) => plan.games.findIndex((g) => g.id === planGameId) + 1;
+
+  /** "Peli 3 · HJK"; a default label ("Peli 3") is shown as it is. */
+  const headingOf = (planGameId: string) => {
+    const label = labelOf(planGameId).trim();
+    if (isPlaceholderLabel(label)) return label || t('planCreateGames.gameNumber', 'Game {{number}}', { number: planNumberOf(planGameId) });
+    return t('planCreateGames.gameHeading', 'Game {{number}} · {{label}}', { number: planNumberOf(planGameId), label });
+  };
+
+  const formatDate = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return iso;
+    try {
+      return new Date(y, m - 1, d).toLocaleDateString(i18n.language || undefined, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'numeric',
+      });
+    } catch {
+      return iso;
+    }
+  };
+
+  /** The folded block's line: what is set, and what is still missing. */
+  const summaryOf = (row: PlanBatchRow) =>
+    [
+      row.opponentName.trim() || t('planCreateGames.noOpponent', 'Opponent missing'),
+      row.gameDate ? formatDate(row.gameDate) : t('planCreateGames.noDate', 'Date missing'),
+      row.gameTime,
+      row.homeOrAway === 'home' ? t('planCreateGames.home', 'Home') : t('planCreateGames.away', 'Away'),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+  const toggleRow = (planGameId: string) =>
+    setOpenRows((open) => {
+      const next = new Set(open);
+      if (next.has(planGameId)) next.delete(planGameId);
+      else next.add(planGameId);
+      return next;
+    });
+
   /** A competition change re-derives the game type and fills venues nobody typed. */
   const applyCompetition = (next: PlanBatchCompetition, forTeam: Team | undefined) => {
     const prevVenue = competitionVenue(competition);
     const nextVenue = competitionVenue(next);
     setCompetition(next);
     setGameType(defaultGameType(next, forTeam, seasons, tournaments));
-    setRows((rs) => rs.map((r) => (r.gameLocation === '' || r.gameLocation === prevVenue ? { ...r, gameLocation: nextVenue } : r)));
+    // The competition names a venue but not where it is: no pin travels with it.
+    setRows((rs) =>
+      rs.map((r) =>
+        r.gameLocation === '' || r.gameLocation === prevVenue
+          ? { ...r, gameLocation: nextVenue, locationLat: undefined, locationLng: undefined, locationAddress: undefined }
+          : r,
+      ),
+    );
   };
 
   const handleTeamChange = (id: string) => {
@@ -163,6 +240,33 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
     );
   };
 
+  /**
+   * A venue entered in one game fills the games after it whose venue is empty
+   * or was never typed there (each stays editable) - like the date.
+   */
+  const updateVenue = (
+    index: number,
+    venue: { name: string; latitude?: number; longitude?: number; address?: string },
+  ) => {
+    const patch = {
+      gameLocation: venue.name,
+      locationLat: venue.latitude,
+      locationLng: venue.longitude,
+      locationAddress: venue.address,
+    };
+    const follows = (r: PlanBatchRow, i: number) =>
+      i > index && (r.gameLocation === '' || autoVenue.has(r.planGameId));
+    const targets = new Set(rows.filter(follows).map((r) => r.planGameId));
+    const typedId = rows[index]?.planGameId;
+    setRows((rs) => rs.map((r, i) => (i === index || targets.has(r.planGameId) ? { ...r, ...patch } : r)));
+    setAutoVenue((auto) => {
+      const next = new Set(auto);
+      if (typedId) next.delete(typedId);
+      targets.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   const shared = (): PlanBatchShared =>
     buildBatchShared({ team, teamName: typedTeamName, competition, gameType, seasons, tournaments });
 
@@ -182,7 +286,11 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
     const sharedNow = shared();
     const check = validatePlanBatch(plan, sharedNow, rows);
     setValidation(check);
-    if (!check.ok) return;
+    if (!check.ok) {
+      // Open every game that needs fixing, so no error hides in a folded block.
+      setOpenRows((open) => new Set([...open, ...Object.keys(check.rows)]));
+      return;
+    }
     setBusy(true);
     setFailedLabels([]);
     try {
@@ -214,6 +322,7 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="plan-create-games-title"
+        aria-describedby="plan-create-games-count"
         className="w-full max-w-md s1-sheet rounded-t-[26px] px-4 pt-3 pb-6 max-h-[90vh] overflow-y-auto font-ui focus:outline-none"
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
@@ -223,6 +332,13 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
         <h4 id="plan-create-games-title" className={`${dialogTitleStyle} text-center`}>
           {t('planCreateGames.title', 'Create all games')}
         </h4>
+        <p
+          id="plan-create-games-count"
+          data-testid="plan-create-games-count"
+          className="mt-1 text-center font-ui text-base font-semibold text-action"
+        >
+          {t('planCreateGames.countLine', '{{count}} games will be created', { count: rows.length })}
+        </p>
         <p className={`${subtextStyle} text-center mt-1`}>
           {t(
             'planCreateGames.intro',
@@ -256,7 +372,7 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
                 aria-label={t('planCreateGames.teamName', 'Your team name')}
                 placeholder={t('planCreateGames.teamName', 'Your team name')}
                 aria-invalid={!!validation?.teamName}
-                className={`${validation?.teamName ? inputErrorStyle : inputBaseStyle} mt-2`}
+                className={`${inputBaseStyle} ${validation?.teamName ? inputErrorStyle : ''} mt-2`}
               />
             )}
             {validation?.teamName && <p className={fieldErrorStyle}>{fieldError(validation.teamName, 'team')}</p>}
@@ -326,95 +442,135 @@ const PlanCreateGamesSheet: React.FC<PlanCreateGamesSheetProps> = ({
           </div>
         </div>
 
-        <h5 className={`${sectionLabelStyle} px-1 mt-5 mb-2.5`}>
-          {t('planCreateGames.gamesHeading', 'Games')}
+        <h5 className={`${sectionLabelStyle} px-1 mt-5`}>
+          {t('planCreateGames.gamesHeadingCount', 'Games ({{count}})', { count: rows.length })}
         </h5>
-        <div className="space-y-3">
+        <p className={`${subtextStyle} px-1 mt-1 mb-2.5`}>
+          {t('planCreateGames.gamesHint', 'Tap a game\'s title to open or close it.')}
+        </p>
+        <ol className="space-y-3" aria-label={t('planCreateGames.gamesHeading', 'Games')}>
           {rows.map((row, index) => {
             const errors = rowErrors[row.planGameId] ?? {};
-            const label = labelOf(row.planGameId);
+            const hasErrors = Object.keys(errors).length > 0;
+            const isOpen = openRows.has(row.planGameId);
             const id = (field: string) => `plan-create-${field}-${row.planGameId}`;
             return (
-              <div key={row.planGameId} className={`${cardStyle} space-y-3`} data-testid={`plan-create-row-${row.planGameId}`}>
-                <p className="text-base font-semibold text-ink truncate">{label}</p>
-                <div>
-                  <label htmlFor={id('opponent')} className={labelStyle}>
-                    {t('planCreateGames.opponent', 'Opponent')}
-                  </label>
-                  <input
-                    id={id('opponent')}
-                    type="text"
-                    value={row.opponentName}
-                    onChange={(e) => updateRow(index, { opponentName: e.target.value })}
-                    aria-invalid={!!errors.opponentName}
-                    className={errors.opponentName ? inputErrorStyle : inputBaseStyle}
+              <li
+                key={row.planGameId}
+                className={`${cardStyle} ${hasErrors ? 'shadow-[inset_0_0_0_1.5px_var(--color-loss)]' : ''}`}
+                data-testid={`plan-create-row-${row.planGameId}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleRow(row.planGameId)}
+                  aria-expanded={isOpen}
+                  aria-controls={id('fields')}
+                  data-testid={`plan-create-toggle-${row.planGameId}`}
+                  className="-m-1 flex w-[calc(100%+0.5rem)] min-h-11 items-center gap-3 rounded-xl p-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-base font-semibold text-ink">{headingOf(row.planGameId)}</span>
+                    {!isOpen && (
+                      <span
+                        className={`mt-0.5 block truncate text-sm ${hasErrors ? 'text-loss' : 'text-ink-3'}`}
+                        data-testid={`plan-create-summary-${row.planGameId}`}
+                      >
+                        {summaryOf(row)}
+                      </span>
+                    )}
+                  </span>
+                  <HiOutlineChevronDown
+                    className={`h-5 w-5 flex-none text-ink-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
                   />
-                  {errors.opponentName && <p className={fieldErrorStyle}>{fieldError(errors.opponentName, 'opponent')}</p>}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor={id('date')} className={labelStyle}>
-                      {t('planCreateGames.date', 'Date')}
-                    </label>
-                    <input
-                      id={id('date')}
-                      type="date"
-                      value={row.gameDate}
-                      onChange={(e) => updateRow(index, { gameDate: e.target.value })}
-                      aria-invalid={!!errors.gameDate}
-                      className={errors.gameDate ? inputErrorStyle : inputBaseStyle}
+                </button>
+                {isOpen && (
+                  <div id={id('fields')} className="mt-3 space-y-3 border-t border-hairline pt-3">
+                    <div>
+                      <label htmlFor={id('opponent')} className={labelStyle}>
+                        {t('planCreateGames.opponent', 'Opponent')}
+                      </label>
+                      <input
+                        id={id('opponent')}
+                        type="text"
+                        value={row.opponentName}
+                        onChange={(e) => updateRow(index, { opponentName: e.target.value })}
+                        aria-invalid={!!errors.opponentName}
+                        className={`${inputBaseStyle} ${errors.opponentName ? inputErrorStyle : ''}`}
+                      />
+                      {errors.opponentName && <p className={fieldErrorStyle}>{fieldError(errors.opponentName, 'opponent')}</p>}
+                    </div>
+                    {/* One-line labels over both columns, so the two inputs always line up. */}
+                    <div className="grid grid-cols-2 items-start gap-3">
+                      <div className="min-w-0">
+                        <label htmlFor={id('date')} className={`${labelStyle} truncate`}>
+                          {t('planCreateGames.date', 'Date')}
+                        </label>
+                        <input
+                          id={id('date')}
+                          type="date"
+                          value={row.gameDate}
+                          onChange={(e) => updateRow(index, { gameDate: e.target.value })}
+                          aria-invalid={!!errors.gameDate}
+                          className={`${inputBaseStyle} ${errors.gameDate ? inputErrorStyle : ''} [color-scheme:dark]`}
+                        />
+                        {errors.gameDate && <p className={fieldErrorStyle}>{fieldError(errors.gameDate, 'date')}</p>}
+                      </div>
+                      <div className="min-w-0">
+                        <label htmlFor={id('time')} className={`${labelStyle} truncate`}>
+                          {t('planCreateGames.time', 'Kick-off')}
+                        </label>
+                        <TimeInput
+                          id={id('time')}
+                          value={row.gameTime}
+                          onChange={(value) => updateRow(index, { gameTime: value })}
+                          invalid={!!errors.gameTime}
+                          aria-describedby={id('time-hint')}
+                        />
+                        {errors.gameTime ? (
+                          <p className={fieldErrorStyle}>{fieldError(errors.gameTime, 'time')}</p>
+                        ) : (
+                          <p id={id('time-hint')} className={fieldHintStyle}>
+                            {t('planCreateGames.optional', 'Optional')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <VenueInput
+                      id={id('venue')}
+                      value={row.gameLocation}
+                      hasCoordinates={row.locationLat !== undefined}
+                      latitude={row.locationLat}
+                      longitude={row.locationLng}
+                      address={row.locationAddress}
+                      knownVenues={knownVenues}
+                      onChange={(venue) => updateVenue(index, venue)}
+                      className={inputBaseStyle}
                     />
-                    {errors.gameDate && <p className={fieldErrorStyle}>{fieldError(errors.gameDate, 'date')}</p>}
+                    <div className={segmentTrackStyle} role="group" aria-label={t('planCreateGames.homeAway', 'Home or away')}>
+                      {(['home', 'away'] as const).map((side) => (
+                        <button
+                          key={side}
+                          type="button"
+                          aria-pressed={row.homeOrAway === side}
+                          onClick={() => updateRow(index, { homeOrAway: side })}
+                          className={row.homeOrAway === side ? segmentSelectedStyle : segmentStyle}
+                        >
+                          {side === 'home' ? t('planCreateGames.home', 'Home') : t('planCreateGames.away', 'Away')}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <label htmlFor={id('time')} className={labelStyle}>
-                      {t('planCreateGames.time', 'Kick-off (optional)')}
-                    </label>
-                    <input
-                      id={id('time')}
-                      type="time"
-                      value={row.gameTime}
-                      onChange={(e) => updateRow(index, { gameTime: e.target.value })}
-                      aria-invalid={!!errors.gameTime}
-                      className={errors.gameTime ? inputErrorStyle : inputBaseStyle}
-                    />
-                    {errors.gameTime && <p className={fieldErrorStyle}>{fieldError(errors.gameTime, 'time')}</p>}
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor={id('venue')} className={labelStyle}>
-                    {t('planCreateGames.venue', 'Venue (optional)')}
-                  </label>
-                  <input
-                    id={id('venue')}
-                    type="text"
-                    value={row.gameLocation}
-                    onChange={(e) => updateRow(index, { gameLocation: e.target.value })}
-                    className={inputBaseStyle}
-                  />
-                </div>
-                <div className={segmentTrackStyle} role="group" aria-label={t('planCreateGames.homeAway', 'Home or away')}>
-                  {(['home', 'away'] as const).map((side) => (
-                    <button
-                      key={side}
-                      type="button"
-                      aria-pressed={row.homeOrAway === side}
-                      onClick={() => updateRow(index, { homeOrAway: side })}
-                      className={row.homeOrAway === side ? segmentSelectedStyle : segmentStyle}
-                    >
-                      {side === 'home' ? t('planCreateGames.home', 'Home') : t('planCreateGames.away', 'Away')}
-                    </button>
-                  ))}
-                </div>
+                )}
                 {errors.periodMinutes && (
                   <p className={fieldErrorStyle}>
                     {t('planCreateGames.errorLength', 'This game has no length in the plan. Set its minutes first.')}
                   </p>
                 )}
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ol>
 
         {validation && !validation.ok && (
           <p className={`${fieldErrorStyle} mt-3`} role="alert">

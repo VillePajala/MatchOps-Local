@@ -759,7 +759,10 @@ describe('Translation File Validation', () => {
       //     billing, cancellation and data-after-cancel removed. 3666.
       // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
       // +38 planCreateGames.* (create games from the match planner, 2026-11-25). 3712.
-      expect(enKeys.length).toBe(3712);
+      // +9 / -5 batch sheet game blocks (count line, headings, summary, optional
+      //     hint); planCreateGames.venue and the four HH/MM time placeholders
+      //     removed (one native time picker). 3716.
+      expect(enKeys.length).toBe(3716);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -977,7 +980,9 @@ describe('Translation File Validation', () => {
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
       // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3666.
       // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
-      expect(fiKeys.length).toBe(3712); // +38 planCreateGames.* (2026-11-25)
+      // +38 planCreateGames.* (2026-11-25). 3712.
+      // +9 / -5 batch sheet game blocks; venue + HH/MM placeholders removed. 3716.
+      expect(fiKeys.length).toBe(3716);
     });
   });
 });

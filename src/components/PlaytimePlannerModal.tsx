@@ -114,6 +114,8 @@ import {
 } from '@/utils/playtimePlanner/createFromPlan';
 import { persistGameFromPlan } from '@/components/HomePage/utils/newGameHandlers';
 import PlanCreateGamesSheet from '@/components/PlanCreateGamesSheet';
+import { getAppSettings } from '@/utils/appSettings';
+import { learnVenues, type KnownVenue } from '@/utils/venueBook';
 import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
 import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
 import { getSavedGames, saveGame as utilSaveGame, deleteGame as utilDeleteGame } from '@/utils/savedGames';
@@ -335,6 +337,26 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const [subSheetTarget, setSubSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
   // "Luo kaikki pelit" sheet (create a game for every planned game without one).
   const [showCreateAll, setShowCreateAll] = useState(false);
+  /** The venue book for "Create all games" (loaded when the sheet opens). */
+  const [createAllVenues, setCreateAllVenues] = useState<KnownVenue[]>([]);
+  useEffect(() => {
+    if (!showCreateAll) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        // Same book the new-game form completes from: every venue the coach
+        // has used (kept in settings) merged with the matches on hand.
+        const [settings, games] = await Promise.all([getAppSettings(user?.id), getSavedGames(user?.id)]);
+        if (!cancelled) setCreateAllVenues(learnVenues(settings.knownVenues, Object.values(games ?? {})).book);
+      } catch (err) {
+        // The venue field still works as plain text without suggestions.
+        logger.warn('[planner] Could not load the venue book (non-fatal)', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showCreateAll, user?.id]);
   // Undo/redo: full-state snapshots of the ACTIVE plan (standalone-planner
   // style). Refs hold the stack (no re-render per edit); historyTick forces the
   // toolbar's disabled states to refresh. The stack reseeds whenever the plan
@@ -2947,6 +2969,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           teams={teams}
           seasons={seasons}
           tournaments={tournaments}
+          knownVenues={createAllVenues}
           onSubmit={handleCreateAllGames}
           onDone={handleCreateAllDone}
           onClose={() => setShowCreateAll(false)}
