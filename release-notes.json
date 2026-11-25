@@ -2,58 +2,38 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
   "releases": [
     {
+
       "date": "2026-11-25",
-      "en": [
-        "On the basic Home, the \"Show plan\" button is no longer squeezed on narrow phones."
-      ],
-      "fi": [
-        "Kevennetyn näkymän etusivulla Näytä suunnitelma -painike ei enää ahtaudu kapealla puhelimella."
-      ]
+
+      "en": ["On the basic Home, the \"Show plan\" button is no longer squeezed on narrow phones."],
+
+      "fi": ["Kevennetyn näkymän etusivulla Näytä suunnitelma -painike ei enää ahtaudu kapealla puhelimella."]
+
     },
     {
       "date": "2026-11-25",
-      "en": [
-        "The simpler layout for new coaches is now called the Basic view, and a short notice tells what the Full view adds and how to switch to it."
-      ],
-      "fi": [
-        "Uusien valmentajien yksinkertaisempi näkymä on nyt nimeltään Kevennetty näkymä, ja lyhyt ilmoitus kertoo, mitä Koko näkymässä on lisäksi ja miten siihen vaihdetaan."
-      ]
+      "en": ["The simpler layout for new coaches is now called the Basic view, and a short notice tells what the Full view adds and how to switch to it."],
+      "fi": ["Uusien valmentajien yksinkertaisempi näkymä on nyt nimeltään Kevennetty näkymä, ja lyhyt ilmoitus kertoo, mitä Koko näkymässä on lisäksi ja miten siihen vaihdetaan."]
     },
     {
       "date": "2026-11-24",
-      "en": [
-        "Finnish wording polished in the app: clearer names for the connection status, a player's match list and the match menu's extras."
-      ],
-      "fi": [
-        "Suomenkielisiä tekstejä on hiottu: yhteyden tila on nyt \"Ei yhteyttä\", pelaajan Otteluloki on \"Pelatut ottelut\" ja ottelun valikon Resurssit on \"Apuvälineet\"."
-      ]
+      "en": ["Finnish wording polished in the app: clearer names for the connection status, a player's match list and the match menu's extras."],
+      "fi": ["Suomenkielisiä tekstejä on hiottu: yhteyden tila on nyt \"Ei yhteyttä\", pelaajan Otteluloki on \"Pelatut ottelut\" ja ottelun valikon Resurssit on \"Apuvälineet\"."]
     },
     {
       "date": "2026-11-24",
-      "en": [
-        "The match sheet is now described as what it is: all the match details in one place for filling in the official match sheet, for example in Taso."
-      ],
-      "fi": [
-        "Pöytäkirjan kuvaus kertoo nyt, mitä se on: kaikki ottelun tiedot yhdessä paikassa pöytäkirjan täyttämiseen, esimerkiksi Tasoon."
-      ]
+      "en": ["The match sheet is now described as what it is: all the match details in one place for filling in the official match sheet, for example in Taso."],
+      "fi": ["Pöytäkirjan kuvaus kertoo nyt, mitä se on: kaikki ottelun tiedot yhdessä paikassa pöytäkirjan täyttämiseen, esimerkiksi Tasoon."]
     },
     {
       "date": "2026-11-24",
-      "en": [
-        "Finnish instructions now say \"paina\" (press) instead of \"napauta\" (tap)."
-      ],
-      "fi": [
-        "Ohjeissa lukee nyt \"paina\" eikä \"napauta\", samoin kuin sivustollamme."
-      ]
+      "en": ["Finnish instructions now say \"paina\" (press) instead of \"napauta\" (tap)."],
+      "fi": ["Ohjeissa lukee nyt \"paina\" eikä \"napauta\", samoin kuin sivustollamme."]
     },
     {
       "date": "2026-11-24",
-      "en": [
-        "The goal list is now called Match events."
-      ],
-      "fi": [
-        "Maaliloki on nyt nimeltään Ottelutapahtumat, ja rangaistuspotkukilpailun tekstit käyttävät jalkapallon termejä: potku, potkaisija ja rangaistuspotkut."
-      ]
+      "en": ["The goal list is now called Match events."],
+      "fi": ["Maaliloki on nyt nimeltään Ottelutapahtumat, ja rangaistuspotkukilpailun tekstit käyttävät jalkapallon termejä: potku, potkaisija ja rangaistuspotkut."]
     },
     {
       "date": "2026-11-23",
@@ -68,57 +48,33 @@
     },
     {
       "date": "2026-11-23",
-      "en": [
-        "Match report editing: the buttons sit in two tidy rows instead of four squeezed ones."
-      ],
-      "fi": [
-        "Otteluraportin muokkaus: painikkeet ovat kahdessa siistissä rivissä neljän ahtaan sijaan."
-      ]
+      "en": ["Match report editing: the buttons sit in two tidy rows instead of four squeezed ones."],
+      "fi": ["Otteluraportin muokkaus: painikkeet ovat kahdessa siistissä rivissä neljän ahtaan sijaan."]
     },
     {
       "date": "2026-11-22",
-      "en": [
-        "In the match planner, any player can take a planned change, including someone already in the game."
-      ],
-      "fi": [
-        "Otteluiden suunnittelussa kuka tahansa pelaaja voi ottaa suunnitellun vaihdon, myös pelissä jo oleva pelaaja."
-      ]
+      "en": ["In the match planner, any player can take a planned change, including someone already in the game."],
+      "fi": ["Otteluiden suunnittelussa kuka tahansa pelaaja voi ottaa suunnitellun vaihdon, myös pelissä jo oleva pelaaja."]
     },
     {
       "date": "2026-11-21",
-      "en": [
-        "Formations sit slightly narrower, so the widest player no longer overlaps the substitute spots on the sideline."
-      ],
-      "fi": [
-        "Muodostelmat ovat hieman kapeampia, joten laitimmainen pelaaja ei enää peitä sivurajan vaihtopaikkoja."
-      ]
+      "en": ["Formations sit slightly narrower, so the widest player no longer overlaps the substitute spots on the sideline."],
+      "fi": ["Muodostelmat ovat hieman kapeampia, joten laitimmainen pelaaja ei enää peitä sivurajan vaihtopaikkoja."]
     },
     {
       "date": "2026-11-21",
-      "en": [
-        "A big squad no longer piles player discs up on the sideline: players beyond the formation and its sub spots wait in the player bar."
-      ],
-      "fi": [
-        "Iso pelaajaryhmä ei enää kasaa pelaajia sivurajalle: muodostelman ja vaihtopaikkojen yli menevät pelaajat odottavat ylärivissä."
-      ]
+      "en": ["A big squad no longer piles player discs up on the sideline: players beyond the formation and its sub spots wait in the player bar."],
+      "fi": ["Iso pelaajaryhmä ei enää kasaa pelaajia sivurajalle: muodostelman ja vaihtopaikkojen yli menevät pelaajat odottavat ylärivissä."]
     },
     {
       "date": "2026-11-21",
-      "en": [
-        "Result letters are consistent everywhere: W, D, L."
-      ],
-      "fi": [
-        "Tuloskirjaimet ovat nyt kaikkialla samat: V, T, H (voitto, tasapeli, häviö)."
-      ]
+      "en": ["Result letters are consistent everywhere: W, D, L."],
+      "fi": ["Tuloskirjaimet ovat nyt kaikkialla samat: V, T, H (voitto, tasapeli, häviö)."]
     },
     {
       "date": "2026-11-21",
-      "en": [
-        "Home focuses on teams: the Statistics tab now shows each team's record, goal difference and recent results instead of top scorers."
-      ],
-      "fi": [
-        "Kotinäkymä keskittyy joukkueisiin: Tilastot-välilehti näyttää nyt jokaisen joukkueen saldon, maalieron ja viimeisimmät tulokset maalintekijöiden sijaan."
-      ]
+      "en": ["Home focuses on teams: the Statistics tab now shows each team's record, goal difference and recent results instead of top scorers."],
+      "fi": ["Kotinäkymä keskittyy joukkueisiin: Tilastot-välilehti näyttää nyt jokaisen joukkueen saldon, maalieron ja viimeisimmät tulokset maalintekijöiden sijaan."]
     },
     {
       "date": "2026-11-21",
@@ -135,21 +91,13 @@
     },
     {
       "date": "2026-11-21",
-      "en": [
-        "Opening a game no longer flashes the loading screen."
-      ],
-      "fi": [
-        "Ottelun avaaminen ei enää välähdä latausnäkymää."
-      ]
+      "en": ["Opening a game no longer flashes the loading screen."],
+      "fi": ["Ottelun avaaminen ei enää välähdä latausnäkymää."]
     },
     {
       "date": "2026-11-21",
-      "en": [
-        "Clearer league and tournament lists: one card each, showing its record (wins-draws-losses) and goal difference, or when it starts."
-      ],
-      "fi": [
-        "Selkeämmät sarja- ja turnauslistat: jokaisella oma kortti, jossa näkyy saldo (voitot-tasapelit-tappiot) ja maaliero tai milloin se alkaa."
-      ]
+      "en": ["Clearer league and tournament lists: one card each, showing its record (wins-draws-losses) and goal difference, or when it starts."],
+      "fi": ["Selkeämmät sarja- ja turnauslistat: jokaisella oma kortti, jossa näkyy saldo (voitot-tasapelit-tappiot) ja maaliero tai milloin se alkaa."]
     },
     {
       "date": "2026-11-20",
@@ -166,31 +114,19 @@
     },
     {
       "date": "2026-11-20",
-      "en": [
-        "Settings and support emails now show the app's real version."
-      ],
-      "fi": [
-        "Asetukset ja tukisähköposti näyttävät nyt sovelluksen oikean version."
-      ]
+      "en": ["Settings and support emails now show the app's real version."],
+      "fi": ["Asetukset ja tukisähköposti näyttävät nyt sovelluksen oikean version."]
     },
     {
       "date": "2026-11-20",
-      "en": [
-        "Clearer privacy policy and account-deletion info, including how to delete your data but keep your account."
-      ],
-      "fi": [
-        "Selkeämmät tietosuoja- ja tilin poisto-ohjeet, myös miten poistat tietosi mutta säilytät tilin."
-      ]
+      "en": ["Clearer privacy policy and account-deletion info, including how to delete your data but keep your account."],
+      "fi": ["Selkeämmät tietosuoja- ja tilin poisto-ohjeet, myös miten poistat tietosi mutta säilytät tilin."]
     },
     {
       "date": "2026-11-20",
       "internal": true,
-      "en": [
-        "Documentation: roadmap cleaned up to open work only."
-      ],
-      "fi": [
-        "Dokumentaatio: tiekartassa vain avoimet työt."
-      ]
+      "en": ["Documentation: roadmap cleaned up to open work only."],
+      "fi": ["Dokumentaatio: tiekartassa vain avoimet työt."]
     },
     {
       "date": "2026-11-20",
@@ -224,12 +160,8 @@
     },
     {
       "date": "2026-11-19",
-      "en": [
-        "Timer: the next substitution shows players coming on with a green arrow and players going off with a red one."
-      ],
-      "fi": [
-        "Ajastin: seuraavassa vaihdossa kentälle tulevat näkyvät vihreällä ja pois lähtevät punaisella nuolella."
-      ]
+      "en": ["Timer: the next substitution shows players coming on with a green arrow and players going off with a red one."],
+      "fi": ["Ajastin: seuraavassa vaihdossa kentälle tulevat näkyvät vihreällä ja pois lähtevät punaisella nuolella."]
     },
     {
       "date": "2026-11-19",
