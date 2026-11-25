@@ -1276,7 +1276,9 @@
     "clubSectionCoaching": "Valmennus",
     "clubTrainingSub": "Lämmittely ennen peliä",
     "clubRulesSub": "Laji- ja sarjasäännöt",
-    "clubMaterialsSub": "Palloliiton valmentajamateriaalit"
+    "clubMaterialsSub": "Palloliiton valmentajamateriaalit",
+    "rowPlaybook": "Pelikirja",
+    "clubPlaybookSub": "Animoidut pelitilanteet"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -2559,7 +2561,7 @@
       },
       "cloudDataNote": "Pilvitiedot tallennetaan EU:ssa sijaitseviin datakeskuksiin (Tukholma, Ruotsi). Voit poistaa pilvitietosi tai koko tilisi milloin tahansa kohdassa Asetukset → Tiedot.",
       "dataRetentionTitle": "Tietojen säilytys",
-      "dataRetentionContent": "Pilvitietosi säilytetään niin kauan kuin tilisi on olemassa. Kun poistat pilvitietosi tai tilisi (Asetukset → Tiedot), ne poistetaan käytössä olevasta tietokannasta heti; mahdollinen kopio salatuissa yöllisissä tietokantavarmuuskopioissamme (säilytetään EU:ssa Cloudflare R2:ssa) poistuu, kun varmuuskopio vanhenee (enintään 30 päivää). Tilin poistaminen poistaa myös suostumustietosi. Jos tiliä ei käytetä pitkään aikaan, voimme poistaa sen pilvitiedot ilmoitettuamme siitä ensin. Laitteellasi olevat tiedot säilyvät siellä, kunnes poistat ne tai tyhjennät sovelluksen tallennustilan. Sentry poistaa virheraportit automaattisesti viimeistään 90 päivän kuluttua.",
+      "dataRetentionContent": "Pilvitietosi säilytetään niin kauan kuin tilisi on olemassa. Kun poistat pilvitietosi tai tilisi (Asetukset → Tiedot), ne poistetaan käytössä olevasta tietokannasta heti; mahdollinen kopio salatuissa yöllisissä tietokantavarmuuskopioissamme (säilytetään EU:ssa Cloudflare R2:ssa) poistuu, kun varmuuskopio vanhenee (enintään 30 päivää). Tilin poistaminen poistaa myös suostumustietosi. Jos tiliä ei käytetä pitkään aikaan, voimme poistaa sen pilvitiedot ilmoitettuamme siitä ensin. Laitteellasi olevat tiedot säilyvät siellä, kunnes poistat ne tai tyhjennät sovelluksen tallennustilan. Sentry poistaa virheraportit automaattisesti viimeistään 90 päivän kuluttua. Pelkkien pilvitietojen poistaminen säilyttää tilisi ominaisuuksien ja sisältöjen käyttöoikeustiedot (ks. Lisäominaisuuksien ja -sisältöjen käyttöoikeus); ne poistetaan tilisi mukana.",
       "operatorAccess": "Kuka näkee tietosi: sinä. Ylläpitäjänä meillä on teknisesti pääkäyttäjän pääsy tietokantaan, mutta emme katso sisältöäsi. Käsittelemme sitä vain, kun pyydät (esimerkiksi ilmoittamasi ongelman selvittämiseksi) tai kun laki sitä edellyttää."
     },
     "legalBasis": {
@@ -2603,7 +2605,9 @@
       },
       "personnelDataNote": "Nämä tiedot tallennetaan laitteellesi ja synkronoidaan pilvitilillesi EU:ssa (Tukholma, Ruotsi). Henkilöstön yhteystiedot (sähköposti, puhelin) ovat GDPR:n mukaisia henkilötietoja. Muista henkilöistä (kuten pelaajista ja henkilöstöstä) syöttämiesi henkilötietojen rekisterinpitäjä olet sinä - tai seura, jonka puolesta toimit - ja vastaat siitä, että tallentamiselle on oikeusperuste ja että asianomaisia informoidaan; me käsittelemme niitä vain puolestasi (ks. käyttöehtojen kohta Henkilötietojen käsittely).",
       "onboardingTitle": "Käyttöönoton eteneminen ja näkymä",
-      "onboardingContent": "Ellet kytke sitä pois, tallennamme tilisi asetuksiin muutaman aikaleiman käyttöönoton etenemisestä (tili luotu, aloitusohjattu asetus valmis tai ohitettu, ensimmäinen suunnitelma nähty, ensimmäinen ja toinen ottelu viimeistelty, vaihto koko näkymään) sekä valitsemasi näkymän (Kevennetty näkymä tai Koko näkymä). Käytämme aikaleimoja vain uusien valmentajien käyttöönoton parantamiseen. Ne eivät sisällä pelitietojasi, niitä ei jaeta eikä myydä kenellekään, ja ne poistetaan tilisi mukana. Voit vastustaa käsittelyä kytkemällä pois kohdan Asetukset → Tiedot → Virheraportit ja käyttötilastot: sen jälkeen uusia aikaleimoja ei tallenneta. Näkymä on sovelluksen asetus ja säilyy aina. Samoin säilyvät aina näkymäilmoituksen merkinnät (näkymäilmoitus näytetty ja milloin sekä valintasi Älä näytä enää), koska ilman niitä ilmoitus toistuisi."
+      "onboardingContent": "Ellet kytke sitä pois, tallennamme tilisi asetuksiin muutaman aikaleiman käyttöönoton etenemisestä (tili luotu, aloitusohjattu asetus valmis tai ohitettu, ensimmäinen suunnitelma nähty, ensimmäinen ja toinen ottelu viimeistelty, vaihto koko näkymään) sekä valitsemasi näkymän (Kevennetty näkymä tai Koko näkymä). Käytämme aikaleimoja vain uusien valmentajien käyttöönoton parantamiseen. Ne eivät sisällä pelitietojasi, niitä ei jaeta eikä myydä kenellekään, ja ne poistetaan tilisi mukana. Voit vastustaa käsittelyä kytkemällä pois kohdan Asetukset → Tiedot → Virheraportit ja käyttötilastot: sen jälkeen uusia aikaleimoja ei tallenneta. Näkymä on sovelluksen asetus ja säilyy aina. Samoin säilyvät aina näkymäilmoituksen merkinnät (näkymäilmoitus näytetty ja milloin sekä valintasi Älä näytä enää), koska ilman niitä ilmoitus toistuisi.",
+      "featureAccessTitle": "Lisäominaisuuksien ja -sisältöjen käyttöoikeus",
+      "featureAccessContent": "Jos tilillesi on avattu jokin ominaisuus tai seuran sisältö (kuten seuran pelikirja), tallennamme sen tilisi yhteyteen: mikä ominaisuus tai sisältö ja milloin se avattiin. Jos syötät seurakoodin, tallennamme, montako virheellistä koodia tililtäsi on syötetty viimeisen tunnin aikana ja milloin tunti alkoi, vain koodien arvailun estämiseksi. Tiedot eivät sisällä pelitietojasi, eikä niitä jaeta tai myydä kenellekään. Ne säilyvät, kun poistat vain pilvitietosi, jotta saamasi käyttöoikeus ei katoa, ja ne poistetaan tilisi mukana."
     },
     "dataWeDoNotCollect": {
       "title": "Mitä emme tee tiedoillasi",
@@ -4237,6 +4241,89 @@
   "privacyHints": {
     "noHealthData": "Älä kirjaa terveystietoja.",
     "firstNameEnough": "Etunimi tai lempinimi riittää."
+  },
+  "playbook": {
+    "close": "Sulje",
+    "previous": "Edellinen vaihe",
+    "previousTheme": "Edellinen teema",
+    "next": "Seuraava",
+    "toQuestion": "Pohdittavaksi",
+    "restart": "Alusta",
+    "stepN": "Vaihe {{n}}",
+    "pitchLabel": "Kenttä, vaihe {{current}} / {{total}}",
+    "changePlayer": "Valitse pelaaja",
+    "changePlayerNamed": "Vaihda pelaaja: {{name}}",
+    "noName": "Ei nimeä",
+    "invalidConcept": "Tätä pelitilannetta ei voi näyttää.",
+    "library": {
+      "title": "Pelikirja",
+      "back": "Takaisin",
+      "searchPlaceholder": "Etsi tilannetta…",
+      "searchLabel": "Etsi tilannetta",
+      "clearSearch": "Tyhjennä haku",
+      "all": "Kaikki",
+      "formats": "Pelimuoto",
+      "phases": "Pelin vaihe",
+      "playbooks": "Kokoelma",
+      "builtInName": "MatchOps: 8v8 perusteet",
+      "steps_one": "{{count}} vaihe",
+      "steps_other": "{{count}} vaihetta",
+      "loading": "Ladataan seuran kokoelmia…",
+      "offline": "Ei yhteyttä. Näytetään tälle laitteelle tallennetut.",
+      "noResults": "Ei hakua vastaavia tilanteita.",
+      "showAll": "Näytä kaikki",
+      "phase": {
+        "basics": "Perusteet",
+        "attacking": "Hyökkääminen",
+        "defending": "Puolustaminen",
+        "transitionPlus": "Tilanteenvaihto +",
+        "transitionMinus": "Tilanteenvaihto −",
+        "setPieces": "Erikoistilanteet"
+      }
+    },
+    "focusMode": "Fokustila",
+    "nextTheme": "Seuraava teema",
+    "themeOf": "Teema {{n}}/{{total}}",
+    "themes": {
+      "menuItem": "Ottelun teemat",
+      "sectionTitle": "Pelikirjan teemat",
+      "chooseMany": "Valitse teemat",
+      "edit": "Muuta teemoja",
+      "showOne": "Näytä teema",
+      "showMany": "Näytä teemat",
+      "formEmpty": "Valitse pelitilanteet, jotka käydään pelaajien kanssa läpi.",
+      "unavailable": "Ei käytettävissä",
+      "pickTitle": "Valitse teemat",
+      "preview": "Esikatsele: {{title}}",
+      "unavailableTitle": "Ei enää käytettävissä",
+      "unavailableHint": "Tällä tilillä ei enää ole pääsyä näihin. Poista ne tai pidä ne siltä varalta, että pääsy palaa.",
+      "unavailableItem": "Teema {{n}}",
+      "remove": "Poista",
+      "noneChosen": "Ei valittua teemaa",
+      "chosenCount": "{{n}} valittu",
+      "done": "Valmis"
+    },
+    "code": {
+      "open": "Syötä seuran koodi",
+      "title": "Syötä seuran koodi",
+      "hint": "Seura antaa koodin valmentajilleen. Koodi avaa seuran sisällön tälle tilille.",
+      "label": "Seuran koodi",
+      "placeholder": "XXXX-XXXX-XXXX",
+      "submit": "Avaa",
+      "checking": "Tarkistetaan…",
+      "unlocked": "{{name}} avattu",
+      "already": "{{name}} on jo avattu",
+      "show": "Näytä",
+      "errors": {
+        "invalid": "Koodi ei kelpaa. Tarkista se ja yritä uudelleen.",
+        "expired": "Koodi on vanhentunut. Pyydä seuralta uusi.",
+        "usedUp": "Koodin käyttökerrat on käytetty. Pyydä seuralta uusi.",
+        "revoked": "Koodi ei ole enää voimassa. Pyydä seuralta uusi.",
+        "rateLimited": "Liian monta yritystä. Yritä uudelleen tunnin päästä.",
+        "offline": "Tarvitaan verkkoyhteys.",
+        "failed": "Jokin meni vikaan. Yritä uudelleen."
+      }
+    }
   },
   "planCreateGames": {
     "title": "Luo kaikki pelit",

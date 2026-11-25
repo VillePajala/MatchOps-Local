@@ -3,6 +3,12 @@
   "releases": [
     {
       "date": "2026-11-25",
+      "internal": true,
+      "en": ["Groundwork for a test feature (a library of animated game situations and themes picked for a game). It is switched on only for individual test accounts and is not visible to other coaches. The privacy policy now also describes the access records this feature uses."],
+      "fi": ["Pohjatyötä testiominaisuudelle (animoitujen pelitilanteiden kirjasto ja otteluun valittavat teemat). Se on käytössä vain yksittäisillä testitileillä eikä näy muille valmentajille. Tietosuojaseloste kertoo nyt myös ominaisuuden käyttämistä käyttöoikeustiedoista."]
+    },
+    {
+      "date": "2026-11-25",
       "en": ["Tournament and league report text is now saved: write it, press Save, and it is there the next time you open the report."],
       "fi": ["Turnaus- ja sarjaraportin teksti tallentuu: kirjoita, paina Tallenna, ja teksti on tallessa kun avaat raportin seuraavan kerran."]
     },

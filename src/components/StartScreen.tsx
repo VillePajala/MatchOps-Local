@@ -42,8 +42,19 @@ import {
   HiOutlineQuestionMarkCircle,
   HiOutlineDocumentText,
   HiOutlineArrowRightStartOnRectangle,
+  HiOutlinePlayCircle,
 } from 'react-icons/hi2';
 import { TASO_URL } from '@/config/externalLinks';
+import { useAccountFeatures } from '@/hooks/useAccountFeatures';
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
+import { lazyModal } from '@/components/lazyModal';
+
+/**
+ * Playbook (hidden behind the server-side playbook account flag): its own
+ * chunk, fetched only when opened - kept out of the background warm-up so an
+ * account without the flag never downloads it.
+ */
+const PlaybookLibrary = lazyModal(() => import('@/playbook/PlaybookLibrary'), { warm: false });
 
 /**
  * HOME, S1 "SYKE REFINED" (owner-approved, phase 1 of 3). Colours and fonts
@@ -306,6 +317,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onAddPlayers,
 }) => {
   const { t } = useTranslation();
+  const { hasFeature } = useAccountFeatures();
+  const playbookOn = hasFeature(PLAYBOOK_FEATURE);
+  const [playbookOpen, setPlaybookOpen] = useState(false);
   // Dashboard is the default view, but it only renders once there are games to
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   // The full layout always shows the dashboard once there are games: the old
@@ -595,6 +609,15 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   onClick={onOpenTraining}
                   disabled={!onOpenTraining}
                 />
+                {playbookOn && (
+                  <HomeRow
+                    icon={HiOutlinePlayCircle}
+                    label={t('startScreen.rowPlaybook', 'Playbook')}
+                    subtitle={t('startScreen.clubPlaybookSub', 'Animated game situations')}
+                    onClick={() => setPlaybookOpen(true)}
+                    testId="club-playbook"
+                  />
+                )}
                 {/* Rules belongs with the coaching material: reference a coach
                     consults, not app configuration. */}
                 {onOpenRules && (
@@ -1077,6 +1100,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
           onClose={() => setDayReportPlanId(null)}
           onSaved={() => setDayReportRefresh((n) => n + 1)}
         />
+      )}
+
+      {playbookOn && playbookOpen && (
+        <PlaybookLibrary isOpen onClose={() => setPlaybookOpen(false)} />
       )}
     </div>
   );

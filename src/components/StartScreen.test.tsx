@@ -1,3 +1,4 @@
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
 import React from 'react';
 import { render, screen, fireEvent, within, cleanup, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -20,6 +21,18 @@ jest.mock('@/utils/appSettings', () => ({
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
+const mockHasFeature = jest.fn((_feature: string) => false);
+jest.mock('@/hooks/useAccountFeatures', () => ({
+  useAccountFeatures: () => ({ hasFeature: mockHasFeature }),
+}));
+jest.mock('@/playbook/PlaybookLibrary', () => ({
+  __esModule: true,
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="playbook-stub">
+      <button onClick={onClose}>close-playbook</button>
+    </div>
+  ),
+}));
 jest.mock('@/utils/playtimePlanner/planLinks', () => ({ getPlanLink: jest.fn().mockResolvedValue(null) }));
 // The day-report prompts read plans, links and games; they have their own
 // suites (useDayReportPrompt / dayReportPrompts / dayReportEntryPoints).
@@ -607,6 +620,33 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // Back to Games restores the front page.
     fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
     expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+  });
+
+  /**
+   * Playbook is hidden behind a server-controlled account flag: without it the
+   * club panel is exactly as before.
+   * @critical
+   */
+  it('Club panel: no Playbook row without the account flag', () => {
+    mockHasFeature.mockReturnValue(false);
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.queryByTestId('club-playbook')).not.toBeInTheDocument();
+    expect(mockHasFeature).toHaveBeenCalledWith(PLAYBOOK_FEATURE);
+  });
+
+  it('Club panel: with the flag, "Playbook" opens the library', async () => {
+    mockHasFeature.mockReturnValue(true);
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.queryByTestId('playbook-stub')).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('club-playbook'));
+    });
+    expect(await screen.findByTestId('playbook-stub')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('close-playbook'));
+    await waitFor(() => expect(screen.queryByTestId('playbook-stub')).not.toBeInTheDocument());
+    mockHasFeature.mockReturnValue(false);
   });
 
   it('Seasons and Stats are REAL panels: tabs switch, the rows open the surfaces (3.1b)', () => {

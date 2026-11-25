@@ -24,6 +24,8 @@ import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import { createLocalPlanStore, type LocalPlanStore } from '@/utils/playtimePlanner/localPlanStore';
+import { createLocalGameThemeStore, type LocalGameThemeStore } from '@/playbook/localGameThemeStore';
+import type { GameTheme, GameThemesCollection } from '@/playbook/gameThemeTypes';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
@@ -359,6 +361,7 @@ export class LocalDataStore implements DataStore {
    * Set during initialize() based on userId.
    */
   private planStore: LocalPlanStore | null = null;
+  private gameThemeStore: LocalGameThemeStore | null = null;
   private adapter: StorageAdapter | null = null;
 
   /**
@@ -500,21 +503,24 @@ export class LocalDataStore implements DataStore {
       }
       throw lastError;
     };
-    this.planStore = createLocalPlanStore({
+    const jsonIO = {
       getJSON: async <T,>(key: string, defaultValue: T): Promise<T> => {
         const raw = await withIoRetry(() => this.storageGetItem(key));
         if (raw === null) return defaultValue;
         try {
           return JSON.parse(raw) as T;
         } catch (error) {
-          logger.warn(`[LocalDataStore] Corrupt JSON for planner key "${key}", using default`, { error });
+          logger.warn(`[LocalDataStore] Corrupt JSON for key "${key}", using default`, { error });
           return defaultValue;
         }
       },
       setJSON: async (key: string, value: unknown): Promise<void> => {
         await withIoRetry(() => this.storageSetItem(key, JSON.stringify(value)));
       },
-    });
+    };
+    this.planStore = createLocalPlanStore(jsonIO);
+    // Playbook game themes: the same per-instance database and IO rules.
+    this.gameThemeStore = createLocalGameThemeStore(jsonIO);
 
     this.initialized = true;
   }
@@ -2703,6 +2709,38 @@ export class LocalDataStore implements DataStore {
 
   async restorePlaytimeGameSubs(incoming: GameSubsCollection): Promise<number> {
     return this.plans().restoreGameSubs(incoming);
+  }
+
+  // ==========================================================================
+  // PLAYBOOK GAME THEMES (key-locked IndexedDB collection, localGameThemeStore)
+  // ==========================================================================
+
+  private themes(): LocalGameThemeStore {
+    if (!this.gameThemeStore) {
+      throw new NotInitializedError('LocalDataStore');
+    }
+    return this.gameThemeStore;
+  }
+
+  async getGameThemes(gameId: string): Promise<GameTheme[]> {
+    return this.themes().getGameThemes(gameId);
+  }
+
+  async getAllGameThemes(): Promise<GameThemesCollection> {
+    return this.themes().getAllGameThemes();
+  }
+
+  async setGameThemes(gameId: string, themes: GameTheme[]): Promise<boolean> {
+    return this.themes().setGameThemes(gameId, themes);
+  }
+
+  async deleteGameThemes(gameId: string): Promise<boolean> {
+    return this.themes().deleteGameThemes(gameId);
+  }
+
+  /** Cloud hydration / reverse migration: fill in games with no local entry (local edits win). */
+  async restoreGameThemes(incoming: GameThemesCollection): Promise<number> {
+    return this.themes().restoreGameThemes(incoming);
   }
 
   async getTeamReferences(teamId: string): Promise<EntityReferences> {

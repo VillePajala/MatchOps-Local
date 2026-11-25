@@ -608,6 +608,57 @@ describe('SyncedDataStore', () => {
     });
   });
 
+  describe('Playbook game themes are local-first and queued', () => {
+    it('setGameThemes writes locally and queues the CLEANED list per real game', async () => {
+      await store.setGameThemes('game_1', [
+        { playbookId: 'pepo', conceptId: 'laita' },
+        { playbookId: 'pepo', conceptId: 'laita' },
+        { playbookId: 'pepo', conceptId: 'avaus' },
+      ]);
+      const expected = [
+        { playbookId: 'pepo', conceptId: 'laita' },
+        { playbookId: 'pepo', conceptId: 'avaus' },
+      ];
+      await expect(store.getGameThemes('game_1')).resolves.toEqual(expected);
+      expect(queueEnqueueSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ entityType: 'gameThemes', entityId: 'game_1', operation: 'update', data: expected })
+      );
+    });
+
+    it('an empty selection clears the game locally and queues a delete', async () => {
+      await store.setGameThemes('game_1', [{ playbookId: 'pepo', conceptId: 'laita' }]);
+      await store.setGameThemes('game_1', []);
+      await expect(store.getGameThemes('game_1')).resolves.toEqual([]);
+      expect(queueEnqueueSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ entityType: 'gameThemes', entityId: 'game_1', operation: 'delete' })
+      );
+    });
+
+    it('deleteGameThemes removes them locally and queues a delete', async () => {
+      await store.setGameThemes('game_2', [{ playbookId: 'pepo', conceptId: 'avaus' }]);
+      await store.deleteGameThemes('game_2');
+      await expect(store.getAllGameThemes()).resolves.not.toHaveProperty('game_2');
+      expect(queueEnqueueSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ entityType: 'gameThemes', entityId: 'game_2', operation: 'delete' })
+      );
+    });
+
+    it('clearAllUserData removes the local themes too', async () => {
+      resetSyncEngine();
+      const userStore = new SyncedDataStore('themes-clear-user');
+      await userStore.initialize();
+      try {
+        await userStore.setGameThemes('game_1', [{ playbookId: 'pepo', conceptId: 'avaus' }]);
+        await expect(userStore.getGameThemes('game_1')).resolves.toHaveLength(1);
+        // The cloud half may fail in this harness; the local half always runs.
+        await userStore.clearAllUserData().catch(() => {});
+        await expect(userStore.getAllGameThemes()).resolves.toEqual({});
+      } finally {
+        await userStore.close();
+      }
+    });
+  });
+
   describe('Upsert ops queue as update (so a later delete coalesces to DELETE, not nothing)', () => {
     it('upsertTeam/Season/Tournament/PersonnelMember/PlayerAdjustment all enqueue operation: update', async () => {
       localStoreSpy.upsertTeam.mockResolvedValue({ id: 'team_1' } as unknown as Team);

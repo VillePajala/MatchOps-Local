@@ -243,6 +243,10 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     getAllPlaytimeGameSubs: jest.fn(async () => ({})) as unknown as jest.MockedFunction<DataStore['getAllPlaytimeGameSubs']>,
     setPlaytimeGameSubs: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['setPlaytimeGameSubs']>,
     deletePlaytimeGameSubs: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deletePlaytimeGameSubs']>,
+    getGameThemes: jest.fn(async () => []) as unknown as jest.MockedFunction<DataStore['getGameThemes']>,
+    getAllGameThemes: jest.fn(async () => ({})) as unknown as jest.MockedFunction<DataStore['getAllGameThemes']>,
+    setGameThemes: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['setGameThemes']>,
+    deleteGameThemes: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deleteGameThemes']>,
   };
 
   // Apply overrides

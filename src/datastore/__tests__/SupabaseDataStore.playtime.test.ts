@@ -5,6 +5,9 @@
  * tests pin the parts that CAN go wrong: table/column mapping, the composite
  * onConflict targets, per-entry validation on read, and the version/updatedAt
  * stamping that must match the local store byte-for-byte in shape.
+ *
+ * Also the Playbook game themes (migration 066): the other per-game store kept
+ * outside the game model, mapped and cleaned up the same way.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -221,7 +224,7 @@ describe('SupabaseDataStore — playtime planner', () => {
     ]);
   });
 
-  it('deleteGame also cascades the planner tables (plan link + game subs) app-side', async () => {
+  it('deleteGame also cascades the planner tables (plan link + game subs) and game themes app-side', async () => {
     // No game_id FK exists (deliberate - sync ordering), so cloud deleteGame
     // must clean these rows itself or a lost companion op orphans them forever.
     // eq sequence: games (id -> user_id resolves w/ count), then per table
@@ -232,12 +235,14 @@ describe('SupabaseDataStore — playtime planner', () => {
       .mockReturnValueOnce(mockQueryBuilder)
       .mockResolvedValueOnce({ error: null })
       .mockReturnValueOnce(mockQueryBuilder)
+      .mockResolvedValueOnce({ error: null })
+      .mockReturnValueOnce(mockQueryBuilder)
       .mockResolvedValueOnce({ error: null });
 
     await expect(dataStore.deleteGame('game_1')).resolves.toBe(true);
 
     const tables = (mockSupabaseClient.from as jest.Mock).mock.calls.map((c) => c[0]);
-    expect(tables).toEqual(expect.arrayContaining(['games', 'playtime_plan_links', 'playtime_game_subs']));
+    expect(tables).toEqual(expect.arrayContaining(['games', 'playtime_plan_links', 'playtime_game_subs', 'game_themes']));
   });
 
   it('deletePlaytimePlanLinksForPlan deletes by user AND plan id', async () => {
@@ -248,5 +253,88 @@ describe('SupabaseDataStore — playtime planner', () => {
     await expect(dataStore.deletePlaytimePlanLinksForPlan('ptp_1')).resolves.toBe(true);
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('playtime_plan_links');
     expect(mockQueryBuilder.eq).toHaveBeenNthCalledWith(2, 'plan_id', 'ptp_1');
+  });
+});
+
+describe('SupabaseDataStore — Playbook game themes (migration 066)', () => {
+  let dataStore: SupabaseDataStore;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    mockQueryBuilder = createMockQueryBuilder();
+    (mockSupabaseClient.from as jest.Mock).mockReturnValue(mockQueryBuilder);
+    mockRpc.mockResolvedValue({ data: null, error: null });
+    Object.defineProperty(global, 'navigator', { value: { onLine: true }, writable: true, configurable: true });
+    dataStore = new SupabaseDataStore();
+    await dataStore.initialize();
+  });
+
+  afterEach(async () => {
+    await dataStore.close();
+    Object.defineProperty(global, 'navigator', { value: originalNavigator, writable: true, configurable: true });
+  });
+
+  it('setGameThemes replaces the selection through the set_game_themes RPC, cleaned and in order', async () => {
+    await expect(
+      dataStore.setGameThemes('game_1', [
+        { playbookId: 'pepo', conceptId: 'avaus' },
+        { playbookId: 'pepo', conceptId: 'laita' },
+        { playbookId: 'pepo', conceptId: 'avaus' },
+      ]),
+    ).resolves.toBe(true);
+    expect(mockRpc).toHaveBeenCalledWith('set_game_themes', {
+      p_game_id: 'game_1',
+      p_themes: [
+        { playbookId: 'pepo', conceptId: 'avaus' },
+        { playbookId: 'pepo', conceptId: 'laita' },
+      ],
+    });
+  });
+
+  it('setGameThemes with [] clears the game through the same RPC', async () => {
+    await dataStore.setGameThemes('game_1', []);
+    expect(mockRpc).toHaveBeenCalledWith('set_game_themes', { p_game_id: 'game_1', p_themes: [] });
+  });
+
+  it('getAllGameThemes maps rows into the gameId-keyed collection, keeping the sort order', async () => {
+    // select().eq(user).order(game_id).order(sort): the last order resolves.
+    mockQueryBuilder.order
+      .mockReturnValueOnce(mockQueryBuilder)
+      .mockResolvedValueOnce({
+        data: [
+          { game_id: 'game_1', playbook_id: 'pepo', concept_id: 'laita', sort: 0 },
+          { game_id: 'game_1', playbook_id: 'matchops-examples', concept_id: 'demo', sort: 1 },
+          { game_id: 'game_2', playbook_id: 'pepo', concept_id: 'avaus', sort: 0 },
+        ],
+        error: null,
+      });
+    await expect(dataStore.getAllGameThemes()).resolves.toEqual({
+      game_1: [
+        { playbookId: 'pepo', conceptId: 'laita' },
+        { playbookId: 'matchops-examples', conceptId: 'demo' },
+      ],
+      game_2: [{ playbookId: 'pepo', conceptId: 'avaus' }],
+    });
+    expect(mockSupabaseClient.from).toHaveBeenCalledWith('game_themes');
+    expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', mockUser.id);
+  });
+
+  it('getGameThemes reads one game by user AND game id, ordered by sort', async () => {
+    mockQueryBuilder.order.mockResolvedValueOnce({
+      data: [{ playbook_id: 'pepo', concept_id: 'avaus', sort: 0 }],
+      error: null,
+    });
+    await expect(dataStore.getGameThemes('game_1')).resolves.toEqual([{ playbookId: 'pepo', conceptId: 'avaus' }]);
+    expect(mockQueryBuilder.eq).toHaveBeenNthCalledWith(1, 'user_id', mockUser.id);
+    expect(mockQueryBuilder.eq).toHaveBeenNthCalledWith(2, 'game_id', 'game_1');
+    expect(mockQueryBuilder.order).toHaveBeenCalledWith('sort', { ascending: true });
+  });
+
+  it('deleteGameThemes deletes by user AND game id', async () => {
+    mockQueryBuilder.eq.mockReturnValueOnce(mockQueryBuilder).mockResolvedValueOnce({ error: null });
+    await expect(dataStore.deleteGameThemes('game_1')).resolves.toBe(true);
+    expect(mockSupabaseClient.from).toHaveBeenCalledWith('game_themes');
+    expect(mockQueryBuilder.delete).toHaveBeenCalled();
+    expect(mockQueryBuilder.eq).toHaveBeenNthCalledWith(2, 'game_id', 'game_1');
   });
 });

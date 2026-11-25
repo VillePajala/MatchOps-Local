@@ -18,6 +18,9 @@
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
+import type { GameThemesCollection } from '@/playbook/gameThemeTypes';
+import { hasCachedAccountFeature } from '@/hooks/useAccountFeatures';
+import { PLAYBOOK_FEATURE } from '@/playbook/feature';
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import { SupabaseDataStore, type CloudEntityIds } from '@/datastore/SupabaseDataStore';
@@ -185,6 +188,8 @@ export interface ReverseMigrationCounts {
   playtimePlans?: number;
   playtimePlanLinks?: number;
   playtimeGameSubs?: number;
+  /** Games whose Playbook themes were written locally (optional, like the planner counts). */
+  gameThemes?: number;
   players: number;
   teams: number;
   /** Count of player-team assignments (roster entries), not number of teams with rosters */
@@ -273,6 +278,8 @@ interface CloudDataSnapshot {
   playtimePlans: PlaytimePlanCollection;
   playtimePlanLinks: PlanLinksCollection;
   playtimeGameSubs: GameSubsCollection;
+  /** Playbook game themes (best effort: {} when they could not be read). */
+  gameThemes: GameThemesCollection;
 }
 
 // =============================================================================
@@ -839,6 +846,17 @@ async function downloadFromCloud(
   const playtimePlanLinks = await cloudStore.getPlaytimePlanLinks();
   // Whole collection - subs can outlive their link (plan deleted, game kept).
   const playtimeGameSubs = await cloudStore.getAllPlaytimeGameSubs();
+  // Playbook game themes: best effort. A theme selection is quick to redo and
+  // must never fail the whole switch to local (nor would an older database
+  // without the game_themes table).
+  let gameThemes: GameThemesCollection = {};
+  try {
+    gameThemes = await cloudStore.getAllGameThemes();
+  } catch (err) {
+    logger.warn('[ReverseMigration] Could not read game themes; continuing without them', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+  }
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.SETTINGS);
 
   return {
@@ -855,6 +873,7 @@ async function downloadFromCloud(
     playtimePlans,
     playtimePlanLinks,
     playtimeGameSubs,
+    gameThemes,
   };
 }
 
@@ -1072,6 +1091,9 @@ async function saveToLocal(
     });
     logger.error('[ReverseMigration] Failed to save playtime plans:', err);
   }
+
+  // Playbook game themes (best effort, local edits win - same as the planned subs).
+  counts.gameThemes = await localStore.restoreGameThemes(data.gameThemes ?? {});
 
   return { counts, failures };
 }
@@ -1834,7 +1856,11 @@ async function removeItemsDeletedElsewhere(
   };
 
   await pass('games', 'game', Object.entries(games), ([id]) => id,
-    ([, g]) => g.updatedAt, ([id]) => localStore.deleteGame(id));
+    ([, g]) => g.updatedAt, async ([id]) => {
+      await localStore.deleteGame(id);
+      // Its Playbook themes go with it (the deleting device removed the cloud rows).
+      await localStore.deleteGameThemes(id);
+    });
   await pass('playerAdjustments', 'playerAdjustment', [...adjustments.values()].flat(), (a) => a.id,
     (a) => a.appliedAt, (a) => localStore.deletePlayerAdjustment(a.playerId, a.id));
   await pass('personnel', 'personnel', personnel, (p) => p.id, (p) => p.updatedAt,
@@ -2340,6 +2366,19 @@ export async function hydrateLocalFromCloud(
       const msg = `Failed to hydrate playtime plans: ${err instanceof Error ? err.message : 'Unknown error'}`;
       logger.error('[ReverseMigrationService] ' + msg);
       errors.push(msg);
+    }
+    // Playbook game themes: only for accounts with the playbook flag (PLAYBOOK_FEATURE) (as last
+    // known on this device) - nobody else makes a request for them. Best effort:
+    // NOT a hydration error (that would also hold back the deletion pass below
+    // for a selection that is quick to redo); the next launch tries again.
+    if (hasCachedAccountFeature(userId, PLAYBOOK_FEATURE)) {
+      try {
+        counts.gameThemes = await localStore.restoreGameThemes(await cloudStore.getAllGameThemes());
+      } catch (err) {
+        logger.warn('[ReverseMigrationService] Could not hydrate game themes', {
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
     }
     // Deletions made on other devices: only after a fully clean pull, and never on an
     // uncertain picture (see removeItemsDeletedElsewhere). A failure here is not a

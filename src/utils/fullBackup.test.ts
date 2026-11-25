@@ -234,6 +234,10 @@ function createMockDataStore(): DataStore {
     getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
     setPlaytimeGameSubs: jest.fn().mockResolvedValue(true),
     deletePlaytimeGameSubs: jest.fn().mockResolvedValue(true),
+    getGameThemes: jest.fn().mockResolvedValue([]),
+    getAllGameThemes: jest.fn().mockResolvedValue({}),
+    setGameThemes: jest.fn().mockResolvedValue(true),
+    deleteGameThemes: jest.fn().mockResolvedValue(true),
   };
 }
 

@@ -22,6 +22,7 @@ import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
+import type { GameTheme, GameThemesCollection } from '@/playbook/gameThemeTypes';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -641,6 +642,26 @@ export interface DataStore {
 
   /** Remove the planned subs for one real game. */
   deletePlaytimeGameSubs(gameId: string): Promise<boolean>;
+
+  // ==========================================================================
+  // PLAYBOOK GAME THEMES
+  // The Playbook concepts picked for a REAL game, in pick order. Stored outside
+  // the game model like the planner's per-game stores: local mode an IndexedDB
+  // collection; cloud the game_themes table (migration 066), a game's whole
+  // selection replaced at once.
+  // ==========================================================================
+
+  /** The themes of one game ([] when none). */
+  getGameThemes(gameId: string): Promise<GameTheme[]>;
+
+  /** Every game's themes (bulk sync/backup paths). */
+  getAllGameThemes(): Promise<GameThemesCollection>;
+
+  /** Replace one game's themes; an empty list clears them. */
+  setGameThemes(gameId: string, themes: GameTheme[]): Promise<boolean>;
+
+  /** Remove one game's themes (game deletion). */
+  deleteGameThemes(gameId: string): Promise<boolean>;
 
   // ==========================================================================
   // ENTITY REFERENCE CHECKS

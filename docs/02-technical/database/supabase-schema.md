@@ -105,8 +105,14 @@ users (Supabase Auth)
  ├── user_consents (GDPR compliance)
  ├── subscriptions (Play Store billing; enforcement off, app is free)
  ├── playtime_plans, playtime_plan_links, playtime_game_subs (migration 036)
+ ├── account_features (migration 064; per-account feature flags, client read-only)
+ ├── playbook_access (migration 065; which playbooks the account may read, client read-only)
+ ├── game_themes (migration 066; Pelikirja (Playbook) concepts picked for a game, own rows CRUD)
  └── sync_tombstones (migration 059; no client access)
 rate_limits (migration 024; Edge Functions only, not user-owned)
+playbooks ─── playbook_concepts (migration 065; shared content, not user-owned, read via playbook_access)
+          └── playbook_codes (migration 067; club codes, hashes only, no client access)
+playbook_code_attempts (migration 067; failed code attempts per user, no client access)
 ```
 
 ## Core Tables
@@ -1128,7 +1134,198 @@ CREATE TABLE playtime_game_subs (
 -- RLS on all three: (select auth.uid()) = user_id. clear_all_user_data() clears them (037).
 ```
 
-### 19. Service tables (no client access)
+### 19. `account_features` (migration 064)
+
+Per-account feature flags controlled by the server. The first flag is `pelitapa`
+(the hidden Playbook / Pelikirja library; the feature was first called "Pelitapa" and the
+stored value stays `pelitapa` for compatibility - the app refers to it as `PLAYBOOK_FEATURE`,
+`src/playbook/feature.ts`). Clients can only **read their own rows**; a feature
+is granted with SQL / the service role.
+
+```sql
+CREATE TABLE account_features (
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  feature    text NOT NULL CHECK (feature ~ '^[a-z][a-z0-9_]{0,63}$'),
+  enabled    boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, feature)
+);
+ALTER TABLE account_features ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON account_features FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON account_features TO authenticated;
+CREATE POLICY "Users can read their own account features"
+  ON account_features FOR SELECT TO authenticated
+  USING ((select auth.uid()) = user_id);
+-- No INSERT/UPDATE/DELETE policy: only the service role writes.
+```
+
+- **Account deletion** removes the rows (FK cascade).
+- **`clear_all_user_data()` keeps them**: a granted feature belongs to the account,
+  not to the coach's data, and the coach could not re-grant it.
+- **Granting a feature** (SQL editor or Management API):
+  ```sql
+  INSERT INTO account_features (user_id, feature)
+  SELECT id, 'pelitapa' FROM auth.users WHERE email = '<coach email>'
+  ON CONFLICT (user_id, feature) DO UPDATE SET enabled = true;
+  ```
+  Revoke with `UPDATE ... SET enabled = false` or `DELETE`. The app re-reads the flags
+  after sign-in and when it resumes, and keeps the last answer per user for offline use.
+- The client reads them in `src/hooks/useAccountFeatures.ts`.
+
+### 20. Pelikirja (Playbook) collections (migration 065)
+
+Read-only **content** shared with chosen accounts: a playbook is a club's (or our own)
+set of Pelikirja (Playbook) concepts, one JSON document per concept in the format of
+`src/playbook/types.ts`. Not anyone's data: written only by the service role, read by
+accounts that have a `playbook_access` row.
+
+```sql
+CREATE TABLE playbooks (
+  id         text PRIMARY KEY CHECK (id ~ '^[a-z0-9][a-z0-9_-]{0,63}$'),
+  name       text NOT NULL,
+  owner_note text,                -- internal (source, permission); not shown in the app
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE playbook_concepts (
+  id          text NOT NULL,
+  playbook_id text NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+  format      text NOT NULL CHECK (format IN ('5v5', '8v8', '11v11')),
+  phase       text NOT NULL,
+  sort        int  NOT NULL DEFAULT 0,
+  data        jsonb NOT NULL CHECK (jsonb_typeof(data) = 'object'),  -- the concept
+  version     int  NOT NULL DEFAULT 1,   -- content revision, bumped by the seed script
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (playbook_id, id)
+);
+CREATE TABLE playbook_access (
+  playbook_id text NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+  user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  granted_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (playbook_id, user_id)
+);
+-- RLS on all three, SELECT policies only; SELECT granted to authenticated, nothing to anon:
+--   playbook_access:   (select auth.uid()) = user_id
+--   playbooks:         EXISTS (access row for this playbook and auth.uid())
+--   playbook_concepts: EXISTS (access row for this playbook_id and auth.uid())
+```
+
+- **Content source**: `content/playbook/<playbook>.json` in the repo (validated by
+  `src/playbook/__tests__/playbookContent.test.ts`). The app never bundles these files;
+  it reads the database.
+- **Loading / granting** (staging): `node scripts/playbook/seed-playbook.mjs
+  content/playbook/pepo-8v8.json --grant <coach email> --apply` upserts the playbook and
+  its concepts (version bumps only on change), deletes concepts removed from the file and
+  grants access. Revoke with `DELETE FROM playbook_access WHERE ...`. Coaches can also
+  unlock a playbook themselves with a club code (`playbook_codes`, section 22).
+- **Account deletion** removes the account's `playbook_access` rows (FK cascade);
+  playbooks stay. Deleting a playbook removes its concepts and grants.
+- **`clear_all_user_data()` keeps `playbook_access`**: access is granted to the account,
+  not part of the coach's data, and the coach could not re-grant it.
+- The client reads them in `src/playbook/usePlaybooks.ts` (accounts with the playbook flag `pelitapa`
+  flag only), validates every concept and keeps the last answer per user for offline use.
+
+### 21. `game_themes` (migration 066)
+
+The Pelikirja (Playbook) concepts a coach picked for a game ("themes" to go through with the kids),
+in pick order. The coach's **own data**, stored **outside the game model** like the
+planner's per-game stores (never on `games`, never in the game transforms or
+`save_game_with_relations`). Locally: the IndexedDB collection `pelitapaGameThemes` (stored key keeps the original name)
+(`GAME_THEMES_KEY`, map gameId -> `[{ playbookId, conceptId }]`); in cloud mode
+SyncedDataStore writes it first and queues the push as sync entity `gameThemes`.
+
+```sql
+CREATE TABLE game_themes (
+  user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  game_id     text NOT NULL CHECK (length(game_id) BETWEEN 1 AND 200),
+  playbook_id text NOT NULL CHECK (length(playbook_id) BETWEEN 1 AND 128),
+  concept_id  text NOT NULL CHECK (length(concept_id) BETWEEN 1 AND 128),
+  sort        int  NOT NULL DEFAULT 0 CHECK (sort >= 0),   -- pick order, 0-based
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, game_id, playbook_id, concept_id)
+);
+-- RLS: FOR ALL TO authenticated USING / WITH CHECK ((select auth.uid()) = user_id).
+-- anon: no privileges.
+
+-- Replaces one game's whole selection in one transaction (delete + insert, [] clears).
+-- SECURITY INVOKER: RLS applies as for direct writes. At most 12 themes; a repeated
+-- concept keeps its first position.
+set_game_themes(p_game_id text, p_themes jsonb)  -- [{ "playbookId", "conceptId" }, ...]
+```
+
+- **No FK to `games`** (a theme row may reach the cloud before its game, as with the
+  planner tables): `SupabaseDataStore.deleteGame` deletes the game's theme rows itself,
+  and the app's delete flow (`services/deleteGame.ts`) removes the local entry.
+- **No FK to `playbooks`**: a withdrawn `playbook_access` grant must not delete the
+  coach's selection; the app shows such a theme as unavailable. The built-in example
+  playbook is not in the database.
+- **Conflicts**: the whole selection of a game is the unit, last write wins (no edit
+  timestamp, the same scope decision as `playtime_game_subs`).
+- **Hydration** pulls `game_themes` only for accounts whose playbook flag (`pelitapa`) is known on
+  the device; nobody else makes the request. A failed theme read never fails hydration.
+- **`clear_all_user_data()` deletes them** (redefined in 066 = 037 + one DELETE);
+  account deletion cascades.
+
+### 22. `playbook_codes` (migration 067)
+
+Club codes that unlock a playbook. The club gives the code to its coaches; a coach types
+it in the library ("Enter a club code") and `redeem_playbook_code()` adds the
+`playbook_access` row. **Only a hash is stored**: hex sha256 of the normalised code
+(upper-case, spaces and dashes removed; the same normalisation in the app, the script and
+the function).
+
+```sql
+CREATE TABLE playbook_codes (
+  code_hash   text PRIMARY KEY CHECK (code_hash ~ '^[0-9a-f]{64}$'),
+  playbook_id text NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+  label       text,                      -- who / what it was made for; not shown in the app
+  expires_at  timestamptz,               -- NULL = no expiry
+  max_uses    int CHECK (max_uses IS NULL OR max_uses > 0),   -- NULL = unlimited
+  uses        int NOT NULL DEFAULT 0,
+  revoked     boolean NOT NULL DEFAULT false,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE playbook_code_attempts (    -- failed redeems per user, current 1 h window
+  user_id      uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  failures     int NOT NULL DEFAULT 0,
+  window_start timestamptz NOT NULL DEFAULT now()
+);
+-- Both: RLS on, NO policies, ALL revoked from anon/authenticated (service role only).
+
+-- SECURITY DEFINER, search_path pinned; EXECUTE for authenticated only.
+redeem_playbook_code(p_code text) RETURNS json
+--   { ok: true, playbook_id, playbook_name }                  granted, one use consumed
+--   { ok: true, playbook_id, playbook_name, already: true }   had access; no use consumed
+--   { ok: false, error: 'invalid' | 'expired' | 'used_up' | 'revoked' | 'rate_limited' }
+```
+
+- **Order of checks**: rate limit (10 failed attempts per user per rolling hour ->
+  `rate_limited`), unknown code -> `invalid`, already has access -> `already`, then
+  `revoked`, `expired`, `used_up`. Every failure counts towards the limit; a success or
+  `already` does not. Its own attempts table, not `rate_limits`: `check_rate_limit()`
+  deletes rows older than the caller's window, which would reset a one-hour counter.
+- **Concurrency**: the code row is locked (`FOR UPDATE`) while checking and incrementing
+  `uses`, so the last use cannot be taken twice.
+- **Revoking / expiring** a code stops new redemptions only; access already granted stays
+  (delete the `playbook_access` rows to withdraw it).
+- **Lifetime**: a playbook's codes go with it; attempts go with the account;
+  `clear_all_user_data()` touches neither (not the coach's data, and clearing must not
+  reset the attempt limit).
+- **Creating a code**: `node scripts/playbook/create-code.mjs --playbook pepo-8v8
+  [--label "PEPO P2014 coaches"] [--prefix PEPO] [--max-uses 30] [--expires-days 90]
+  [--apply] [--project staging|production]`. It generates a readable code
+  (`PEPO-7KQ2-M9XD-4HNA`: optional prefix + 3 groups of 4 from an alphabet without
+  0/O/1/I/L), **prints it once** and writes only its hash. Without `--apply` it is a dry
+  run (prints the code and the SQL); `--apply` writes to staging unless
+  `--project production` is spelled out. A lost code cannot be recovered: revoke it and
+  make a new one.
+- **Managing** (SQL): `SELECT label, uses, max_uses, expires_at, revoked FROM
+  playbook_codes;` / `UPDATE playbook_codes SET revoked = true WHERE label = '...';`
+- The client: `src/playbook/playbookCodes.ts` (normalise, call, map the answer to a
+  reason; offline / unexpected errors never show server text) and
+  `src/playbook/PlaybookCodeSheet.tsx` (the sheet), wired through `usePlaybooks().redeemCode`,
+  which fetches the playbooks again after a success.
+
+### 23. Service tables (no client access)
 
 ```sql
 -- Deletion record for newer-edit-wins sync (migration 059). Only the SECURITY DEFINER
@@ -1428,6 +1625,12 @@ BEGIN
   DELETE FROM game_tactical_data WHERE user_id = v_user_id;
   DELETE FROM player_assessments WHERE user_id = v_user_id;
 
+  -- Playtime planner stores (036) and Pelikirja (Playbook) game themes (066)
+  DELETE FROM playtime_game_subs WHERE user_id = v_user_id;
+  DELETE FROM playtime_plan_links WHERE user_id = v_user_id;
+  DELETE FROM playtime_plans WHERE user_id = v_user_id;
+  DELETE FROM game_themes WHERE user_id = v_user_id;
+
   -- Games (SET NULL on seasons/tournaments/teams)
   DELETE FROM games WHERE user_id = v_user_id;
 
@@ -1456,6 +1659,10 @@ GRANT EXECUTE ON FUNCTION clear_all_user_data TO authenticated;
 ```
 
 **Note**: `user_consents` is intentionally NOT deleted by `clear_all_user_data()`. Consent records must be retained for GDPR compliance even after account deletion to prove consent was given.
+
+**Note**: `account_features` (migration 064) is also NOT deleted by `clear_all_user_data()`: granted features belong to the account and only the service role can grant them. They are removed with the account (FK cascade).
+
+**Note**: `playbook_access` (migration 065) is NOT deleted by `clear_all_user_data()` either, for the same reason: access to a playbook is granted by the service role. It is removed with the account (FK cascade).
 
 **Why RPC instead of sequential client-side deletes?**
 - **Atomicity**: Single PostgreSQL transaction ensures all-or-nothing semantics

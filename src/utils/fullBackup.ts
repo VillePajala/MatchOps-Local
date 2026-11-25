@@ -15,10 +15,12 @@ import {
   PLAYTIME_PLANS_KEY,
   PLAYTIME_GAME_SUBS_KEY,
   PLAYTIME_PLAN_LINKS_KEY,
+  GAME_THEMES_KEY,
 } from "@/config/storageKeys";
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
+import { normalizeGameThemes, type GameThemesCollection } from '@/playbook/gameThemeTypes';
 import logger from "@/utils/logger";
 import i18n from "i18next";
 import { getDataStore, getAuthService } from '@/datastore/factory';
@@ -73,6 +75,8 @@ interface FullBackupData {
     [PLAYTIME_PLANS_KEY]?: PlaytimePlanCollection | null;
     [PLAYTIME_GAME_SUBS_KEY]?: GameSubsCollection | null;
     [PLAYTIME_PLAN_LINKS_KEY]?: PlanLinksCollection | null;
+    // Playbook game themes (per game, outside the game model like the planner's stores).
+    [GAME_THEMES_KEY]?: GameThemesCollection | null;
   };
 }
 
@@ -393,6 +397,9 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
       if (plans && Object.keys(plans).length > 0) {
         logger.log(`Backed up ${Object.keys(plans).length} playtime plans`);
       }
+      const gameThemes = await dataStore.getAllGameThemes();
+      backupData.localStorage[GAME_THEMES_KEY] =
+        gameThemes && Object.keys(gameThemes).length > 0 ? gameThemes : null;
     }
 
     const account = await readAccountRecord(userId);
@@ -819,7 +826,8 @@ async function restoreSnapshotEntities(
 }
 
 /**
- * Restore the Playing-Time Planner stores through the DataStore, so the write
+ * Restore the Playing-Time Planner stores (and the Playbook game themes, kept
+ * outside the game model the same way) through the DataStore, so the write
  * lands in the SAME database as everything else being restored (per-user when
  * signed in - the old raw storage write always hit the legacy shared DB).
  * The backends validate entries on read, so a malformed entry in an old
@@ -849,6 +857,13 @@ async function restorePlannerStores(
   if (planLinks && typeof planLinks === 'object') {
     for (const [gameId, link] of Object.entries(planLinks)) {
       await dataStore.setPlaytimePlanLink(gameId, link);
+    }
+  }
+  const gameThemes = ls[GAME_THEMES_KEY];
+  if (gameThemes && typeof gameThemes === 'object') {
+    for (const [gameId, themes] of Object.entries(gameThemes)) {
+      const clean = Array.isArray(themes) ? normalizeGameThemes(themes) : [];
+      if (clean.length > 0) await dataStore.setGameThemes(gameId, clean);
     }
   }
 }

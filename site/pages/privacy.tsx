@@ -102,7 +102,9 @@ export default function PrivacyPolicyPage() {
               </ul>
               <p className="text-slate-300 mb-4">{t('privacyPolicy.dataWeCollect.personnelDataNote')}</p>
               <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataWeCollect.onboardingTitle')}</h3>
-              <p className="text-slate-300">{t('privacyPolicy.dataWeCollect.onboardingContent')}</p>
+              <p className="text-slate-300 mb-4">{t('privacyPolicy.dataWeCollect.onboardingContent')}</p>
+              <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.dataWeCollect.featureAccessTitle')}</h3>
+              <p className="text-slate-300">{t('privacyPolicy.dataWeCollect.featureAccessContent')}</p>
             </section>
 
             <section className="mb-8">
