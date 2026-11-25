@@ -760,7 +760,10 @@ describe('Translation File Validation', () => {
       // +8: layoutNotice.* (the basic-layout notice dialog)
       // +7 demo prep (2026-11-25): taso.shootout; planner formatSummary and
       //     reapplyDoneNoRoster split into _one/_other; manager.games/players _one/_other. 3681.
-      expect(enKeys.length).toBe(3681);
+      // -2 fieldTools.planViewGhosts/togglePlannedSubs: the planned-sub
+      //     ghost view is gone; the plan control toggles Lineup <-> Substitutions
+      //     and minutes. 3679.
+      expect(enKeys.length).toBe(3679);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -980,7 +983,8 @@ describe('Translation File Validation', () => {
       // +8: layoutNotice.* (the basic-layout notice dialog)
       // +7 demo prep (2026-11-25): taso.shootout; planner formatSummary and
       //     reapplyDoneNoRoster split into _one/_other; manager.games/players _one/_other. 3681.
-      expect(fiKeys.length).toBe(3681);
+      // -2 fieldTools.planViewGhosts/togglePlannedSubs (see EN above). 3679.
+      expect(fiKeys.length).toBe(3679);
     });
   });
 });

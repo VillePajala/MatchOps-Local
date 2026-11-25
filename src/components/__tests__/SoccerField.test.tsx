@@ -673,16 +673,15 @@ describe('SoccerField Component - Interaction Testing', () => {
     });
   });
 
-  /**
-   * @critical - these markers are the only place a coach sees a planned entry
-   * at a position nobody is waiting at. They were originally wired into
-   * renderForExport ONLY, so the toggle appeared but the live field stayed
-   * blank - the export path is not what a coach looks at.
-   */
-  describe('Planned ghost markers', () => {
-    const GHOSTS = [
-      { id: 'g1', relX: 0.96, relY: 0.24, name: 'Tomas' },
-      { id: 'g2', relX: 0.96, relY: 0.68, name: 'Tiitus' },
+  describe('Planned chain view', () => {
+    const CHAINS = [
+      {
+        positionLabel: 'LM',
+        relX: 0.25,
+        relY: 0.52,
+        starterName: 'Petja',
+        entries: [{ id: 'a', minute: 10, name: 'Tomas', waveIndex: 0 }],
+      },
     ];
 
     // jsdom reports a 0x0 canvas, and `draw` bails out on zero dimensions -
@@ -704,56 +703,6 @@ describe('SoccerField Component - Interaction Testing', () => {
 
     const drawnTexts = (spy: jest.SpyInstance): string[] =>
       spy.mock.calls.map((call) => String(call[0]));
-
-    it('paints each ghost name on the LIVE field, not just on export', () => {
-      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
-      render(<SoccerField {...defaultProps} plannedGhosts={GHOSTS} />);
-
-      // No renderForExport call here on purpose: mounting alone must paint them.
-      expect(drawnTexts(spy)).toEqual(expect.arrayContaining(['Tomas', 'Tiitus']));
-      spy.mockRestore();
-    });
-
-    /**
-     * The sideline column sits at relX 0.96, so a centred name runs off a
-     * narrow canvas - which is exactly how it shipped, with the names sliced
-     * by the screen edge.
-     */
-    it('keeps the name inside the canvas instead of letting it clip', () => {
-      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
-      render(<SoccerField {...defaultProps} plannedGhosts={GHOSTS} />);
-
-      const call = spy.mock.calls.find((c) => c[0] === 'Tomas');
-      expect(call).toBeDefined();
-      // Canvas is 800 wide here; 0.96 * 800 = 768 is the unclamped centre.
-      expect(Number(call![1])).toBeLessThanOrEqual(800);
-      expect(Number(call![1])).toBeGreaterThan(0);
-      spy.mockRestore();
-    });
-
-    /** The same name appears twice; a thread is what says they are one player. */
-    it('threads a ghost back to the disc the player is waiting on', () => {
-      const moveSpy = jest.spyOn(CanvasRenderingContext2D.prototype, 'moveTo');
-      render(
-        <SoccerField
-          {...defaultProps}
-          plannedGhosts={[{ ...GHOSTS[0], fromRelX: 0.96, fromRelY: 0.7 }]}
-        />,
-      );
-      // 800x600 canvas: the source disc is at (768, 420) and the ghost at
-      // (768, 144), so the thread starts one radius below the source disc.
-      // Asserting the exact point, because moveTo alone is called all over
-      // the field drawing and would pass with no thread at all.
-      expect(moveSpy.mock.calls).toContainEqual([768, 396]);
-      moveSpy.mockRestore();
-    });
-
-    it('draws no thread for a player with no disc on the field', () => {
-      const moveSpy = jest.spyOn(CanvasRenderingContext2D.prototype, 'moveTo');
-      render(<SoccerField {...defaultProps} plannedGhosts={[GHOSTS[0]]} />);
-      expect(moveSpy.mock.calls).not.toContainEqual([768, 396]);
-      moveSpy.mockRestore();
-    });
 
     /**
      * @critical - the chain view is read on the touchline to decide who goes
@@ -828,7 +777,7 @@ describe('SoccerField Component - Interaction Testing', () => {
       spy.mockRestore();
     });
 
-    it('paints nothing when there are no planned ghosts', () => {
+    it('paints nothing when there are no planned chains', () => {
       const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
       render(<SoccerField {...defaultProps} />);
 
@@ -840,7 +789,7 @@ describe('SoccerField Component - Interaction Testing', () => {
     it('stays out of the tactics board view', () => {
       const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
       render(
-        <SoccerField {...defaultProps} isTacticsBoardView={true} plannedGhosts={GHOSTS} />,
+        <SoccerField {...defaultProps} isTacticsBoardView={true} plannedChains={CHAINS} />,
       );
 
       expect(drawnTexts(spy)).not.toContain('Tomas');
@@ -851,7 +800,7 @@ describe('SoccerField Component - Interaction Testing', () => {
 
 // Import helper function and constant for direct testing
 import { isPositionOccupied, SUB_SLOT_OCCUPATION_THRESHOLD } from '../SoccerField';
-import { resolveSnapAction, discCenterX, findClearGhostY } from '../SoccerField';
+import { resolveSnapAction, discCenterX } from '../SoccerField';
 
 describe('isPositionOccupied Helper Function', () => {
   const createPlayer = (relX?: number, relY?: number): Player => ({
@@ -1465,34 +1414,6 @@ describe('discCenterX (edge discs stay on the canvas)', () => {
 
   it('leaves the position alone when the canvas is too narrow to hold the disc', () => {
     expect(discCenterX(0.5, 40, 24)).toBe(20);
-  });
-});
-
-/**
- * A planned-sub ghost must never overlap a real disc: a sub parked by hand
- * a little off its sideline slot sat half on top of the neighbouring ghost.
- * @edge-case
- */
-describe('findClearGhostY (ghosts never overlap a disc)', () => {
-  const R = 24;
-  const clearOf = (y: number, o: { x: number; y: number; r: number }) =>
-    Math.hypot(o.x - 300, o.y - y) >= o.r + R + 2;
-
-  it('keeps the slot position when nothing is near', () => {
-    expect(findClearGhostY(300, 400, R, [{ x: 100, y: 400, r: R }])).toBe(400);
-  });
-
-  it('slides along the rail, away from a disc that overlaps the slot', () => {
-    const disc = { x: 300, y: 445, r: R };
-    const y = findClearGhostY(300, 410, R, [disc]);
-    expect(y).not.toBeNull();
-    expect(y as number).toBeLessThan(410);
-    expect(clearOf(y as number, disc)).toBe(true);
-  });
-
-  it('gives up (null) when no spot within one radius is clear', () => {
-    // Discs right above and below the slot: there is no room on the rail.
-    expect(findClearGhostY(300, 400, R, [{ x: 300, y: 380, r: R }, { x: 300, y: 420, r: R }])).toBeNull();
   });
 });
 

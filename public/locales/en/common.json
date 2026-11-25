@@ -398,9 +398,7 @@
     "addOpponent": "Add Opp",
     "clear": "Clear",
     "reset": "Reset",
-    "togglePlannedSubs": "Show planned substitutions",
-    "planViewLineup": "Lineup only",
-    "planViewGhosts": "Planned substitutions",
+    "planViewLineup": "Lineup",
     "planViewChains": "Substitutions and minutes"
   },
   "gameResult": {
