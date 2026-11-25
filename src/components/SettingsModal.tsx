@@ -149,7 +149,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { userId } = useDataStore();
-  // Perusnäkymä / Koko näkymä (Onboarding v3): the one layout control.
+  // Kevennetty näkymä / Koko näkymä (Onboarding v3): the one layout control.
   const appLayout = useAppLayout();
   const setAppLayout = useSetAppLayout();
   const handleAppLayoutChange = async (layout: AppLayout) => {
@@ -705,8 +705,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
                 <div className={segmentTrackStyle} role="group" aria-label={t('settingsModal.layoutLabel', 'Layout')}>
                   {([
-                    ['basic', t('settingsModal.layoutBasic', 'Basic')],
-                    ['full', t('settingsModal.layoutFull', 'Full')],
+                    ['basic', t('settingsModal.layoutBasic', 'Basic view')],
+                    ['full', t('settingsModal.layoutFull', 'Full view')],
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}
@@ -722,7 +722,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   ))}
                 </div>
                 <p className={subtextStyle}>
-                  {t('settingsModal.layoutHint', 'The full layout shows every feature. Nothing is removed.')}
+                  {t('settingsModal.layoutHint', 'The Full view shows every feature. Nothing is removed.')}
                 </p>
               </div>
               {/* Player assessments were removed from Settings for now (owner

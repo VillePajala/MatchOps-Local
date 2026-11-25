@@ -757,8 +757,9 @@ describe('Translation File Validation', () => {
       // +7 / -6 privacy pass (2026-11-23): labs toasts, typed-only report
       //     copy, support-email processor (4 keys); paid-features terms list,
       //     billing, cancellation and data-after-cancel removed. 3666.
-      // +38 planCreateGames.* (create games from the match planner, 2026-11-25). 3704.
-      expect(enKeys.length).toBe(3704);
+      // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
+      // +38 planCreateGames.* (create games from the match planner, 2026-11-25). 3712.
+      expect(enKeys.length).toBe(3712);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -975,7 +976,8 @@ describe('Translation File Validation', () => {
       // +8 / -2 league & tournament cards (record line, starts-in chip). 3663.
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
       // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3666.
-      expect(fiKeys.length).toBe(3704); // +38 planCreateGames.* (2026-11-25)
+      // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
+      expect(fiKeys.length).toBe(3712); // +38 planCreateGames.* (2026-11-25)
     });
   });
 });

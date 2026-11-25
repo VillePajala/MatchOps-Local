@@ -1,5 +1,5 @@
 /**
- * The basic layout's Home (Perusnäkymä, Onboarding v3): the next-game card in
+ * The basic layout's Home (Kevennetty näkymä, Onboarding v3): the next-game card in
  * its states, the rows that appear with data, and "Kaikki toiminnot".
  * @critical
  */
@@ -8,6 +8,7 @@ import { render, screen, fireEvent, waitFor, act, within } from '@testing-librar
 import '@testing-library/jest-dom';
 import type { TFunction } from 'i18next';
 import HomeBasic from '../HomeBasic';
+import { LayoutNoticeDialog } from '../LayoutNoticeDialog';
 import type { HomeSummary, HomeUpcomingGame, HomeResumeGame } from '@/utils/homeSummary';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import { buildFirstPlan } from '@/services/nextGamePair';
@@ -207,9 +208,40 @@ describe('HomeBasic rows and Kaikki toiminnot', () => {
   it('shows a permanent full-app line under the header that opens the All features sheet', () => {
     render(<HomeBasic summary={summary()} {...handlers()} locale="en" t={t} />);
     const line = screen.getByTestId('full-app-line');
-    expect(line).toHaveTextContent('Simplified view · See the full app');
+    expect(line).toHaveTextContent('Basic view · See the full app');
     fireEvent.click(line);
     expect(screen.getByTestId('all-features-sheet')).toBeInTheDocument();
+  });
+
+  /** @critical the switch line is never replaced by the layout notice (owner) */
+  it.each([
+    ['"Got it"', 'layout-notice-ok'],
+    ['"Don\'t show again"', 'layout-notice-stop'],
+  ])('the full-app line stays after the layout notice is closed with %s', async (_label, buttonId) => {
+    const h = handlers();
+    function HomeWithNotice() {
+      const [open, setOpen] = React.useState(true);
+      return (
+        <>
+          <HomeBasic summary={summary()} {...h} locale="en" t={t} />
+          {open && (
+            <LayoutNoticeDialog
+              notice={2}
+              onAcknowledge={() => setOpen(false)}
+              onSwitchToFull={() => setOpen(false)}
+              onStop={() => setOpen(false)}
+            />
+          )}
+        </>
+      );
+    }
+    render(<HomeWithNotice />);
+    expect(screen.getByTestId('layout-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('full-app-line')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId(buttonId));
+    expect(screen.queryByTestId('layout-notice')).not.toBeInTheDocument();
+    expect(screen.getByTestId('full-app-line')).toHaveTextContent('Basic view · See the full app');
+    await waitFor(() => expect(mockGetPlan).toHaveBeenCalled());
   });
 
   it('Kaikki toiminnot closes from its close button and with Escape (R13)', async () => {

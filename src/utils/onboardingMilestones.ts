@@ -71,6 +71,30 @@ export function recordMilestone(
 }
 
 /**
+ * Record entries that are APP STATE rather than measurement - the basic-layout
+ * notice's "shown" and "stopped" marks (see layoutNotice.ts). They are written
+ * whatever the diagnostics switch says, the same as the layout itself: without
+ * them the notice would come back on every visit. Earlier timestamps are kept.
+ *
+ * Resolves true when the marks are stored (or already were), false when the
+ * write failed - the caller then does not show the notice, so a failing store
+ * can never make it repeat.
+ */
+export function recordAppStateMilestones(
+  milestones: OnboardingMilestone[],
+  userId: string | null | undefined,
+  at: Date = new Date(),
+): Promise<boolean> {
+  let stored = false;
+  return enqueue(async () => {
+    const settings = await getAppSettings(toStoreId(userId));
+    const patch = milestonePatch(settings.onboardingMilestones, milestones, at);
+    if (patch) await updateAppSettings(patch, toStoreId(userId));
+    stored = true;
+  }).then(() => stored);
+}
+
+/**
  * Whether this ACCOUNT has already been through the setup wizard - finished
  * ("Valmis") or skipped (review R9). Read from the synced settings row, so a new
  * phone knows it too; the per-device localStorage flag is only a fast cache.

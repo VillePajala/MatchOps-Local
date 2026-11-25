@@ -235,7 +235,7 @@ interface StartScreenProps {
   /** Recent-strip deep-link: open a specific saved game by id. */
   onOpenGameById?: (id: string) => void;
   /**
-   * Which layout Home renders (Onboarding v3): 'basic' (Perusnäkymä, no tab
+   * Which layout Home renders (Onboarding v3): 'basic' (Kevennetty näkymä, no tab
    * bar), 'full' (the tabbed Home), or 'loading' while the account's setting is
    * not known yet - then the body stays empty rather than flash either one.
    */
@@ -308,7 +308,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   // The full layout always shows the dashboard once there are games: the old
   // compact launcher ("Etusivun kortit: tiivis") was retired 2026-11-19 - the
-  // basic layout (Perusnäkymä) now serves coaches who want a simpler Home.
+  // basic layout (Kevennetty näkymä) now serves coaches who want a simpler Home.
   const dashboardOn = !isFirstTimeUser && hasSavedGames;
   // Entity counts on the Club / Competitions rows - only once the enriched
   // summary has loaded, so a still-loading 0 never reads as "you have none".
@@ -518,7 +518,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           }`}
         >
           {!layoutKnown ? null : isBasic ? (
-            /* Perusnäkymä (Onboarding v3): its own body, no tab bar. */
+            /* Kevennetty näkymä (Onboarding v3): its own body, no tab bar. */
             <HomeBasic
               summary={homeSummary}
               onOpenGame={(id) => onOpenGameById?.(id)}

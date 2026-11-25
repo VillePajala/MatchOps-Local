@@ -13,6 +13,11 @@
       ]
     },
     {
+      "date": "2026-11-25",
+      "en": ["The simpler layout for new coaches is now called the Basic view, and a short notice tells what the Full view adds and how to switch to it."],
+      "fi": ["Uusien valmentajien yksinkertaisempi näkymä on nyt nimeltään Kevennetty näkymä, ja lyhyt ilmoitus kertoo, mitä Koko näkymässä on lisäksi ja miten siihen vaihdetaan."]
+    },
+    {
       "date": "2026-11-24",
       "en": ["Finnish wording polished in the app: clearer names for the connection status, a player's match list and the match menu's extras."],
       "fi": ["Suomenkielisiä tekstejä on hiottu: yhteyden tila on nyt \"Ei yhteyttä\", pelaajan Otteluloki on \"Pelatut ottelut\" ja ottelun valikon Resurssit on \"Apuvälineet\"."]

@@ -115,6 +115,13 @@ export const markOnboardingJustFinished = (): void => {
   onboardingListeners.forEach((l) => l());
 };
 
+/**
+ * Another Home prompt took this visit (the basic-layout notice): the
+ * marketing-consent prompt waits for a later visit too, so the coach never gets
+ * two dialogs in a row. Same flag and same clearing as the post-onboarding visit.
+ */
+export const deferHomePromptsThisVisit = (): void => markOnboardingJustFinished();
+
 const subscribeOnboarding = (listener: () => void) => {
   onboardingListeners.add(listener);
   return () => {
