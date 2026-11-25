@@ -34,6 +34,17 @@ jest.mock('@/playbook/PlaybookLibrary', () => ({
   ),
 }));
 jest.mock('@/utils/playtimePlanner/planLinks', () => ({ getPlanLink: jest.fn().mockResolvedValue(null) }));
+// The day-report prompts read plans, links and games; they have their own
+// suites (useDayReportPrompt / dayReportPrompts / dayReportEntryPoints).
+const mockDayReportPrompt = jest.fn((): { planId: string; planName: string; lastGameDate: string } | null => null);
+jest.mock('@/hooks/useDayReportPrompt', () => ({
+  useDayReportPrompt: () => mockDayReportPrompt(),
+  useLastDayGamePlan: () => null,
+}));
+jest.mock('@/components/PlanDayReportLauncher', () => ({
+  __esModule: true,
+  default: ({ planId }: { planId: string }) => <div data-testid="day-report-launcher">{planId}</div>,
+}));
 jest.mock('@/utils/playtimePlanner/storage', () => ({
   ...jest.requireActual('@/utils/playtimePlanner/storage'),
   getPlan: jest.fn().mockResolvedValue(null),
@@ -1344,6 +1355,28 @@ describe('Home guide + empty-state guidance', () => {
       render(<StartScreen {...shellProps()} homeSummary={summary} />);
       expect(screen.queryByTestId('home-basic')).not.toBeInTheDocument();
       expect(screen.getByRole('tablist')).toBeInTheDocument();
+    });
+
+    /** Home entry for the day report: a played plan day with no report yet (rule: dayReportPrompts.test). */
+    it.each([['full', undefined], ['basic', 'basic' as const]])(
+      '%s: shows "<plan> done · Write the report" while a day is waiting, and opens the day report',
+      async (_name, appLayout) => {
+        mockDayReportPrompt.mockReturnValue({ planId: 'plan1', planName: 'Joulufutis 12.12.', lastGameDate: '2026-12-12' });
+        render(<StartScreen {...shellProps()} appLayout={appLayout} homeSummary={summary} />);
+        const row = screen.getByTestId('home-day-report-prompt');
+        expect(row).toHaveTextContent('Joulufutis 12.12. done · Write the report');
+        await act(async () => {
+          fireEvent.click(row);
+        });
+        expect(screen.getByTestId('day-report-launcher')).toHaveTextContent('plan1');
+        mockDayReportPrompt.mockReturnValue(null);
+      },
+    );
+
+    it('shows no day-report row when no day is waiting', () => {
+      mockDayReportPrompt.mockReturnValue(null);
+      render(<StartScreen {...shellProps()} homeSummary={summary} />);
+      expect(screen.queryByTestId('home-day-report-prompt')).not.toBeInTheDocument();
     });
 
     it('loading: neither layout renders (no flash of the wrong one)', () => {

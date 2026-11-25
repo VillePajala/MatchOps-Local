@@ -19,7 +19,7 @@ import OpponentNameSweepModal from '@/components/OpponentNameSweepModal';
 import { useOpponentVariantGroups } from '@/hooks/useOpponentVariantGroups';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { Season, Tournament, Player } from '@/types';
-import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox, HiOutlineMagnifyingGlass, HiOutlinePlus, HiOutlineBarsArrowDown } from 'react-icons/hi2';
+import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox, HiOutlineMagnifyingGlass, HiOutlinePlus, HiOutlineBarsArrowDown, HiOutlineDocumentText } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import SeasonDetailsModal from './SeasonDetailsModal';
@@ -36,6 +36,10 @@ import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
 import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
+import PlanDayReportModal from '@/components/PlanDayReportModal';
+import { useToast } from '@/contexts/ToastProvider';
+import { isCompetitionGamePlayed, orderCompetitionGames } from '@/utils/competitionReport';
+import type { DayReportGameInput } from '@/utils/playtimePlanner/dayReport';
 
 /** `actionsMenuId` of the list's own ⋮ menu by the search (row menus use item ids). */
 const LIST_MENU_ID = '__competitions-list-menu__';
@@ -76,7 +80,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const managerTitle = kind === 'season'
         ? t('seasonTournamentModal.seasons', 'Leagues')
         : t('seasonTournamentModal.tournaments', 'Tournaments');
-    const { getStore } = useDataStore();
+    const { getStore, userId } = useDataStore();
+    const { showToast } = useToast();
 
     // Premium limit checks (count non-archived items)
     const activeSeasonCount = seasons.filter(s => !s.archived).length;
@@ -114,6 +119,12 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     // Each item's played-games record (every team's games linked to it, as the
     // old Ottelut / Maalit numbers counted), for the card's result line.
     const [records, setRecords] = useState<Record<string, TeamRecord>>({});
+    // How many of each item's games are PLAYED (the report is offered from one).
+    const [playedCounts, setPlayedCounts] = useState<Record<string, number>>({});
+    // "Turnauksen raportti" / "Sarjaraportti" over one item's played games.
+    // `text` is the item's saved reportText, updated at once on Save (the
+    // lists refresh only after the store write).
+    const [report, setReport] = useState<{ id: string; name: string; inputs: DayReportGameInput[]; text?: string } | null>(null);
 
     const [searchText, setSearchText] = useState('');
     // Remembered on this device, per list (review 7.L10).
@@ -128,7 +139,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     // from the same hook, so the badge cannot advertise work that is not there.
     const nameConflicts = useOpponentVariantGroups(isOpen).length;
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    useEscapeToClose(isOpen, onClose, !showDeleteConfirm);
+    useEscapeToClose(isOpen, onClose, !showDeleteConfirm && report === null);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string; type: 'season' | 'tournament' } | null>(null);
 
     // Delete blocked state
@@ -150,13 +161,18 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         const loadStats = async () => {
             const { getFilteredGames } = await import('@/utils/savedGames');
             const next: Record<string, TeamRecord> = {};
+            const played: Record<string, number> = {};
             // Only the shown kind needs records (this manager renders one list).
             const items = kind === 'season' ? seasons : tournaments;
             for (const item of items) {
                 const games = await getFilteredGames(kind === 'season' ? { seasonId: item.id } : { tournamentId: item.id });
                 next[item.id] = computeCompetitionRecord(games.map(([, g]) => g));
+                played[item.id] = games.filter(([, g]) => isCompetitionGamePlayed(g)).length;
             }
-            if (!cancelled) setRecords(next);
+            if (!cancelled) {
+                setRecords(next);
+                setPlayedCounts(played);
+            }
         };
         if (isOpen) {
             loadStats().catch((error) => logger.error('[SeasonTournamentManagementModal] Failed to load records:', error));
@@ -215,6 +231,48 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const handleTournamentClick = (tournamentId: string) => {
         setSelectedTournamentId(tournamentId);
     };
+
+    // The competition's played games, read fresh (one may have been played
+    // since this list loaded), oldest first.
+    const handleOpenReport = async (item: Season | Tournament) => {
+        setActionsMenuId(null);
+        try {
+            const { getSavedGames } = await import('@/utils/savedGames');
+            const games = await getSavedGames(userId);
+            setReport({ id: item.id, name: item.name, inputs: orderCompetitionGames(games, kind, item.id), text: item.reportText });
+        } catch (error) {
+            logger.error('[SeasonTournamentManagementModal] Failed to load games for the report:', error);
+            showToast(t('planDayReport.loadError', 'Could not load the games. Try again.'), 'error');
+        }
+    };
+    // Save the report text on the item (migration 068). Shown at once; the
+    // write follows and is reported if it fails. The item is taken from the
+    // current list, so the write carries its latest other fields.
+    const handleSaveReport = (text: string) => {
+        if (!report) return;
+        const item = (kind === 'season' ? seasons : tournaments).find((d) => d.id === report.id);
+        if (!item) {
+            showToast(t('competitionReport.saveError', 'Could not save the report. Try again.'), 'error');
+            return;
+        }
+        setReport((current) => (current && current.id === item.id ? { ...current, text: text || undefined } : current));
+        const { reportText: _previous, ...rest } = item;
+        const next = text ? { ...rest, reportText: text } : rest;
+        const write = kind === 'season'
+            ? updateSeasonMutation.mutateAsync(next as Season)
+            : updateTournamentMutation.mutateAsync(next as Tournament);
+        write
+            .then((saved) => {
+                if (!saved) throw new Error('update returned null');
+            })
+            .catch((error) => {
+                logger.error('[SeasonTournamentManagementModal] Failed to save the report text:', error);
+                showToast(t('competitionReport.saveError', 'Could not save the report. Try again.'), 'error');
+            });
+    };
+    const reportLabel = kind === 'season'
+        ? t('competitionReport.seasonTitle', 'League report')
+        : t('competitionReport.tournamentTitle', 'Tournament report');
 
     const handleEditClick = (item: Season | Tournament, type: 'season' | 'tournament') => {
         if (type === 'season') {
@@ -385,6 +443,16 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                             <HiOutlinePencil className="w-4 h-4" />
                                             {t('common.edit', 'Edit')}
                                         </button>
+                                        {(playedCounts[item.id] ?? 0) > 0 && (
+                                            <button
+                                                onClick={() => void handleOpenReport(item)}
+                                                className={popoverItemStyle}
+                                                data-testid={`competition-report-${item.id}`}
+                                            >
+                                                <HiOutlineDocumentText className="w-4 h-4" />
+                                                {reportLabel}
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => handleToggleArchive(item, type)}
                                             className={popoverItemStyle}
@@ -540,6 +608,11 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         season={seasons.find(s => s.id === selectedSeasonId) || null}
         updateSeasonMutation={updateSeasonMutation}
         onOpenSettings={onOpenSettings}
+        onOpenReport={(() => {
+          const item = seasons.find((d) => d.id === selectedSeasonId);
+          return item && (playedCounts[item.id] ?? 0) > 0 ? () => void handleOpenReport(item) : undefined;
+        })()}
+        reportOpen={report !== null}
       />
 
       {/* Tournament Create Modal */}
@@ -561,6 +634,11 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         masterRoster={masterRoster}
         updateTournamentMutation={updateTournamentMutation}
         onOpenSettings={onOpenSettings}
+        onOpenReport={(() => {
+          const item = tournaments.find((d) => d.id === selectedTournamentId);
+          return item && (playedCounts[item.id] ?? 0) > 0 ? () => void handleOpenReport(item) : undefined;
+        })()}
+        reportOpen={report !== null}
       />
 
       {/* Delete Confirmation Modal */}
@@ -594,6 +672,20 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         />
       )}
       <OpponentNameSweepModal isOpen={showNameSweep} onClose={() => setShowNameSweep(false)} />
+      {/* Last: above an open details sheet (same layer). The text is saved on
+          the item (reportText) - see handleSaveReport. */}
+      {report && (
+        <PlanDayReportModal
+          kind={kind}
+          subject={{ name: report.name, players: [] }}
+          savedText={report.text}
+          inputs={report.inputs}
+          roster={masterRoster}
+          onSave={handleSaveReport}
+          onClose={() => setReport(null)}
+          ownHardwareBack
+        />
+      )}
     </div>
   );
 };

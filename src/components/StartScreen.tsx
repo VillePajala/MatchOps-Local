@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonHero, HomeStatsHero, HomeTeamsCard, HomeClubCard, HomeIcon, HOME_CARD, HOME_FOCUS, formatDayMonth } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeSeasonHero, HomeStatsHero, HomeTeamsCard, HomeClubCard, HomeIcon, HOME_CARD, HOME_FOCUS, formatDayMonth, DayReportPromptRow } from '@/components/HomeDashboard';
+import { useDayReportPrompt } from '@/hooks/useDayReportPrompt';
+import PlanDayReportLauncher from '@/components/PlanDayReportLauncher';
 import type { HomeCompetition } from '@/utils/homeSummary';
 import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
 import { APP_VERSION } from '@/config/constants';
@@ -381,6 +383,19 @@ const StartScreen: React.FC<StartScreenProps> = ({
     locale: language,
     t,
   });
+  // "<plan> valmis · Tee raportti": a played day whose report is not written
+  // yet (both layouts). A save re-runs the lookup so the row goes away.
+  const [dayReportRefresh, setDayReportRefresh] = useState(0);
+  const dayReportRefreshKey = useMemo(() => ({ homeSummary, dayReportRefresh }), [homeSummary, dayReportRefresh]);
+  const dayReportPrompt = useDayReportPrompt(layoutKnown, dayReportRefreshKey);
+  const [dayReportPlanId, setDayReportPlanId] = useState<string | null>(null);
+  const dayReportRow = dayReportPrompt ? (
+    <DayReportPromptRow
+      planName={dayReportPrompt.planName}
+      onOpen={() => setDayReportPlanId(dayReportPrompt.planId)}
+      t={t}
+    />
+  ) : null;
   // Which Home panel the body shows (restructure 1.3b): the tabs became REAL
   // tabs - Games (front page) and Team (club entry rows) switch panels here;
   // Seasons/Stats stay one-tap openers for their single-purpose scopes.
@@ -549,6 +564,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               onAddPlayers={onAddPlayers}
               onViewStats={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
               onSwitchToFull={onSwitchToFullLayout}
+              dayReportPrompt={dayReportRow}
               locale={language}
               t={t}
             />
@@ -840,6 +856,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <HomeIcon name="arrow" className="h-5 w-5" strokeWidth={2.4} />
                 </button>
               ) : null}
+              {/* A finished plan day whose report is not written yet. */}
+              {dayReportRow}
               {/* New Game is the hero when there's nothing to resume (the new
                   coach adds players inside this flow); otherwise it steps back
                   to the outline style - paired with Saved games in dashboard
@@ -1075,6 +1093,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {dayReportPlanId && (
+        <PlanDayReportLauncher
+          planId={dayReportPlanId}
+          onClose={() => setDayReportPlanId(null)}
+          onSaved={() => setDayReportRefresh((n) => n + 1)}
+        />
       )}
 
       {playbookOn && playbookOpen && (

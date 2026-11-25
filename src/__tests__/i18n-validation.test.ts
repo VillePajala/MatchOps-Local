@@ -777,8 +777,11 @@ describe('Translation File Validation', () => {
       // +9 / -5 batch sheet game blocks (count line, headings, summary, optional
       //     hint); planCreateGames.venue and the four HH/MM time placeholders
       //     removed (one native time picker). 3716.
-      // Merge of feat/pelitapa (3739) with master (3721): +55 master keys. 3794.
-      expect(enKeys.length).toBe(3794);
+      // +36 planDayReport.* (tournament day report, 2026-11-25). 3757.
+      // master: competitionReport -6/+3 (migration 068) and +10 planDayReport.* +20 competitionReport.*. 3784.
+      // Merge of feat/pelitapa with master (3784): +73 pelitapa keys. 3857.
+      // +2 privacyPolicy.dataWeCollect.featureAccess* (feature / content access records). 3859.
+      expect(enKeys.length).toBe(3859);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -1010,8 +1013,11 @@ describe('Translation File Validation', () => {
       // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
       // +38 planCreateGames.* (2026-11-25). 3712.
       // +9 / -5 batch sheet game blocks; venue + HH/MM placeholders removed. 3716.
-      // Merge of feat/pelitapa (3739) with master (3721): +55 master keys. 3794.
-      expect(fiKeys.length).toBe(3794);
+      // +36 planDayReport.* (tournament day report, 2026-11-25). 3757.
+      // master: competitionReport -6/+3 (migration 068) and +10 planDayReport.* +20 competitionReport.*. 3784.
+      // Merge of feat/pelitapa with master (3784): +73 pelitapa keys. 3857.
+      // +2 privacyPolicy.dataWeCollect.featureAccess* (feature / content access records). 3859.
+      expect(fiKeys.length).toBe(3859);
     });
   });
 });

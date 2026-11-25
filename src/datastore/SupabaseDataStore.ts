@@ -59,7 +59,7 @@ import {
   StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString, isNewCompositeDuplicate } from '@/datastore/validation';
+import { validateGame, normalizeOptionalString, isNewCompositeDuplicate, withNormalizedReportText } from '@/datastore/validation';
 
 /**
  * Options for a SYNC write (review 3.13b): `editedAt` is the server-computed edit time
@@ -1882,12 +1882,12 @@ export class SupabaseDataStore implements DataStore {
     }
 
     const now = new Date().toISOString();
-    const newSeason: Season = {
+    const newSeason: Season = withNormalizedReportText({
       id: generateId('season'),
       name: trimmedName,
       ...(extra || {}),
       clubSeason: newClubSeason,
-    };
+    }, 'Season');
 
     const userId = await this.getUserId();
     const { error } = await this.withRetry(async () => {
@@ -1978,12 +1978,12 @@ export class SupabaseDataStore implements DataStore {
       throw new AlreadyExistsError('season', trimmedName);
     }
 
-    const updatedSeason: Season = {
+    const updatedSeason: Season = withNormalizedReportText({
       ...this.transformSeasonFromDb(existing),
       ...season,
       name: trimmedName,
       clubSeason: newClubSeason,
-    };
+    }, 'Season');
 
     const updatePayload: SeasonUpdate = {
       name: updatedSeason.name,
@@ -2004,6 +2004,7 @@ export class SupabaseDataStore implements DataStore {
       color: updatedSeason.color ?? null,
       badge: updatedSeason.badge ?? null,
       team_placements: normalizeTeamPlacements(updatedSeason.teamPlacements),
+      report_text: updatedSeason.reportText ? updatedSeason.reportText : null,
       // This payload is hand-built rather than reusing transformSeasonToDb, so
       // a new column has to be added HERE too. Migration 043's defect was
       // exactly this shape: the insert path picked the field up and every
@@ -2074,6 +2075,9 @@ export class SupabaseDataStore implements DataStore {
       badge: row.badge ?? undefined,
       teamPlacements: parseTeamPlacements(row.team_placements),
       opponents: normalizeOpponentList(row.opponents),
+      // Migration 068. NULL (and a stray '') read as absent, as LocalDataStore
+      // stores a blank report (normalizeReportText).
+      reportText: row.report_text ? row.report_text : undefined,
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
     };
@@ -2101,6 +2105,8 @@ export class SupabaseDataStore implements DataStore {
       color: season.color ?? null,
       badge: season.badge ?? null,
       team_placements: normalizeTeamPlacements(season.teamPlacements),
+      // Migration 068: blank -> NULL (Rule 1 pattern).
+      report_text: season.reportText ? season.reportText : null,
       // Labels, not entities - see utils/opponentNames.ts. Always an array,
       // never null, so a league whose list was cleared reads back the same
       // way as one that never had one.
@@ -2151,14 +2157,14 @@ export class SupabaseDataStore implements DataStore {
 
     const now = new Date().toISOString();
     const userId = await this.getUserId();
-    const seasonToUpsert: Season = {
+    const seasonToUpsert: Season = withNormalizedReportText({
       ...season,
       name: trimmedName,
       ageGroup: normalizedAgeGroup ?? undefined,
       notes: normalizeOptionalString(season.notes) ?? undefined,
       clubSeason,
       archived: season.archived ?? false,
-    };
+    }, 'Season');
 
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
@@ -2265,14 +2271,14 @@ export class SupabaseDataStore implements DataStore {
 
     const now = new Date().toISOString();
     const { level, ageGroup, ...rest } = extra || {};
-    const newTournament: Tournament = {
+    const newTournament: Tournament = withNormalizedReportText({
       id: generateId('tournament'),
       name: trimmedName,
       ...rest,
       ...(level ? { level } : {}),
       ...(ageGroup ? { ageGroup } : {}),
       clubSeason: newClubSeason,
-    };
+    }, 'Tournament');
 
     const userId = await this.getUserId();
     const { error } = await this.withRetry(async () => {
@@ -2362,12 +2368,12 @@ export class SupabaseDataStore implements DataStore {
       throw new AlreadyExistsError('tournament', trimmedName);
     }
 
-    const updatedTournament: Tournament = {
+    const updatedTournament: Tournament = withNormalizedReportText({
       ...this.transformTournamentFromDb(existing),
       ...tournament,
       name: trimmedName,
       clubSeason: newClubSeason,
-    };
+    }, 'Tournament');
 
     const updatePayload: TournamentUpdate = {
       name: updatedTournament.name,
@@ -2389,6 +2395,8 @@ export class SupabaseDataStore implements DataStore {
       team_placements: normalizeTeamPlacements(updatedTournament.teamPlacements),
       series: (updatedTournament.series as unknown as Json) ?? null,
       archived: updatedTournament.archived ?? false,
+      // Hand-built payload (not transformTournamentToDb): a new column goes here too.
+      report_text: updatedTournament.reportText ? updatedTournament.reportText : null,
       updated_at: new Date().toISOString(),
     };
 
@@ -2454,6 +2462,8 @@ export class SupabaseDataStore implements DataStore {
       badge: row.badge ?? undefined,
       awardedPlayerId: row.awarded_player_id ?? undefined,
       teamPlacements: parseTeamPlacements(row.team_placements),
+      // Migration 068 - see transformSeasonFromDb.
+      reportText: row.report_text ? row.report_text : undefined,
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
     };
@@ -2482,6 +2492,8 @@ export class SupabaseDataStore implements DataStore {
       team_placements: normalizeTeamPlacements(tournament.teamPlacements),
       series: (tournament.series as unknown as Json) ?? null,
       archived: tournament.archived ?? false,
+      // Migration 068: blank -> NULL (Rule 1 pattern).
+      report_text: tournament.reportText ? tournament.reportText : null,
       // Preserve original creation time on sync push / upsert (matches teams/personnel).
       created_at: tournament.createdAt ?? now,
       updated_at: now,
@@ -2528,7 +2540,7 @@ export class SupabaseDataStore implements DataStore {
 
     const now = new Date().toISOString();
     const userId = await this.getUserId();
-    const tournamentToUpsert: Tournament = {
+    const tournamentToUpsert: Tournament = withNormalizedReportText({
       ...tournament,
       name: trimmedName,
       ageGroup: normalizedAgeGroup ?? undefined,
@@ -2536,7 +2548,7 @@ export class SupabaseDataStore implements DataStore {
       notes: normalizeOptionalString(tournament.notes) ?? undefined,
       clubSeason,
       archived: tournament.archived ?? false,
-    };
+    }, 'Tournament');
 
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()

@@ -122,6 +122,15 @@ export interface Season {
    */
   opponents?: string[];
   /**
+   * The coach's "Sarjaraportti" text (written in the league report view).
+   *
+   * @remarks
+   * - Free text, capped like a game's report (GAME_NOTES_MAX). Absent = none:
+   *   blank is never stored (cloud column `report_text`, NULL when absent -
+   *   migration 068).
+   */
+  reportText?: string;
+  /**
    * Game type for this season - soccer (outdoor) or futsal (indoor).
    *
    * @remarks
@@ -237,6 +246,15 @@ export interface Tournament {
    * - Can be "off-season" if date falls outside season boundaries
    */
   clubSeason?: string;
+  /**
+   * The coach's "Turnauksen raportti" text (written in the tournament report view).
+   *
+   * @remarks
+   * - Free text, capped like a game's report (GAME_NOTES_MAX). Absent = none:
+   *   blank is never stored (cloud column `report_text`, NULL when absent -
+   *   migration 068).
+   */
+  reportText?: string;
   createdAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
   updatedAt?: string; // ISO timestamp - optional for backwards compatibility with legacy data
   // Note: teamId removed - tournaments are global entities per plan

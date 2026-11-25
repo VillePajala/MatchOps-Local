@@ -2,9 +2,9 @@
 -- 065: playbooks - read-only Pelitapa content shared with chosen accounts
 -- ============================================================================
 -- A playbook is a club's (or our own) set of playing concepts: each concept is
--- one JSON document in the Pelitapa format (src/pelitapa/types.ts, checked by
--- src/pelitapa/validateConcept.ts in the app). The content is NOT the coach's
--- data: it is written by the service role / SQL (scripts/pelitapa/seed-playbook.mjs)
+-- one JSON document in the Pelitapa format (src/playbook/types.ts, checked by
+-- src/playbook/validateConcept.ts in the app). The content is NOT the coach's
+-- data: it is written by the service role / SQL (scripts/playbook/seed-playbook.mjs)
 -- and shared with individual accounts by a row in playbook_access. See
 -- docs/03-active-plans/UNIFIED-ROADMAP.md, "Pelitapa library".
 --

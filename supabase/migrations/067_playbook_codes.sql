@@ -4,7 +4,7 @@
 -- A club gives its coaches a code ("PEPO-7KQ2-M9XD-4HNA"); a coach types it in
 -- the library and redeem_playbook_code() grants that account the playbook
 -- (a playbook_access row, migration 065). Codes are created by the service
--- role (scripts/pelitapa/create-code.mjs); see
+-- role (scripts/playbook/create-code.mjs); see
 -- docs/03-active-plans/UNIFIED-ROADMAP.md, "Pelitapa library" -> ACCESS MODEL.
 --
 -- Only a HASH of each code is stored: hex sha256 of the NORMALISED code

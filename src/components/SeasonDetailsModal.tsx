@@ -22,8 +22,8 @@ import {
   type LeagueLevelFilter,
 } from '@/config/leagues';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
-import { HiExclamationTriangle } from 'react-icons/hi2';
-import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
+import { HiExclamationTriangle, HiOutlineDocumentText } from 'react-icons/hi2';
+import { MODAL_BACKDROP, Z_LAYER, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useEscapeToClose } from '@/hooks/useEscapeToClose';
 
 interface SeasonDetailsModalProps {
@@ -34,6 +34,10 @@ interface SeasonDetailsModalProps {
   addSeasonMutation?: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
   updateSeasonMutation?: UseMutationResult<Season | null, Error, Season, unknown>;
   onOpenSettings?: () => void;
+  /** Opens this competition's report (offered once it has a played game). */
+  onOpenReport?: () => void;
+  /** The report is open above this sheet: Escape and back belong to it. */
+  reportOpen?: boolean;
 }
 
 const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
@@ -44,6 +48,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   addSeasonMutation,
   updateSeasonMutation,
   onOpenSettings,
+  onOpenReport,
+  reportOpen = false,
 }) => {
   const { t } = useTranslation();
   const { userId } = useDataStore();
@@ -56,7 +62,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   });
 
   // Form state
-  useEscapeToClose(isOpen, onClose);
+  useEscapeToClose(isOpen, onClose, !reportOpen);
   const modalTitleId = useId();
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
@@ -265,7 +271,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   // sub-guard (not useModalHardwareBack) so back#1 cancels the dialog and back#2
   // still reaches the manager's sentinel - no fragile re-arm-after-a-back, which
   // fails on Android WebViews and would exit the app on back#2.
-  useHardwareBackSubLevel(isOpen, handleCancel);
+  useHardwareBackSubLevel(isOpen && !reportOpen, handleCancel);
 
   if (!isOpen) {
     return null;
@@ -289,6 +295,17 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-3 pb-6">
+          {mode === 'edit' && onOpenReport && (
+            <button
+              type="button"
+              onClick={onOpenReport}
+              data-testid="competition-details-report"
+              className={`${secondaryButtonStyle} w-full mb-3`}
+            >
+              <HiOutlineDocumentText className="w-5 h-5" aria-hidden="true" />
+              {t('competitionReport.seasonTitle', 'League report')}
+            </button>
+          )}
           <div className={cardStyle}>
             <div className="space-y-5">
               {/* Season Dates Not Configured Warning */}
