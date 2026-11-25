@@ -92,9 +92,12 @@ export function PlayerStatsTable({
       <thead>
         <tr className="h-10">
           {th('name', t('common.player', 'Player'), undefined, 'left')}
-          {th('gamesPlayed', t('common.gamesPlayedShort', 'GP'), '32px')}
-          {th('goals', t('common.goalsShort', 'G'), '28px')}
-          {th('assists', t('common.assistsShort', 'A'), '28px')}
+          {/* Widths fit the totals row (text-sm, tabular): a four-digit games
+              total, three-digit goal and assist totals - at 360 px the old
+              32/28 px columns ran "107" and "18" together as "10718". */}
+          {th('gamesPlayed', t('common.gamesPlayedShort', 'GP'), '40px')}
+          {th('goals', t('common.goalsShort', 'G'), '32px')}
+          {th('assists', t('common.assistsShort', 'A'), '32px')}
           {th('totalScore', t('common.totalScoreShort', 'Pts'), '40px')}
           {th('avgPoints', t('common.avgPointsShort', 'Avg'), '42px')}
         </tr>
@@ -125,8 +128,8 @@ export function PlayerStatsTable({
           </tr>
         )}
         {playerStats.length > 0 && (
-          <tr className="h-12 border-t border-hairline bg-white/[0.03] font-semibold text-ink tabular-nums">
-            <td className="pl-4 pr-1 py-0 text-ink-2">{t('playerStats.totalsRow', 'Totals')}</td>
+          <tr className="h-12 border-t border-hairline bg-white/[0.03] text-sm font-semibold text-ink tabular-nums">
+            <td className="pl-4 pr-1 py-0 text-base text-ink-2">{t('playerStats.totalsRow', 'Totals')}</td>
             <td className="px-0.5 py-0 text-center">{totals.gamesPlayed}</td>
             <td className="px-0.5 py-0 text-center">{totals.goals}</td>
             <td className="px-0.5 py-0 text-center">{totals.assists}</td>

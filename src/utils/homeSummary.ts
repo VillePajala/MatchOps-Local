@@ -85,6 +85,25 @@ function compareFixtures(a: [string, AppState], b: [string, AppState]): number {
   return creationOrder(a[0], a[1]) - creationOrder(b[0], b[1]);
 }
 
+/**
+ * Played matches, newest first: by date, then by kick-off time (later first),
+ * a match without a time after the timed ones that day, then the most recently
+ * created first. Not simply `compareFixtures` reversed, which would put the
+ * untimed match of a day first.
+ */
+function compareNewestFirst(a: [string, AppState], b: [string, AppState]): number {
+  const byDate = (b[1].gameDate || '').localeCompare(a[1].gameDate || '');
+  if (byDate !== 0) return byDate;
+  const ta = a[1].gameTime || '';
+  const tb = b[1].gameTime || '';
+  if (ta !== tb) {
+    if (!ta) return 1;
+    if (!tb) return -1;
+    return tb.localeCompare(ta);
+  }
+  return creationOrder(b[0], b[1]) - creationOrder(a[0], a[1]);
+}
+
 export interface HomeRecentGame {
   id: string;
   opponent: string;
@@ -450,7 +469,10 @@ export function buildHomeSummary(
       else byTeam.set(key, [g]);
     }
     teamRecords = Array.from(byTeam, ([teamId, teamGames]) => {
-      const newestFirst = [...teamGames].sort((a, b) => (b.gameDate || '').localeCompare(a.gameDate || ''));
+      const newestFirst = teamGames
+        .map((g): [string, AppState] => ['', g])
+        .sort(compareNewestFirst)
+        .map(([, g]) => g);
       return {
         teamId,
         fallbackName: newestFirst[0]?.teamName || '',
@@ -494,7 +516,7 @@ export function buildHomeSummary(
     });
   const playedCount = playedInScope.length;
   const recent: HomeRecentGame[] = playedInScope
-    .sort((a, b) => (b[1].gameDate || '').localeCompare(a[1].gameDate || ''))
+    .sort(compareNewestFirst)
     .slice(0, recentLimit)
     .map(([id, g]) => {
       const ourScore = g.homeOrAway === 'home' ? g.homeScore : g.awayScore;

@@ -31,7 +31,8 @@
     "goalie": "Mv",
     "captain": "C",
     "unknownPlayer": "tuntematon",
-    "extraTime": "jatkoaika"
+    "extraTime": "jatkoaika",
+    "shootout": "Rangaistuspotkukilpailu"
   },
   "evidence": {
     "button": "Jaa pelaajakooste",
@@ -3711,7 +3712,8 @@
     },
     "overview": {
       "gameLabel": "Peli {{n}}",
-      "formatSummary": "{{games}} peliä · {{periods}}×{{minutes}} min",
+      "formatSummary_one": "{{count}} peli · {{periods}}×{{minutes}} min",
+      "formatSummary_other": "{{count}} peliä · {{periods}}×{{minutes}} min",
       "gamesHeading": "Pelit",
       "deletePlan": "Poista",
       "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota.",
@@ -3732,7 +3734,8 @@
       "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Ei pelin pelaajalistassa, ohitettiin: {{names}}.",
       "reapplyDonePartial_one": "Päivitettiin {{count}} peli; {{failed}} pelin päivitys epäonnistui.",
       "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui.",
-      "reapplyDoneNoRoster": "Päivitettiin {{updated}} peliä; {{skipped}} pelissä ei ollut pelaajia listalla, joten ne jätettiin ennalleen.",
+      "reapplyDoneNoRoster_one": "Päivitettiin {{count}} peli; {{skipped}} pelissä ei ollut pelaajia listalla, joten ne jätettiin ennalleen.",
+      "reapplyDoneNoRoster_other": "Päivitettiin {{count}} peliä; {{skipped}} pelissä ei ollut pelaajia listalla, joten ne jätettiin ennalleen.",
       "suggestButton": "Ehdota kokoonpanot",
       "suggestConfirmTitle": "Ehdotetaanko kokoonpanot?",
       "suggestConfirmMessage": "Tekee avauskokoonpanot ja vaihdot jokaiseen mukana olevaan peliin niin, että peliaika jakautuu mahdollisimman tasan ja jokainen pelaaja pääsee kentälle. Maalivahtia ei koskaan vaihdeta kesken pelin.",
@@ -3859,7 +3862,11 @@
     "manager": {
       "title": "Suunnitelmat",
       "new": "Uusi suunnitelma",
-      "meta": "{{games}} peliä · {{players}} pelaajaa",
+      "meta": "{{games}} · {{players}}",
+      "games_one": "{{count}} peli",
+      "games_other": "{{count}} peliä",
+      "players_one": "{{count}} pelaaja",
+      "players_other": "{{count}} pelaajaa",
       "actions": "Suunnitelman toiminnot",
       "archive": "Arkistoi",
       "unarchive": "Palauta arkistosta",
