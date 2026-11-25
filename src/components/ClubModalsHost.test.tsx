@@ -169,15 +169,17 @@ jest.mock('@/hooks/useLoadGameController', () => ({
 
 jest.mock('@/components/NewGameSetupModal', () => ({
   __esModule: true,
-  default: ({ onStart, onCancel, onAddOpponentToSeason, onRenameOpponent, knownOpponents, playedOpponentsByCompetition }: {
+  default: ({ onStart, onCancel, onAddOpponentToSeason, onRenameOpponent, knownOpponents, playedOpponentsByCompetition, planSource }: {
     onStart: (...args: unknown[]) => void;
     onCancel: () => void;
+    planSource?: { plan: { id: string }; planGameId: string } | null;
     onAddOpponentToSeason?: (seasonId: string, name: string) => Promise<void>;
     onRenameOpponent?: (from: string, to: string) => Promise<unknown>;
     knownOpponents?: string[];
     playedOpponentsByCompetition?: Record<string, string[]>;
   }) => (
     <div data-testid="new-game-setup-modal">
+      <span data-testid="plan-source">{planSource ? `${planSource.plan.id}/${planSource.planGameId}` : 'none'}</span>
       <span data-testid="known-opponents">{(knownOpponents ?? []).join('|')}</span>
       <span data-testid="played-by-competition">
         {JSON.stringify(playedOpponentsByCompetition ?? {})}
@@ -244,11 +246,17 @@ jest.mock('@/hooks/useClubStatsController', () => ({
 
 jest.mock('@/components/PlaytimePlannerModal', () => ({
   __esModule: true,
-  default: ({ onFlushLiveGame }: { onFlushLiveGame?: () => Promise<void> }) => (
+  default: ({ onFlushLiveGame, onCreateGame, initialTarget }: {
+    onFlushLiveGame?: () => Promise<void>;
+    onCreateGame?: (plan: { id: string }, planGameId: string) => void;
+    initialTarget?: { planId: string; planGameId: string; tab?: string } | null;
+  }) => (
     <div data-testid="playtime-planner-modal">
+      <span data-testid="planner-target">{initialTarget ? `${initialTarget.planId}/${initialTarget.planGameId}/${initialTarget.tab}` : 'none'}</span>
       <button onClick={() => onFlushLiveGame?.()} disabled={!onFlushLiveGame}>
         planner-flush
       </button>
+      <button onClick={() => onCreateGame?.({ id: 'plan1' }, 'g2')}>planner-create-game</button>
     </div>
   ),
 }));
@@ -582,6 +590,33 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     await waitFor(() => expect(screen.getByText('planner-flush')).toBeEnabled());
     fireEvent.click(screen.getByText('planner-flush'));
     expect(mockFlushLiveGame).toHaveBeenCalledTimes(1);
+  });
+
+  /** "Luo ottelu" in the planner: the form takes over, prefilled; Cancel returns to the plan. */
+  it('opens the new-game form from a planned game and returns to the plan on cancel', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-planner'));
+    await waitFor(() => expect(screen.getByTestId('playtime-planner-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('planner-create-game'));
+
+    await waitFor(() => expect(screen.getByTestId('new-game-setup-modal')).toBeInTheDocument());
+    expect(screen.queryByTestId('playtime-planner-modal')).not.toBeInTheDocument();
+    expect(screen.getByTestId('plan-source')).toHaveTextContent('plan1/g2');
+
+    // Step past the provider's 200ms anti-flash close guard (see above).
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 300);
+    try {
+      fireEvent.click(screen.getByText('cancel-new-game'));
+      await waitFor(() => expect(screen.getByTestId('playtime-planner-modal')).toBeInTheDocument());
+      expect(screen.getByTestId('planner-target')).toHaveTextContent('plan1/g2/plan');
+      expect(screen.queryByTestId('new-game-setup-modal')).not.toBeInTheDocument();
+    } finally {
+      nowSpy.mockRestore();
+    }
+
+    // A plain new game afterwards carries no plan.
+    fireEvent.click(screen.getByText('open-new-game'));
+    await waitFor(() => expect(screen.getByTestId('plan-source')).toHaveTextContent('none'));
   });
 
   it('renders Settings and Instructions at host level (L.0b)', async () => {

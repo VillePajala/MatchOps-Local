@@ -152,3 +152,59 @@ describe('upcoming fixtures', () => {
     expect(s.upcoming?.fieldNumber).toBe('TN 2');
   });
 });
+
+describe('upcoming fixtures from a playing-time plan', () => {
+  /**
+   * A tournament day booked before the times are known: same date, no
+   * kick-off. The plan's order decides, not the order they were created in.
+   * @edge-case
+   */
+  it('orders same-day untimed games of one plan by the plan order', () => {
+    const games = {
+      game_300_x: g({ isPlayed: false, gameDate: '2026-09-20', opponentName: 'Third' }),
+      game_100_y: g({ isPlayed: false, gameDate: '2026-09-20', opponentName: 'Second' }),
+      game_200_z: g({ isPlayed: false, gameDate: '2026-09-20', opponentName: 'First' }),
+    };
+    const s = buildHomeSummary(games, {
+      today: TODAY,
+      planOrder: {
+        game_200_z: { planId: 'p', index: 0 },
+        game_100_y: { planId: 'p', index: 1 },
+        game_300_x: { planId: 'p', index: 2 },
+      },
+    });
+    expect([s.upcoming?.opponent, ...s.upcomingList.map((u) => u.opponent)]).toEqual(['First', 'Second', 'Third']);
+  });
+
+  it('keeps kick-off time and creation order ahead of / outside the plan order', () => {
+    const games = {
+      game_300_x: g({ isPlayed: false, gameDate: '2026-09-20', gameTime: '09:00', opponentName: 'Timed' }),
+      game_100_y: g({ isPlayed: false, gameDate: '2026-09-20', opponentName: 'Plan 2' }),
+      game_200_z: g({ isPlayed: false, gameDate: '2026-09-20', opponentName: 'Plan 1' }),
+      game_050_w: g({ isPlayed: false, gameDate: '2026-09-20', opponentName: 'Other plan' }),
+    };
+    const s = buildHomeSummary(games, {
+      today: TODAY,
+      planOrder: {
+        game_300_x: { planId: 'p', index: 5 },
+        game_200_z: { planId: 'p', index: 0 },
+        game_100_y: { planId: 'p', index: 1 },
+        game_050_w: { planId: 'q', index: 0 },
+      },
+    });
+    // Timed first; then the untimed by creation (050 < 100) except where two of
+    // the same plan meet - Plan 1 before Plan 2 although Plan 2 was made first.
+    const order = [s.upcoming?.opponent, ...s.upcomingList.map((u) => u.opponent)];
+    expect(order[0]).toBe('Timed');
+    expect(order.indexOf('Plan 1')).toBeLessThan(order.indexOf('Plan 2'));
+  });
+
+  it('is unchanged without plan order (creation order)', () => {
+    const games = {
+      game_300_x: g({ isPlayed: false, gameDate: '2026-09-20', opponentName: 'Late' }),
+      game_100_y: g({ isPlayed: false, gameDate: '2026-09-20', opponentName: 'Early' }),
+    };
+    const s = summary(games);
+    expect([s.upcoming?.opponent, ...s.upcomingList.map((u) => u.opponent)]).toEqual(['Early', 'Late']);
+  });
+});

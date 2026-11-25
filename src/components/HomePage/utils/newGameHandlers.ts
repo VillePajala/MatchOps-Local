@@ -97,38 +97,7 @@ export async function buildAndPersistNewGame(
   deps: CreateNewGameDependencies,
   request: StartNewGameRequest
 ): Promise<{ gameId: string; gameState: AppState } | null> {
-  const {
-    initialSelectedPlayerIds,
-    homeTeamName,
-    opponentName,
-    gameDate,
-    gameLocation,
-    fieldNumber,
-    locationLat,
-    locationLng,
-    locationAddress,
-    gameTime,
-    seasonId,
-    tournamentId,
-    numPeriods,
-    periodDuration,
-    homeOrAway,
-    demandFactor,
-    ageGroup,
-    tournamentLevel,
-    tournamentSeriesId,
-    isPlayed,
-    isFriendly,
-    teamId,
-    availablePlayersForGame: availablePlayersFromRoster,
-    selectedPersonnelIds,
-    leagueId,
-    customLeagueName,
-    gameType,
-    gender,
-    formationPresetId,
-    prefill,
-  } = request;
+  const { seasonId, tournamentId, teamId, prefill } = request;
   const {
     availablePlayers,
     savedGames,
@@ -164,68 +133,8 @@ export async function buildAndPersistNewGame(
     }
   }
 
-  // The squad is copied from the master/team roster, which can still carry a stale
-  // fair-play flag; a new game always starts with nobody holding the card.
-  const availablePlayersForGame = withoutFairPlayCard(availablePlayersFromRoster);
-
-  const finalSelectedPlayerIds =
-    initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0
-      ? initialSelectedPlayerIds
-      : availablePlayers.map((player) => player.id);
-
-  // Playing-Time Planner prefill: the planned XI + parked subs are built when the
-  // plan is picked, but the coach can then change the selection or switch teams.
-  // Reconcile so the app-wide invariant playersOnField ⊆ selectedPlayerIds ⊆
-  // availablePlayers always holds: drop prefilled players no longer in the roster,
-  // and make sure everyone left on the field stays selected.
-  const availableIdSet = new Set(availablePlayersForGame.map((p) => p.id));
-  // The prefilled field players were built from the roster before this function ran,
-  // so they can carry the same stale fair-play flag; stats read playersOnField first.
-  const reconciledOnField = withoutFairPlayCard(
-    (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id)),
-  );
-  // Deep-review M7: reconcile the NON-prefill selection too - the full-club
-  // fallback (and any future caller) must not persist ids outside this
-  // game's roster (selectedPlayerIds ⊆ availablePlayers, always).
-  const reconciledSelectedPlayerIds = (prefill
-    ? [...new Set([...finalSelectedPlayerIds, ...reconciledOnField.map((p) => p.id)])]
-    : finalSelectedPlayerIds
-  ).filter((id) => availableIdSet.has(id));
-
-  // New-user experience: auto-place the selected squad on the field at creation
-  // so a fresh game opens with players already on the pitch — no blank field for
-  // a new coach to puzzle over. This is the persist-side twin of the match-side
-  // "Place all players" Auto path (buildAutoPlacement). Skipped when the game is
-  // prefilled from a Playing-Time Planner plan, which already places its XI.
-  // Owner round 4: no explicit pick still lands on a REAL formation for the
-  // squad size (1-2-1 / 2-1-2-1-1 / 4-3-3), never the generic grid.
-  const chosenPreset = getPresetById(
-    formationPresetId ??
-      getDefaultPresetIdForSize(getRecommendedFieldSize(reconciledSelectedPlayerIds.length)),
-  );
-  const autoPlacement = prefill
-    ? null
-    : buildAutoPlacement(
-        availablePlayersForGame.filter((p) => reconciledSelectedPlayerIds.includes(p.id)),
-        chosenPreset?.positions,
-      );
-  const playersOnFieldForGame = prefill ? reconciledOnField : (autoPlacement?.playersOnField ?? []);
-  const formationSnapPointsForGame = prefill
-    ? (prefill.formationSnapPoints ?? [])
-    : (autoPlacement?.formationSnapPoints ?? []);
-  // The match side enforces the single-goalie invariant across BOTH arrays
-  // (see applyGoalieStatus), so mirror the placed goalie onto the roster.
-  // This intentionally clears isGoalie on every OTHER player - including ones
-  // not selected for this game - so the game has exactly one goalie, matching
-  // applyGoalieStatus's per-game override behaviour. The PREFILL branch needs
-  // this too: the planner's XI carries an isGoalie flag on playersOnField, and
-  // leaving availablePlayers unmirrored opened the game with the two arrays
-  // already disagreeing (which inverted the goalie toggle button).
-  const placedGoalieId =
-    autoPlacement?.goalieId ?? (prefill ? reconciledOnField.find((p) => p.isGoalie)?.id ?? null : null);
-  const availablePlayersWithGoalie = placedGoalieId
-    ? availablePlayersForGame.map((p) => ({ ...p, isGoalie: p.id === placedGoalieId }))
-    : availablePlayersForGame;
+  const { gameState: newGameState, finalSelectedPlayerIds, playersOnFieldCount, availablePlayersCount } =
+    buildNewGameState(request, { availablePlayers, defaultSubIntervalMinutes });
 
   // Sentry breadcrumb: Game creation started
   const newGameId = `game_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -248,64 +157,9 @@ export async function buildAndPersistNewGame(
     gameId: newGameId.slice(0, 20),
     teamId: teamId || '(none)',
     selectedPlayersCount: finalSelectedPlayerIds.length,
-    availablePlayersCount: availablePlayersForGame.length,
-    playersOnFieldCount: playersOnFieldForGame.length, // prefill XI, or the auto-placed squad
+    availablePlayersCount,
+    playersOnFieldCount, // prefill XI, or the auto-placed squad
   });
-
-  const newGameState: AppState = {
-    opponentName,
-    gameDate,
-    gameLocation,
-    fieldNumber,
-    locationLat,
-    locationLng,
-    locationAddress,
-    gameTime,
-    seasonId: seasonId || '',
-    tournamentId: tournamentId || '',
-    ageGroup,
-    tournamentLevel,
-    tournamentSeriesId: tournamentSeriesId || undefined,
-    numberOfPeriods: numPeriods,
-    periodDurationMinutes: periodDuration,
-    homeScore: 0,
-    awayScore: 0,
-    gameNotes: '',
-    teamName: homeTeamName,
-    homeOrAway,
-    demandFactor,
-    isPlayed,
-    isFriendly: isFriendly ?? false,
-    teamId: teamId || undefined,
-    leagueId: leagueId || undefined,
-    customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined,
-    // gameType flows from modal → handler → AppState storage
-    // It's also tracked in game session reducer for undo/redo history
-    gameType,
-    // gender flows from modal → handler → AppState storage (optional)
-    gender,
-    availablePlayers: availablePlayersWithGoalie,
-    selectedPlayerIds: reconciledSelectedPlayerIds,
-    // Planner prefill places the planned XI; otherwise the squad is auto-placed
-    // in a formation at creation so the field is never blank for a new coach.
-    playersOnField: playersOnFieldForGame,
-    // Snap points let the game rebuild the dotted sub-slot circles + position labels
-    // (a manually-placed / auto-placed / plan-prefilled game all persist these).
-    formationSnapPoints: formationSnapPointsForGame,
-    opponents: [],
-    showPlayerNames: true,
-    drawings: [],
-    gameEvents: [],
-    currentPeriod: 1,
-    gameStatus: 'notStarted',
-    tacticalDiscs: [],
-    tacticalDrawings: [],
-    subIntervalMinutes: defaultSubIntervalMinutes,
-    completedIntervalDurations: [],
-    lastSubConfirmationTimeSeconds: 0,
-    tacticalBallPosition: { relX: 0.5, relY: 0.5 },
-    gamePersonnel: selectedPersonnelIds,
-  };
 
   try {
     await utilSaveGame(newGameId, newGameState, userId);
@@ -379,4 +233,243 @@ export async function buildAndPersistNewGame(
   });
 
   return { gameId: newGameId, gameState: newGameState };
+}
+
+/**
+ * The new game's AppState from a creation request - the pure half of
+ * buildAndPersistNewGame, shared with the planner's "create games from this
+ * plan" path so both build exactly the same game (squad reconciliation,
+ * auto-placement, goalie mirroring, defaults). No side effects.
+ */
+export function buildNewGameState(
+  request: StartNewGameRequest,
+  deps: { availablePlayers: Player[]; defaultSubIntervalMinutes: number },
+): {
+  gameState: AppState;
+  finalSelectedPlayerIds: string[];
+  playersOnFieldCount: number;
+  availablePlayersCount: number;
+} {
+  const {
+    initialSelectedPlayerIds,
+    homeTeamName,
+    opponentName,
+    gameDate,
+    gameLocation,
+    fieldNumber,
+    locationLat,
+    locationLng,
+    locationAddress,
+    gameTime,
+    seasonId,
+    tournamentId,
+    numPeriods,
+    periodDuration,
+    homeOrAway,
+    demandFactor,
+    ageGroup,
+    tournamentLevel,
+    tournamentSeriesId,
+    isPlayed,
+    isFriendly,
+    teamId,
+    availablePlayersForGame: availablePlayersFromRoster,
+    selectedPersonnelIds,
+    leagueId,
+    customLeagueName,
+    gameType,
+    gender,
+    formationPresetId,
+    prefill,
+  } = request;
+  const { availablePlayers, defaultSubIntervalMinutes } = deps;
+
+  // The squad is copied from the master/team roster, which can still carry a stale
+  // fair-play flag; a new game always starts with nobody holding the card.
+  const availablePlayersForGame = withoutFairPlayCard(availablePlayersFromRoster);
+
+  const finalSelectedPlayerIds =
+    initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0
+      ? initialSelectedPlayerIds
+      : availablePlayers.map((player) => player.id);
+
+  // Playing-Time Planner prefill: the planned XI + parked subs are built when the
+  // plan is picked, but the coach can then change the selection or switch teams.
+  // Reconcile so the app-wide invariant playersOnField ⊆ selectedPlayerIds ⊆
+  // availablePlayers always holds: drop prefilled players no longer in the roster,
+  // and make sure everyone left on the field stays selected.
+  const availableIdSet = new Set(availablePlayersForGame.map((p) => p.id));
+  // The prefilled field players were built from the roster before this function ran,
+  // so they can carry the same stale fair-play flag; stats read playersOnField first.
+  const reconciledOnField = withoutFairPlayCard(
+    (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id)),
+  );
+  // Deep-review M7: reconcile the NON-prefill selection too - the full-club
+  // fallback (and any future caller) must not persist ids outside this
+  // game's roster (selectedPlayerIds ⊆ availablePlayers, always).
+  const reconciledSelectedPlayerIds = (prefill
+    ? [...new Set([...finalSelectedPlayerIds, ...reconciledOnField.map((p) => p.id)])]
+    : finalSelectedPlayerIds
+  ).filter((id) => availableIdSet.has(id));
+
+  // New-user experience: auto-place the selected squad on the field at creation
+  // so a fresh game opens with players already on the pitch — no blank field for
+  // a new coach to puzzle over. This is the persist-side twin of the match-side
+  // "Place all players" Auto path (buildAutoPlacement). Skipped when the game is
+  // prefilled from a Playing-Time Planner plan, which already places its XI.
+  // Owner round 4: no explicit pick still lands on a REAL formation for the
+  // squad size (1-2-1 / 2-1-2-1-1 / 4-3-3), never the generic grid.
+  const chosenPreset = getPresetById(
+    formationPresetId ??
+      getDefaultPresetIdForSize(getRecommendedFieldSize(reconciledSelectedPlayerIds.length)),
+  );
+  const autoPlacement = prefill
+    ? null
+    : buildAutoPlacement(
+        availablePlayersForGame.filter((p) => reconciledSelectedPlayerIds.includes(p.id)),
+        chosenPreset?.positions,
+      );
+  const playersOnFieldForGame = prefill ? reconciledOnField : (autoPlacement?.playersOnField ?? []);
+  const formationSnapPointsForGame = prefill
+    ? (prefill.formationSnapPoints ?? [])
+    : (autoPlacement?.formationSnapPoints ?? []);
+  // The match side enforces the single-goalie invariant across BOTH arrays
+  // (see applyGoalieStatus), so mirror the placed goalie onto the roster.
+  // This intentionally clears isGoalie on every OTHER player - including ones
+  // not selected for this game - so the game has exactly one goalie, matching
+  // applyGoalieStatus's per-game override behaviour. The PREFILL branch needs
+  // this too: the planner's XI carries an isGoalie flag on playersOnField, and
+  // leaving availablePlayers unmirrored opened the game with the two arrays
+  // already disagreeing (which inverted the goalie toggle button).
+  const placedGoalieId =
+    autoPlacement?.goalieId ?? (prefill ? reconciledOnField.find((p) => p.isGoalie)?.id ?? null : null);
+  const availablePlayersWithGoalie = placedGoalieId
+    ? availablePlayersForGame.map((p) => ({ ...p, isGoalie: p.id === placedGoalieId }))
+    : availablePlayersForGame;
+
+  const gameState: AppState = {
+    opponentName,
+    gameDate,
+    gameLocation,
+    fieldNumber,
+    locationLat,
+    locationLng,
+    locationAddress,
+    gameTime,
+    seasonId: seasonId || '',
+    tournamentId: tournamentId || '',
+    ageGroup,
+    tournamentLevel,
+    tournamentSeriesId: tournamentSeriesId || undefined,
+    numberOfPeriods: numPeriods,
+    periodDurationMinutes: periodDuration,
+    homeScore: 0,
+    awayScore: 0,
+    gameNotes: '',
+    teamName: homeTeamName,
+    homeOrAway,
+    demandFactor,
+    isPlayed,
+    isFriendly: isFriendly ?? false,
+    teamId: teamId || undefined,
+    leagueId: leagueId || undefined,
+    customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined,
+    // gameType flows from modal → handler → AppState storage
+    // It's also tracked in game session reducer for undo/redo history
+    gameType,
+    // gender flows from modal → handler → AppState storage (optional)
+    gender,
+    availablePlayers: availablePlayersWithGoalie,
+    selectedPlayerIds: reconciledSelectedPlayerIds,
+    // Planner prefill places the planned XI; otherwise the squad is auto-placed
+    // in a formation at creation so the field is never blank for a new coach.
+    playersOnField: playersOnFieldForGame,
+    // Snap points let the game rebuild the dotted sub-slot circles + position labels
+    // (a manually-placed / auto-placed / plan-prefilled game all persist these).
+    formationSnapPoints: formationSnapPointsForGame,
+    opponents: [],
+    showPlayerNames: true,
+    drawings: [],
+    gameEvents: [],
+    currentPeriod: 1,
+    gameStatus: 'notStarted',
+    tacticalDiscs: [],
+    tacticalDrawings: [],
+    subIntervalMinutes: defaultSubIntervalMinutes,
+    completedIntervalDurations: [],
+    lastSubConfirmationTimeSeconds: 0,
+    tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+    gamePersonnel: selectedPersonnelIds,
+  };
+
+  return {
+    gameState,
+    finalSelectedPlayerIds,
+    playersOnFieldCount: playersOnFieldForGame.length,
+    availablePlayersCount: availablePlayersForGame.length,
+  };
+}
+
+/**
+ * Persist a game created from a Playing-Time Planner plan WITHOUT making it the
+ * current game or entering the match (the planner's "Luo kaikki pelit"). The
+ * plan link is part of the contract here, not best-effort: an unlinked game
+ * would show as "not created" in the planner and invite a duplicate, so a
+ * failed link rolls the game back and the call reports failure.
+ *
+ * `createdAtMs` orders games created in one batch by the plan's game order
+ * (Home lists untimed fixtures on the same day by creation order).
+ * Returns the new game id, or null when anything failed (nothing is left behind).
+ */
+export async function persistGameFromPlan(
+  deps: {
+    utilSaveGame: SaveGameFn;
+    deleteGame: (gameId: string, userId?: string) => Promise<unknown>;
+    setGameSubs: (gameId: string, subs: PlannedGameSub[]) => Promise<boolean>;
+    setPlanLink: (gameId: string, link: { planId: string; planGameId: string }) => Promise<boolean>;
+    availablePlayers: Player[];
+    defaultSubIntervalMinutes: number;
+    userId?: string;
+  },
+  request: StartNewGameRequest,
+  createdAtMs: number,
+): Promise<string | null> {
+  const prefill = request.prefill;
+  if (!prefill?.sourcePlanId || !prefill.sourcePlanGameId) return null;
+  const { gameState } = buildNewGameState(request, deps);
+  const gameId = `game_${createdAtMs}_${Math.random().toString(36).slice(2, 9)}`;
+  const toSave: AppState = { ...gameState, createdAt: new Date(createdAtMs).toISOString() };
+  try {
+    await deps.utilSaveGame(gameId, toSave, deps.userId);
+  } catch (error) {
+    logger.error('[PLAN GAMES] Failed to save game:', error);
+    return null;
+  }
+  let linked = false;
+  try {
+    linked = await deps.setPlanLink(gameId, {
+      planId: prefill.sourcePlanId,
+      planGameId: prefill.sourcePlanGameId,
+    });
+  } catch (error) {
+    logger.error('[PLAN GAMES] Failed to store plan link:', error);
+  }
+  if (!linked) {
+    try {
+      await deps.deleteGame(gameId, deps.userId);
+    } catch (rollbackError) {
+      logger.warn('[PLAN GAMES] Rollback of unlinked game failed:', rollbackError);
+    }
+    return null;
+  }
+  // Planned subs are best-effort, exactly as in buildAndPersistNewGame: the
+  // game and its link exist, and re-applying the plan restores the schedule.
+  if (prefill.plannedSubs.length > 0) {
+    try {
+      await deps.setGameSubs(gameId, prefill.plannedSubs);
+    } catch (subsError) {
+      logger.error('[PLAN GAMES] Failed to store planned subs (non-fatal):', subsError);
+    }
+  }
+  return gameId;
 }

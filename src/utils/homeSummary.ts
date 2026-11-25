@@ -68,21 +68,32 @@ function creationOrder(id: string, game: AppState): number {
   return Number.isNaN(fromId) ? 0 : fromId;
 }
 
+/** Where a game sits in the playing-time plan it was created from. */
+export type PlanGameOrder = Record<string, { planId: string; index: number }>;
+
 /**
  * Nearest first by date, then by kick-off time (a match without a time after
- * the timed ones that day), then in the order the coach created them (R5).
+ * the timed ones that day), then - for two games created from the SAME plan -
+ * in the plan's game order (a tournament day's games are often booked before
+ * their times are known, and "Peli 1" must come before "Peli 2" however they
+ * were created), then in the order the coach created them (R5).
  */
-function compareFixtures(a: [string, AppState], b: [string, AppState]): number {
-  const byDate = (a[1].gameDate || '').localeCompare(b[1].gameDate || '');
-  if (byDate !== 0) return byDate;
-  const ta = a[1].gameTime || '';
-  const tb = b[1].gameTime || '';
-  if (ta !== tb) {
-    if (!ta) return 1;
-    if (!tb) return -1;
-    return ta.localeCompare(tb);
-  }
-  return creationOrder(a[0], a[1]) - creationOrder(b[0], b[1]);
+function compareFixturesWith(planOrder: PlanGameOrder | undefined) {
+  return (a: [string, AppState], b: [string, AppState]): number => {
+    const byDate = (a[1].gameDate || '').localeCompare(b[1].gameDate || '');
+    if (byDate !== 0) return byDate;
+    const ta = a[1].gameTime || '';
+    const tb = b[1].gameTime || '';
+    if (ta !== tb) {
+      if (!ta) return 1;
+      if (!tb) return -1;
+      return ta.localeCompare(tb);
+    }
+    const pa = planOrder?.[a[0]];
+    const pb = planOrder?.[b[0]];
+    if (pa && pb && pa.planId === pb.planId && pa.index !== pb.index) return pa.index - pb.index;
+    return creationOrder(a[0], a[1]) - creationOrder(b[0], b[1]);
+  };
 }
 
 /**
@@ -366,6 +377,11 @@ export interface HomeSummaryOptions {
   /** Leagues and tournaments, for the Kilpailut tab's rows (archived ones are skipped). */
   seasons?: Season[];
   tournaments?: Tournament[];
+  /**
+   * Plan position of games created from a playing-time plan (game id ->
+   * plan + index). Only breaks ties between same-day games of one plan.
+   */
+  planOrder?: PlanGameOrder;
 }
 
 /**
@@ -384,6 +400,7 @@ export function buildHomeSummary(
   opts: HomeSummaryOptions,
 ): HomeSummary {
   const recentLimit = opts.recentLimit ?? 6;
+  const compareFixtures = compareFixturesWith(opts.planOrder);
 
   // Exclude the scratch/unsaved workspace, like every other SavedGamesCollection
   // reader (getLatestGameId, checkAppState, LoadGameModal). A phantom entry must
