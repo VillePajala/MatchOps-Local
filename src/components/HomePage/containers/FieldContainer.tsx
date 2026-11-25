@@ -28,7 +28,6 @@ import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { HiOutlineListBullet } from 'react-icons/hi2';
-import { usePlannedGhosts } from '@/hooks/usePlannedGhosts';
 import { usePlannedChains } from '@/hooks/usePlannedChains';
 import { isExtraTimePeriod } from '@/utils/matchStructure';
 import {
@@ -279,41 +278,20 @@ export function FieldContainer({
 
   // Consolidated locals (prefer VMs when provided)
   const fcPlayersOnField = fieldVM.playersOnField;
-  // Faint markers for planned entries no disc represents - a sub the plan
-  // brings on at a position they are not currently waiting at. Read once per
-  // game; nothing here follows the match.
-  const plannedGhosts = usePlannedGhosts(
-    currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
-    fieldVM.subSlots,
-    fcPlayersOnField,
-  );
   /**
-   * Ghosts off, for showing the field TO THE PLAYERS.
+   * How much of the plan is on screen. One control, two views:
    *
-   * Owner's point, and it is the right one: this screen has two audiences. A
-   * coach reading their own plan wants every marker; a team of children being
-   * shown the starting formation wants the eleven discs and nothing else.
-   *
-   * DELIBERATELY NOT PERSISTED. Hiding them is a momentary thing - the team
-   * talk before kickoff - so they come back by themselves next time the field
-   * opens. Remembering "hidden" would let one team talk switch the feature off
-   * for good, and a coach who never sees it again has no way to know it
-   * existed.
-   */
-  /**
-   * How much of the plan is on screen. One control, three steps:
-   *
-   *  lineup - the eleven and nothing else, for showing the team at kickoff.
-   *  ghosts - plus faint markers for entries no disc represents.
+   *  lineup - the players on the field plus the waiting subs, parked as real
+   *           discs on their sideline sub slots. The default.
    *  chains - the plan ALONE: every position with its full substitution
-   *           schedule and minutes. Not a layer on the others; it replaces
-   *           them, because the chains need the whole field to be readable.
+   *           schedule and minutes. Not a layer on the lineup; it replaces
+   *           it, because the chains need the whole field to be readable.
    *
-   * Not persisted, for the same reason the old two-state toggle wasn't:
-   * hiding the plan is a momentary thing - the team talk before kickoff - and
-   * a coach who never sees it again has no way to know it existed.
+   * DELIBERATELY NOT PERSISTED. The chain view is a momentary look at the
+   * plan, so the field opens on the lineup every time - remembering the
+   * chains would leave a coach facing an empty pitch with no discs on it.
    */
-  const [planView, setPlanView] = useState<'lineup' | 'ghosts' | 'chains'>('ghosts');
+  const [planView, setPlanView] = useState<'lineup' | 'chains'>('lineup');
   const plannedChains = usePlannedChains(
     currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
     fieldVM.formationSnapPoints,
@@ -322,11 +300,11 @@ export function FieldContainer({
   const hasChainView = plannedChains.length > 0;
   /**
    * The name pill under the tools is a brief confirmation, not a standing
-   * label: it appears when a tap switches the plan view ON (ghosts or chains),
-   * then fades out so it does not sit on the grass and the players. The
-   * filled button carries the state afterwards; the button's aria-label and
-   * aria-pressed carry it for screen readers. Switching to lineup (off) shows
-   * nothing. Nothing shows on first render either - only a tap earns a pill.
+   * label: it appears when a tap switches the view, naming the view it
+   * switched to, then fades out so it does not sit on the grass and the
+   * players. The filled button carries the state afterwards; the button's
+   * aria-label and aria-pressed carry it for screen readers. Nothing shows on
+   * first render - only a tap earns a pill.
    */
   const [planPill, setPlanPill] = useState<'hidden' | 'shown' | 'fading'>('hidden');
   const planPillTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -335,32 +313,21 @@ export function FieldContainer({
     planPillTimers.current = [];
   }, []);
   useEffect(() => clearPlanPillTimers, [clearPlanPillTimers]);
-  const cyclePlanView = useCallback(() => {
-    // Skip a chain view there is nothing to show in, rather than offering a
-    // blank field as one of the three steps.
-    const next =
-      planView === 'lineup' ? 'ghosts' : planView === 'ghosts' ? (hasChainView ? 'chains' : 'lineup') : 'lineup';
-    setPlanView(next);
+  const togglePlanView = useCallback(() => {
+    setPlanView(planView === 'chains' ? 'lineup' : 'chains');
     clearPlanPillTimers();
-    if (next === 'lineup') {
-      setPlanPill('hidden');
-      return;
-    }
     setPlanPill('shown');
     planPillTimers.current = [
       setTimeout(() => setPlanPill('fading'), FIELD_TOOL_PILL_VISIBLE_MS),
       setTimeout(() => setPlanPill('hidden'), FIELD_TOOL_PILL_VISIBLE_MS + FIELD_TOOL_PILL_FADE_MS),
     ];
-  }, [planView, hasChainView, clearPlanPillTimers]);
+  }, [planView, clearPlanPillTimers]);
   const showingChains = planView === 'chains' && hasChainView;
-  // A cycling control has to say what it just became, or the second tap is a
-  // guess. The label doubles as the button's accessible name.
-  const planViewLabel =
-    planView === 'chains'
-      ? t('fieldTools.planViewChains', 'Substitutions and minutes')
-      : planView === 'ghosts'
-        ? t('fieldTools.planViewGhosts', 'Planned substitutions')
-        : t('fieldTools.planViewLineup', 'Lineup only');
+  // A toggle has to say what it just became, or the second tap is a guess.
+  // The label doubles as the button's accessible name.
+  const planViewLabel = showingChains
+    ? t('fieldTools.planViewChains', 'Substitutions and minutes')
+    : t('fieldTools.planViewLineup', 'Lineup');
   const fcOpponents = fieldVM.opponents;
   const fcDrawings = fieldVM.drawings;
   const fcIsTactics = fieldVM.isTacticsBoardView;
@@ -509,7 +476,6 @@ export function FieldContainer({
           isDrawingEnabled={fcIsDrawingEnabled}
           formationSnapPoints={showingChains ? EMPTY_SNAP_POINTS : fieldVM.formationSnapPoints}
           subSlots={showingChains ? EMPTY_SUB_SLOTS : fieldVM.subSlots}
-          plannedGhosts={planView === 'ghosts' ? plannedGhosts : undefined}
           plannedChains={showingChains ? plannedChains : undefined}
         />
       </ErrorBoundary>
@@ -572,34 +538,32 @@ export function FieldContainer({
         >
           <HiOutlineMapPin className={`w-5 h-5 ${(gameSessionState.showPositionLabels ?? true) ? 'text-white' : 'text-ink-3'}`} />
         </button>
-        {/* Planned-sub markers. Hidden entirely when the game has none, rather
-            than shown dead: a control that cannot change anything is noise on
-            the busiest screen in the app. */}
-        {(plannedGhosts.length > 0 || hasChainView) && (
+        {/* Plan view toggle. Hidden entirely when the game has no plan to show,
+            rather than shown dead: a control that cannot change anything is
+            noise on the busiest screen in the app. */}
+        {hasChainView && (
           <button
-            onClick={cyclePlanView}
-            data-testid="toggle-planned-ghosts"
-            className={planView === 'lineup' ? matchFieldToolStyle : matchFieldToolOnStyle}
+            onClick={togglePlanView}
+            data-testid="toggle-plan-view"
+            className={showingChains ? matchFieldToolOnStyle : matchFieldToolStyle}
             title={planViewLabel}
             aria-label={planViewLabel}
-            aria-pressed={planView !== 'lineup'}
+            aria-pressed={showingChains}
           >
             {showingChains ? (
               <HiOutlineListBullet className="w-5 h-5" />
             ) : (
-              <HiOutlineUserPlus
-                className={`w-5 h-5 ${planView === 'ghosts' ? '' : 'text-ink-3'}`}
-              />
+              <HiOutlineUserPlus className="w-5 h-5" />
             )}
           </button>
         )}
       </div>
 
-      {/* Which step of the plan cycle a tap just switched to. A three-way
-          control needs to name its state - the icon alone only tells the
-          person who built it - but only for a moment: see planPill. Hidden
-          from screen readers, which get the same name from the button. */}
-      {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && planPill !== 'hidden' && (
+      {/* Which view a tap just switched to. The icon alone only tells the
+          person who built it, so the control names its state - but only for
+          a moment: see planPill. Hidden from screen readers, which get the
+          same name from the button. */}
+      {hasChainView && planPill !== 'hidden' && (
         <div
           className="absolute top-[60px] right-[14px] z-20 pointer-events-none"
           data-testid="field-tool-pill"

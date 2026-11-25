@@ -143,6 +143,34 @@ describe('buildTasoReport', () => {
     expect(partial.report.split('\n')[1]).toBe('Lions - Tigers 1-2');
   });
 
+  /**
+   * Demo prep 2026-11-25: a final decided on penalties showed only the level
+   * score. The shootout result is its own line under the final score, home team
+   * first (kick sides are the game's home/away), and the final and extra-time
+   * scores stay as they were.
+   */
+  it('adds the penalty shoot-out result under a level final score', () => {
+    const kick = (team: 'home' | 'away', scored: boolean, order: number) => ({ id: `k${order}`, team, scored, order });
+    const game: TasoGame = {
+      ...base, homeOrAway: 'away', homeScore: 1, awayScore: 1, extraTimePeriods: 2, extraTimeMinutes: 5,
+      gameEvents: [ev('opponentGoal', 10 * 60), ev('goal', 40 * 60, { scorerId: 'p1' })],
+      shootoutKicks: [
+        kick('home', true, 1), kick('away', true, 2),
+        kick('home', false, 3), kick('away', true, 4),
+        kick('home', true, 5), kick('away', true, 6),
+      ],
+    };
+    const { report, text } = buildTasoReport(game, players, t);
+    expect(report.split('\n').slice(0, 3)).toEqual([
+      'Match sheet',
+      'Lions - Tigers 1-1 (half-time 1-0, extra time 0-0)',
+      'Penalty shoot-out 2-3',
+    ]);
+    expect(text.split('\n\n')[0]).toBe('Match sheet\nLions - Tigers 1-1 (half-time 1-0, extra time 0-0)\nPenalty shoot-out 2-3');
+    // No kicks logged: no shootout line.
+    expect(buildTasoReport({ ...game, shootoutKicks: [] }, players, t).report).not.toContain('Penalty shoot-out');
+  });
+
   it('puts the opponent first when we were away', () => {
     const { report } = buildTasoReport({ ...base, homeOrAway: 'away', homeScore: 1, awayScore: 2 }, players, t);
     expect(report.split('\n')[1]).toBe('Lions - Tigers 1-2');

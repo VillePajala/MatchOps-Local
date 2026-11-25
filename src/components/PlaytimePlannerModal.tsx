@@ -1163,8 +1163,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           showToast(
             t(
               'playtimePlanner.overview.reapplyDoneNoRoster',
-              'Updated {{updated}} games; {{skipped}} had no players in their roster and were left unchanged.',
-              { updated: summary.updated, skipped: summary.skippedNoRoster },
+              'Updated {{count}} games; {{skipped}} had no players in their roster and were left unchanged.',
+              { count: summary.updated, skipped: summary.skippedNoRoster },
             ),
             'info',
           );
@@ -2237,9 +2237,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         )}
                       </span>
                       <span className={`${subtextStyle} block mt-0.5`}>
-                        {t('playtimePlanner.manager.meta', '{{games}} games · {{players}} players', {
-                          games: p.games.length,
-                          players: p.players.length,
+                        {t('playtimePlanner.manager.meta', '{{games}} · {{players}}', {
+                          games: t('playtimePlanner.manager.games', '{{count}} games', { count: p.games.length }),
+                          players: t('playtimePlanner.manager.players', '{{count}} players', { count: p.players.length }),
                         })}
                       </span>
                     </span>
@@ -2433,8 +2433,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     {t('playtimePlanner.setup.formatHeading', 'Games & format')}
                   </span>
                   <span className={subtextStyle}>
-                    {t('playtimePlanner.overview.formatSummary', '{{games}} games · {{periods}}×{{minutes}} min', {
-                      games: activePlan.games.length,
+                    {t('playtimePlanner.overview.formatSummary', '{{count}} games · {{periods}}×{{minutes}} min', {
+                      count: activePlan.games.length,
                       periods: activePlan.games[0]?.numberOfPeriods ?? 0,
                       minutes: activePlan.games[0]?.periodMinutes ?? 0,
                     })}

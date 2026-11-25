@@ -1366,6 +1366,8 @@ export function HomeTeamsCard({ summary, teams, onOpenTeam, t }: {
 
 /** The quiet outline pill under the basic card's primary action. */
 const GHOST_PILL = `s1-ghost flex h-12 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full px-2.5 text-[15px] font-semibold text-ink transition-colors ${HOME_FOCUS}`;
+/** Basic card's plan row: sized to the words, wraps instead of squeezing. */
+const BASIC_PLAN_PILL = `s1-ghost flex h-12 flex-auto items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 text-[15px] font-semibold text-ink transition-colors ${HOME_FOCUS}`;
 
 /** What the basic card knows about the game's plan (looked up asynchronously). */
 export type BasicCardPlanState = 'loading' | 'none' | 'ready';
@@ -1517,15 +1519,18 @@ export function BasicNextGameCard({
           </button>
         </div>
       )}
+      {/* The plan pills size to their words (flex-auto) and wrap rather than
+          squeeze: two equal halves cut "Näytä suunnitelma" to the pill's edge on
+          a phone. Same rule as the full layout's PLAN_PILL row. */}
       {!overdue && planState === 'ready' && (onShowPlan || onShare) && (
-        <div className="mt-2.5 flex gap-2.5">
+        <div className="mt-2.5 flex flex-wrap gap-2.5">
           {onShowPlan && (
-            <button type="button" onClick={onShowPlan} className={GHOST_PILL} data-testid="basic-show-plan">
+            <button type="button" onClick={onShowPlan} className={BASIC_PLAN_PILL} data-testid="basic-show-plan">
               {t('basicHome.showPlan', 'Show rotation')}
             </button>
           )}
           {onShare && (
-            <button type="button" onClick={onShare} className={GHOST_PILL} data-testid="basic-share">
+            <button type="button" onClick={onShare} className={BASIC_PLAN_PILL} data-testid="basic-share">
               {t('basicHome.share', 'Share')}
             </button>
           )}

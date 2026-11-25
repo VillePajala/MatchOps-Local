@@ -757,12 +757,18 @@ describe('Translation File Validation', () => {
       // +7 / -6 privacy pass (2026-11-23): labs toasts, typed-only report
       //     copy, support-email processor (4 keys); paid-features terms list,
       //     billing, cancellation and data-after-cancel removed. 3666.
+      // +8: layoutNotice.* (the basic-layout notice dialog)
+      // +7 demo prep (2026-11-25): taso.shootout; planner formatSummary and
+      //     reapplyDoneNoRoster split into _one/_other; manager.games/players _one/_other. 3681.
+      // -2 fieldTools.planViewGhosts/togglePlannedSubs: the planned-sub
+      //     ghost view is gone; the plan control toggles Lineup <-> Substitutions
+      //     and minutes. 3679.
       // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
       // +38 planCreateGames.* (create games from the match planner, 2026-11-25). 3712.
       // +9 / -5 batch sheet game blocks (count line, headings, summary, optional
       //     hint); planCreateGames.venue and the four HH/MM time placeholders
       //     removed (one native time picker). 3716.
-      expect(enKeys.length).toBe(3716);
+      expect(enKeys.length).toBe(3721); // merge of planCreateGames (+42 net) with master (3679)
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -979,10 +985,14 @@ describe('Translation File Validation', () => {
       // +8 / -2 league & tournament cards (record line, starts-in chip). 3663.
       // +6 / -4 Home "Joukkueet" card; top scorers removed. 3665.
       // +7 / -6 privacy pass (labs, typed-only report copy, support email; paid terms removed). 3666.
+      // +8: layoutNotice.* (the basic-layout notice dialog)
+      // +7 demo prep (2026-11-25): taso.shootout; planner formatSummary and
+      //     reapplyDoneNoRoster split into _one/_other; manager.games/players _one/_other. 3681.
+      // -2 fieldTools.planViewGhosts/togglePlannedSubs (see EN above). 3679.
       // +8: layoutNotice.* (the basic-layout notice dialog). 3674.
       // +38 planCreateGames.* (2026-11-25). 3712.
       // +9 / -5 batch sheet game blocks; venue + HH/MM placeholders removed. 3716.
-      expect(fiKeys.length).toBe(3716);
+      expect(fiKeys.length).toBe(3721); // merge of planCreateGames (+42 net) with master (3679)
     });
   });
 });

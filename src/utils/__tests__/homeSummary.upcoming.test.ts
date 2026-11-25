@@ -91,6 +91,24 @@ describe('upcoming fixtures', () => {
     expect(s.upcomingList).toEqual([]);
   });
 
+  /**
+   * Demo prep 2026-11-25: two tournament matches on the same day showed in
+   * creation order. Recent is newest first by date, then kick-off time (later
+   * first); a match without a time comes after the timed ones that day.
+   */
+  it('orders Recent by date, then kick-off time, newest first', () => {
+    const s = summary({
+      morning: g({ gameDate: '2026-09-14', gameTime: '09:00' }),
+      untimed: g({ gameDate: '2026-09-14' }),
+      evening: g({ gameDate: '2026-09-14', gameTime: '18:30' }),
+      noon: g({ gameDate: '2026-09-14', gameTime: '12:00' }),
+      older: g({ gameDate: '2026-09-10', gameTime: '20:00' }),
+      newer: g({ gameDate: '2026-09-16' }),
+    });
+
+    expect(s.recent.map((r) => r.id)).toEqual(['newer', 'evening', 'noon', 'morning', 'untimed', 'older']);
+  });
+
   describe('the car button', () => {
     it('offers directions when the venue is pinned', () => {
       const s = summary({

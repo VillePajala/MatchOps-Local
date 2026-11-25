@@ -14,15 +14,19 @@
  * none): periods are arithmetic on numberOfPeriods and periodDurationMinutes,
  * and the timer stops at the nominal end, so there is no added time.
  *
+ * A game decided on penalties gets the shootout result on its own line under
+ * the final score ("Penalty shoot-out 3-2", home team first).
+ *
  * What the app does not record is left out rather than guessed: cards, who
  * came on for whom, added time, attendance. The modal says so once.
  *
  * Pure and i18n-agnostic, like gameRecap.ts.
  */
 
-import type { GameEvent } from '@/types/game';
+import type { GameEvent, ShootoutKick } from '@/types/game';
 import type { Player } from '@/types';
 import { extraTimeGoals } from './matchStructure';
+import { getShootoutTally } from './shootout';
 import { orderPositionIds, POSITION_ABBREV_FALLBACK } from '@/config/positions';
 import { getPositionLabel, isSidelinePosition } from './positionLabels';
 
@@ -41,6 +45,11 @@ export interface TasoGame {
   /** Extra time (review 11.1): its score is shown separately in the header. */
   extraTimePeriods?: number;
   extraTimeMinutes?: number;
+  /**
+   * The logged penalty-shootout kicks. A game decided on penalties keeps its
+   * level final score; the shootout result is its own line under it.
+   */
+  shootoutKicks?: ShootoutKick[];
   /** Where each player actually played (post-game record), as gameRecap.ts reads it. */
   playerPositions?: Record<string, string[]>;
   /**
@@ -176,7 +185,14 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
     extra ? `${t('taso.extraTime', 'extra time')} ${score(extra.us, extra.them)}` : '',
   ].filter(Boolean);
   const halfPart = headerParts.length ? ` (${headerParts.join(', ')})` : '';
-  const header = `${teams} ${score(usGoals, themGoals)}${halfPart}`;
+  const resultLine = `${teams} ${score(usGoals, themGoals)}${halfPart}`;
+  // A penalty shootout, as a match report states it: the final score stays the
+  // score after play (and extra time), the shootout result is a line of its
+  // own. Kick sides are the game's home/away, so the tally is home-first as is.
+  const shootout = game.shootoutKicks?.length ? getShootoutTally(game.shootoutKicks) : undefined;
+  const header = shootout
+    ? `${resultLine}\n${t('taso.shootout', 'Penalty shoot-out')} ${shootout.home}-${shootout.away}`
+    : resultLine;
 
   const ref = (id?: string) => {
     const p = id ? byId.get(id) : undefined;

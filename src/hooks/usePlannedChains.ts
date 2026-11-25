@@ -9,7 +9,7 @@ import logger from '@/utils/logger';
 /**
  * The full plan for this game, one chain per position.
  *
- * Sibling of `usePlannedGhosts`, and deliberately shaped the same way: loaded
+ * Loaded
  * ONCE per game, never reacting to the match clock or to what the coach does.
  * This is the plan as written.
  *

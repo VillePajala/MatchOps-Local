@@ -4,10 +4,12 @@ jest.mock('@/hooks/useAssessmentsEnabled', () => ({ useAssessmentsEnabled: () =>
 // The account's layout (Onboarding v3); 'full' unless a test says otherwise.
 let mockAppLayout: 'basic' | 'full' | undefined = 'full';
 jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => mockAppLayout }));
-// Planned-sub markers for the plan-view toggle; none unless a test sets them.
-let mockPlannedGhosts: unknown[] = [];
-jest.mock('@/hooks/usePlannedGhosts', () => ({ usePlannedGhosts: () => mockPlannedGhosts }));
-jest.mock('@/hooks/usePlannedChains', () => ({ usePlannedChains: () => [] }));
+// The plan's chain view for the plan-view toggle; none unless a test sets it.
+let mockPlannedChains: unknown[] = [];
+jest.mock('@/hooks/usePlannedChains', () => ({ usePlannedChains: () => mockPlannedChains }));
+// The props the field was last drawn with, for asserting what each view shows.
+const mockSoccerFieldRender = jest.fn();
+const fieldProps = (): Record<string, unknown> => mockSoccerFieldRender.mock.calls.at(-1)?.[0] ?? {};
 import type { ReactNode } from 'react';
 import { FieldContainer, FIELD_TOOL_PILL_VISIBLE_MS, FIELD_TOOL_PILL_FADE_MS } from './FieldContainer';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
@@ -23,8 +25,9 @@ jest.mock('@/components/TimerOverlay', () => {
 });
 jest.mock('@/components/SoccerField', () => {
   const React = require('react');
-  const SoccerField = React.forwardRef((_props: unknown, ref: unknown) => {
+  const SoccerField = React.forwardRef((props: Record<string, unknown>, ref: unknown) => {
     const mockCanvas = React.useRef(null);
+    mockSoccerFieldRender(props);
 
     React.useImperativeHandle(ref, () => ({
       getCanvas: () => mockCanvas.current,
@@ -225,7 +228,7 @@ const baseProps = () => ({
 describe('FieldContainer', () => {
   afterEach(() => {
     mockAppLayout = 'full';
-    mockPlannedGhosts = [];
+    mockPlannedChains = [];
   });
 
   /** Onboarding v3 (D13): the basic layout has no "Vaihto tehty". */
@@ -415,89 +418,127 @@ describe('FieldContainer', () => {
   });
 
   /**
-   * The plan-view name pill is a brief confirmation of a tap, not a standing
-   * label on the grass: shown when the tool switches on, gone after a moment.
-   * @edge-case
+   * Two views, one toggle: the lineup (players plus the waiting subs as real
+   * discs on the sideline) and "Substitutions and minutes" (the chains alone).
+   * Not persisted: the field always opens on the lineup.
+   * @critical
    */
-  describe('Plan view name pill', () => {
+  describe('Plan view toggle', () => {
+    const CHAIN = {
+      positionLabel: 'LM',
+      relX: 0.25,
+      relY: 0.52,
+      starterName: 'Petja',
+      entries: [{ id: 'a', minute: 10, name: 'Tomas', waveIndex: 0 }],
+    };
+    const SUB_SLOTS = [{ positionLabel: 'LM', relX: 0.96, relY: 0.5 }];
+    const WAITING_SUB = TestFixtures.players.fieldPlayer({ name: 'Tomas', relX: 0.96, relY: 0.5 });
+    const withLineup = () => {
+      const base = baseProps();
+      return {
+        ...base,
+        fieldVM: { ...base.fieldVM, playersOnField: [WAITING_SUB], subSlots: SUB_SLOTS },
+      };
+    };
+
     beforeEach(() => {
       jest.useFakeTimers();
-      mockPlannedGhosts = [{ id: 'ghost-1' }];
+      mockPlannedChains = [CHAIN];
     });
     afterEach(() => {
       jest.clearAllTimers();
       jest.useRealTimers();
+      mockSoccerFieldRender.mockClear();
     });
 
-    const toggle = () => screen.getByTestId('toggle-planned-ghosts');
+    const toggle = () => screen.getByTestId('toggle-plan-view');
     const tap = () =>
       act(() => {
         fireEvent.click(toggle());
       });
 
-    it('shows no pill on first render; the button carries the state', () => {
-      render(<FieldContainer {...baseProps()} />);
-      expect(screen.queryByTestId('field-tool-pill')).not.toBeInTheDocument();
-      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-      expect(toggle()).toHaveAccessibleName('Planned substitutions');
+    it('is hidden when the game has no chain view to offer', () => {
+      mockPlannedChains = [];
+      render(<FieldContainer {...withLineup()} />);
+      expect(screen.queryByTestId('toggle-plan-view')).not.toBeInTheDocument();
+      expect(fieldProps().plannedChains).toBeUndefined();
     });
 
-    it('switching off shows nothing; switching on shows the name, then fades it out', () => {
-      render(<FieldContainer {...baseProps()} />);
-
-      tap(); // ghosts -> lineup (no chains in this game)
+    it('opens on the lineup: players and waiting subs as discs, no chains, no pill', () => {
+      render(<FieldContainer {...withLineup()} />);
       expect(toggle()).toHaveAttribute('aria-pressed', 'false');
-      expect(toggle()).toHaveAccessibleName('Lineup only');
+      expect(toggle()).toHaveAccessibleName('Lineup');
       expect(screen.queryByTestId('field-tool-pill')).not.toBeInTheDocument();
+      expect(fieldProps().players).toEqual([WAITING_SUB]);
+      expect(fieldProps().subSlots).toEqual(SUB_SLOTS);
+      expect(fieldProps().plannedChains).toBeUndefined();
+      expect(fieldProps()).not.toHaveProperty('plannedGhosts');
+    });
 
-      tap(); // lineup -> ghosts
+    it('toggles to the chains alone and back to the lineup', () => {
+      render(<FieldContainer {...withLineup()} />);
+
+      tap(); // lineup -> chains
       expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-      expect(toggle()).toHaveAccessibleName('Planned substitutions');
-      expect(screen.getByTestId('field-tool-pill')).toHaveTextContent('Planned substitutions');
+      expect(toggle()).toHaveAccessibleName('Substitutions and minutes');
+      expect(fieldProps().plannedChains).toEqual([CHAIN]);
+      expect(fieldProps().players).toEqual([]);
+      expect(fieldProps().subSlots).toEqual([]);
 
+      tap(); // chains -> lineup
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(toggle()).toHaveAccessibleName('Lineup');
+      expect(fieldProps().plannedChains).toBeUndefined();
+      expect(fieldProps().players).toEqual([WAITING_SUB]);
+      expect(fieldProps().subSlots).toEqual(SUB_SLOTS);
+    });
+
+    it('opens on the lineup again after a remount (not persisted)', () => {
+      const { unmount } = render(<FieldContainer {...withLineup()} />);
+      tap(); // -> chains
+      unmount();
+      render(<FieldContainer {...withLineup()} />);
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(fieldProps().plannedChains).toBeUndefined();
+    });
+
+    /** @edge-case - a brief confirmation of a tap, not a standing label. */
+    it('names the view a tap switched to, then fades the pill out', () => {
+      render(<FieldContainer {...withLineup()} />);
+
+      tap(); // -> chains
+      expect(screen.getByTestId('field-tool-pill')).toHaveTextContent('Substitutions and minutes');
       act(() => {
         jest.advanceTimersByTime(FIELD_TOOL_PILL_VISIBLE_MS);
       });
       expect(screen.getByTestId('field-tool-pill').firstChild).toHaveClass('opacity-0');
-
       act(() => {
         jest.advanceTimersByTime(FIELD_TOOL_PILL_FADE_MS);
       });
       expect(screen.queryByTestId('field-tool-pill')).not.toBeInTheDocument();
       // State persists on the button after the pill is gone.
       expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-      expect(toggle()).toHaveAccessibleName('Planned substitutions');
+
+      tap(); // -> lineup
+      expect(screen.getByTestId('field-tool-pill')).toHaveTextContent('Lineup');
     });
 
-    it('toggling off mid-display hides the pill at once and leaves no timer running', () => {
-      render(<FieldContainer {...baseProps()} />);
-      tap(); // -> lineup
-      tap(); // -> ghosts (pill up)
-      expect(screen.getByTestId('field-tool-pill')).toBeInTheDocument();
-
-      tap(); // -> lineup
-      expect(screen.queryByTestId('field-tool-pill')).not.toBeInTheDocument();
-      expect(jest.getTimerCount()).toBe(0);
-    });
-
-    it('re-toggling on restarts the display time', () => {
-      render(<FieldContainer {...baseProps()} />);
-      tap(); // -> lineup
-      tap(); // -> ghosts
+    it('re-toggling restarts the display time', () => {
+      render(<FieldContainer {...withLineup()} />);
+      tap(); // -> chains
       act(() => {
         jest.advanceTimersByTime(FIELD_TOOL_PILL_VISIBLE_MS - 100);
       });
-      tap(); // -> lineup
-      tap(); // -> ghosts again: a fresh full display
+      tap(); // -> lineup: a fresh full display
       act(() => {
         jest.advanceTimersByTime(FIELD_TOOL_PILL_VISIBLE_MS - 100);
       });
       expect(screen.getByTestId('field-tool-pill').firstChild).toHaveClass('opacity-100');
+      expect(screen.getByTestId('field-tool-pill')).toHaveTextContent('Lineup');
     });
 
     it('clears its timers on unmount', () => {
-      const { unmount } = render(<FieldContainer {...baseProps()} />);
-      tap();
+      const { unmount } = render(<FieldContainer {...withLineup()} />);
       tap();
       expect(jest.getTimerCount()).toBeGreaterThan(0);
       unmount();
