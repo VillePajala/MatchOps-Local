@@ -1,7 +1,7 @@
 /**
  * The app layout (Onboarding v3, D21): pure reads, no storage.
  *
- * Two layouts only - 'basic' (Perusnäkymä) and 'full' (Koko näkymä, the app as
+ * Two layouts only - 'basic' (Kevennetty näkymä) and 'full' (Koko näkymä, the app as
  * it has always been). The stored value is checked, never cast: a settings row
  * holds whatever was last written to it, and anything that is not exactly
  * 'basic' must land on the layout every existing coach already has.

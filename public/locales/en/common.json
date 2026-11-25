@@ -1468,7 +1468,7 @@
     "clockNext": "Tap the clock to open the large clock. The next planned change is shown there as a block.",
     "clockGoal": "Our goal: tap \"Goal for us\". The goal is logged and the score moves at once. Then pick the scorer from \"Who scored?\" (all squad players) or tap \"Skip\".",
     "clockOpponent": "Opponent goal: tap \"Opponent +1\".",
-    "clockReset": "In the full layout, \"Sub done\" restarts the change timer.",
+    "clockReset": "In the Full view, \"Sub done\" restarts the change timer.",
     "dictationTip": "Hold the microphone button on the large clock to dictate a voice note - it stays on your phone.",
     "finishTitle": "Finishing the match",
     "finishStart": "At full time tap \"Finish this game\".",
@@ -1927,9 +1927,9 @@
   },
   "settingsModal": {
     "layoutLabel": "Layout",
-    "layoutBasic": "Basic",
-    "layoutFull": "Full",
-    "layoutHint": "The full layout shows every feature. Nothing is removed.",
+    "layoutBasic": "Basic view",
+    "layoutFull": "Full view",
+    "layoutHint": "The Full view shows every feature. Nothing is removed.",
     "title": "Settings",
     "tabs": {
       "general": "General",
@@ -2530,7 +2530,7 @@
   "privacyPolicy": {
     "title": "Privacy Policy for MatchOps",
     "version": "Policy Version: 2026-11",
-    "lastUpdated": "Last Updated: 23 November 2026",
+    "lastUpdated": "Last Updated: 25 November 2026",
     "dataController": {
       "title": "Data Controller",
       "content": "MatchOps is developed and operated by Ville Pajala, based in Finland. We are the controller of your account data (your email, settings, consent records) and of the error reports and usage statistics described below. For the personal data entered about other people (players, staff), the controller is the coach who uses the app - or the club, if the coach uses the app as part of the club's activity - and we act as processor (see Data Processing in the Terms of Service)."
@@ -2608,7 +2608,7 @@
       },
       "personnelDataNote": "This data is stored on your device and synced to your cloud account in the EU (Stockholm, Sweden). Staff contact details (email, phone) are personal data under GDPR. For any personal data you enter about other people (such as players and staff), you - or the club you act for - are the controller and are responsible for having a lawful basis to store it and for informing the people concerned; we process it only on your behalf (see Data Processing in the Terms of Service).",
       "onboardingTitle": "Onboarding Progress and Layout",
-      "onboardingContent": "Unless you turn it off, we store a few timestamps about your onboarding progress (account created, setup finished or skipped, first plan seen, first and second match finished) in your account settings, together with your chosen layout (Basic or Full). We use the timestamps only to improve how new coaches get started. They contain none of your game data, are never shared or sold, and are deleted with your account. To object, turn off Settings → Data → Error reporting and usage statistics: no further timestamps are then recorded. The layout is a setting of the app and is always kept."
+      "onboardingContent": "Unless you turn it off, we store a few timestamps about your onboarding progress (account created, setup finished or skipped, first plan seen, first and second match finished, switch to the Full view) in your account settings, together with your chosen layout (Basic view or Full view). We use the timestamps only to improve how new coaches get started. They contain none of your game data, are never shared or sold, and are deleted with your account. To object, turn off Settings → Data → Error reporting and usage statistics: no further timestamps are then recorded. The layout is a setting of the app and is always kept. So are the layout notice's marks (layout notice shown and when, and your choice Don't show again), because without them the notice would repeat."
     },
     "dataWeDoNotCollect": {
       "title": "What We Do Not Do With Your Data",
@@ -3886,8 +3886,8 @@
     "homeTeamTab": "Club: your players, teams, staff, the warmup plan, the rules for your age group and coaching materials.",
     "homeCompetitionsTab": "Competitions: set up leagues and tournaments to group your games.",
     "homeStatsTab": "Stats: league, tournament, overall and player statistics (available once you've played a game).",
-    "homeGearBasic": "The gear icon (top-right): settings (including Basic/Full view), backups, your account and this guide.",
-    "homeBasicIntro": "The Basic Home is short: you see the next game and can start it. A match opens on its own field.",
+    "homeGearBasic": "The gear icon (top-right): settings (including Basic view/Full view), backups, your account and this guide.",
+    "homeBasicIntro": "Home in the Basic view is short: you see the next game and can start it. A match opens on its own field.",
     "homeBasicNextGame": "Next game card: the date, opponent and plan. Tap \"Start match\" on game day or \"Mark absences\" before it; \"Show plan\" opens the plan.",
     "homeBasicNewGame": "New game: pick a date and an opponent and you get a ready plan.",
     "homeBasicTeam": "Team row: opens the player list where you edit names, numbers and the keeper, and add or remove players.",
@@ -4192,17 +4192,27 @@
     "allGamesRow": "All games · {{count}}"
   },
   "allFeatures": {
-    "fullAppLine": "Simplified view · See the full app",
+    "fullAppLine": "Basic view · See the full app",
     "title": "All features",
-    "intro": "The basic layout shows what matters on match day. The full layout adds:",
+    "intro": "The Basic view shows what matters on match day. The Full view adds:",
     "itemTabs": "Home with tabs: games, club, competitions and statistics",
     "itemPlanner": "Match planning for several games, such as a tournament day",
     "itemCompetitions": "Leagues and tournaments",
     "itemClub": "Staff, warm-up plan and rules",
     "itemTravel": "Venues and departure times",
     "itemExternal": "Games played elsewhere in player statistics",
-    "switchToFull": "Switch to the full layout",
+    "switchToFull": "Switch to the Full view",
     "switchNote": "Nothing is removed. You can switch back in Settings."
+  },
+  "layoutNotice": {
+    "title": "You are starting with the Basic view",
+    "firstGame": "First match recorded ✓",
+    "threeGames": "Three matches recorded ✓",
+    "body": "We hid some features so getting started is easy. The Full view also has, for example, tournament-day planning, leagues and tournaments, statistics and the tactics board.",
+    "switchHint": "You can switch to the Full view at any time from the top of Home: <strong>See the full app</strong>.",
+    "ok": "Got it",
+    "switchNow": "Switch to the Full view now",
+    "stop": "Don't show again"
   },
   "planShare": {
     "keeper": "{{name}} (GK)",

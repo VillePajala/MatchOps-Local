@@ -10,6 +10,7 @@ import {
   getMilestones,
   hasSeenSetupWizard,
   milestonePatch,
+  recordAppStateMilestones,
   recordGameFinished,
   recordMilestone,
 } from '../onboardingMilestones';
@@ -187,5 +188,35 @@ describe('error reporting and usage statistics switched off', () => {
     await recordMilestone('wizardDone', 'u1', T1);
     await flushMilestoneWrites();
     expect(stored.onboardingMilestones).toEqual({ wizardDone: T1.toISOString() });
+  });
+});
+
+describe('recordAppStateMilestones (the layout notice marks)', () => {
+  it('writes the marks even with diagnostics off (app state, not measurement) and keeps earlier ones', async () => {
+    stored = { ...stored, diagnosticsEnabled: false, onboardingMilestones: { layoutNotice1Shown: T1.toISOString() } };
+    await expect(
+      recordAppStateMilestones(['layoutNotice1Shown', 'layoutNotice2Shown'], 'u1', T2),
+    ).resolves.toBe(true);
+    expect(stored.onboardingMilestones).toEqual({
+      layoutNotice1Shown: T1.toISOString(),
+      layoutNotice2Shown: T2.toISOString(),
+    });
+  });
+
+  it('resolves false when the write fails', async () => {
+    const { updateAppSettings } = jest.requireMock('@/utils/appSettings') as { updateAppSettings: jest.Mock };
+    updateAppSettings.mockRejectedValueOnce(new Error('quota'));
+    await expect(recordAppStateMilestones(['layoutNoticeStopped'], 'u1', T2)).resolves.toBe(false);
+  });
+
+  it('switchedToFull is measurement: not written with diagnostics off', async () => {
+    stored = { ...stored, diagnosticsEnabled: false };
+    await recordMilestone('switchedToFull', 'u1', T1);
+    await flushMilestoneWrites();
+    expect(stored.onboardingMilestones).toBeUndefined();
+    stored = { ...stored, diagnosticsEnabled: true };
+    await recordMilestone('switchedToFull', 'u1', T2);
+    await flushMilestoneWrites();
+    expect(stored.onboardingMilestones).toEqual({ switchedToFull: T2.toISOString() });
   });
 });

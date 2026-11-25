@@ -29,7 +29,7 @@ export const ASSESSMENT_TEMPLATES = ['balanced', 'light6', 'creative'] as const;
 export type AssessmentTemplate = (typeof ASSESSMENT_TEMPLATES)[number];
 
 /**
- * The two layouts (Onboarding v3, D21): 'basic' = Perusnäkymä (a short Home
+ * The two layouts (Onboarding v3, D21): 'basic' = Kevennetty näkymä (a short Home
  * with the next game, no tab bar), 'full' = Koko näkymä (the whole app). There
  * are no module switches - this one value is the whole choice.
  */
@@ -58,6 +58,19 @@ export const ONBOARDING_MILESTONES = [
   'firstGameFinished',
   /** A second game reached full time. */
   'secondGameFinished',
+  /**
+   * The basic-layout notice ("Aloitat kevennetyllä näkymällä") was shown: 1 =
+   * right after the setup wizard, 2 = after the first finished game, 3 = after
+   * the third. APP STATE, not measurement: written whatever the diagnostics
+   * switch says, because without it the notice would repeat. See layoutNotice.ts.
+   */
+  'layoutNotice1Shown',
+  'layoutNotice2Shown',
+  'layoutNotice3Shown',
+  /** The coach chose "Älä näytä enää" on a reminder: no further notices. App state. */
+  'layoutNoticeStopped',
+  /** The coach switched to the full layout (any entry point). Measurement. */
+  'switchedToFull',
 ] as const;
 export type OnboardingMilestone = (typeof ONBOARDING_MILESTONES)[number];
 export type OnboardingMilestones = Partial<Record<OnboardingMilestone, string>>;
