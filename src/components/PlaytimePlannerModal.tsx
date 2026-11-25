@@ -114,6 +114,8 @@ import {
 } from '@/utils/playtimePlanner/createFromPlan';
 import { persistGameFromPlan } from '@/components/HomePage/utils/newGameHandlers';
 import PlanCreateGamesSheet from '@/components/PlanCreateGamesSheet';
+import PlanDayReportModal from '@/components/PlanDayReportModal';
+import { isDayGamePlayed, orderDayGames, type DayReportGameInput } from '@/utils/playtimePlanner/dayReport';
 import { getAppSettings } from '@/utils/appSettings';
 import { learnVenues, type KnownVenue } from '@/utils/venueBook';
 import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
@@ -337,6 +339,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const [subSheetTarget, setSubSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
   // "Luo kaikki pelit" sheet (create a game for every planned game without one).
   const [showCreateAll, setShowCreateAll] = useState(false);
+  // "Turnauspäivän raportti": how many of the plan's games have been played
+  // (the entry shows from one), and the games while the report is open.
+  const [playedLinkedCount, setPlayedLinkedCount] = useState(0);
+  const [dayReportGames, setDayReportGames] = useState<DayReportGameInput[] | null>(null);
+  const dayReportCloseRef = useRef<(() => void) | null>(null);
   /** The venue book for "Create all games" (loaded when the sheet opens). */
   const [createAllVenues, setCreateAllVenues] = useState<KnownVenue[]>([]);
   useEffect(() => {
@@ -1013,11 +1020,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         // games that still EXIST are offered - a link outliving its game would
         // otherwise produce a row that opens nothing.
         // This is also the planned game's "created" status: a deleted game frees it.
-        setLinkedGameIds(createdGameIdsForPlan(games, links, planId));
+        const created = createdGameIdsForPlan(games, links, planId);
+        setLinkedGameIds(created);
+        setPlayedLinkedCount(Object.values(created).filter((id) => games[id] && isDayGamePlayed(games[id])).length);
       } catch (err) {
         logger.error('[planner] Failed to count linked games (non-fatal)', err);
         setLinkedCounts({});
         setLinkedGameIds({});
+        setPlayedLinkedCount(0);
       }
     },
     [user],
@@ -1033,7 +1043,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     let cancelled = false;
     void (async () => {
       if (!isOpen || !planId) {
-        if (!cancelled) { setLinkedCounts({}); setLinkedGameIds({}); }
+        if (!cancelled) { setLinkedCounts({}); setLinkedGameIds({}); setPlayedLinkedCount(0); }
         return;
       }
       await refreshLinkedCounts(planId);
@@ -1110,6 +1120,31 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       }
     },
     [showToast, t],
+  );
+
+  // "Turnauspäivän raportti": read the plan's games fresh (they may have been
+  // played since the planner opened) and open the report over them.
+  const handleOpenDayReport = useCallback(async () => {
+    const plan = activePlanRef.current;
+    if (!plan) return;
+    await flushSave();
+    try {
+      const [games, links] = await Promise.all([getSavedGames(user?.id), getAllPlanLinks()]);
+      setDayReportGames(orderDayGames(plan, createdGameIdsForPlan(games, links, plan.id), games));
+    } catch (err) {
+      logger.error('[planner] Failed to load games for the day report', err);
+      showToast(t('planDayReport.loadError', 'Could not load the games. Try again.'), 'error');
+    }
+  }, [flushSave, showToast, t, user]);
+
+  const handleSaveDayReport = useCallback(
+    (text: string) => {
+      updateActivePlan((plan) => {
+        const { dayReport: _previous, ...rest } = plan;
+        return text ? { ...rest, dayReport: text } : rest;
+      });
+    },
+    [updateActivePlan],
   );
 
   // Re-apply the current plan to every unplayed game created from one planned game.
@@ -1680,8 +1715,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const plannerOverlayOpen =
     deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null ||
     trimConfirm !== null || showSuggestConfirm || showClearAllGamesConfirm ||
-    actionsMenuId !== null || subSheetTarget !== null || showCreateAll;
+    actionsMenuId !== null || subSheetTarget !== null || showCreateAll || dayReportGames !== null;
   const closePlannerOverlay = useCallback(() => {
+    // The day report sits above everything else here; it decides itself
+    // (an unsaved text asks first).
+    if (dayReportGames !== null) {
+      if (dayReportCloseRef.current) dayReportCloseRef.current();
+      else setDayReportGames(null);
+      return;
+    }
     if (showCreateAll) { setShowCreateAll(false); return; }
     if (deleteTarget !== null) { setDeleteTarget(null); return; }
     if (removeTarget !== null) { setRemoveQueue((q) => q.slice(1)); return; }
@@ -1691,7 +1733,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (showClearAllGamesConfirm) { setShowClearAllGamesConfirm(false); return; }
     if (actionsMenuId !== null) { setActionsMenuId(null); return; }
     if (subSheetTarget !== null) { setSubSheetTarget(null); return; }
-  }, [deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, actionsMenuId, subSheetTarget, showCreateAll]);
+  }, [deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, actionsMenuId, subSheetTarget, showCreateAll, dayReportGames]);
 
   // Hardware back:
   //  - the BASE registration closes the planner (manager/loading -> close), the
@@ -1740,6 +1782,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // The day report handles its own Escape (it may ask before closing).
+      if (dayReportGames !== null) return;
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
       if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || trimConfirm !== null || showSuggestConfirm || showClearAllGamesConfirm) return;
@@ -1776,7 +1820,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, showCreateAll, actionsMenuId, handleBackToManager, singlePlanLayer]);
+  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, showCreateAll, actionsMenuId, handleBackToManager, singlePlanLayer, dayReportGames]);
 
   const startNewPlan = () => {
     resetSetupForm(pickableRoster);
@@ -2565,6 +2609,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         {t('planCreateGames.createAll', 'Create all games')}
                       </button>
                     )}
+                    {/* The day's report over the games made from this plan,
+                        once at least one of them has been played. */}
+                    {playedLinkedCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenDayReport()}
+                        data-testid="planner-day-report"
+                        className={`${secondaryButtonStyle} w-full`}
+                      >
+                        {t('planDayReport.open', 'Tournament day report')}
+                      </button>
+                    )}
                   </div>
                 );
               })()}
@@ -2961,6 +3017,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             />
           );
         })()}
+
+      {dayReportGames !== null && activePlan && (
+        <PlanDayReportModal
+          plan={activePlan}
+          inputs={dayReportGames}
+          roster={roster}
+          onSave={handleSaveDayReport}
+          onClose={() => setDayReportGames(null)}
+          closeRequestRef={dayReportCloseRef}
+        />
+      )}
 
       {showCreateAll && activePlan && (
         <PlanCreateGamesSheet

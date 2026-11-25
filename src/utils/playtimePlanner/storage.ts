@@ -147,8 +147,10 @@ export const parsePlanExport = (json: string): PlaytimePlan | null => {
  * regenerated too, so a plan and its copy never share a game id. */
 export const duplicatePlan = (plan: PlaytimePlan, copySuffix = ' (copy)'): PlaytimePlan => {
   const now = new Date().toISOString();
+  // The day report describes the games made from THIS plan; the copy has none.
+  const { dayReport: _dayReport, ...rest } = plan;
   return {
-    ...plan,
+    ...rest,
     id: generateId('ptp'),
     name: `${plan.name}${copySuffix}`,
     createdAt: now,
