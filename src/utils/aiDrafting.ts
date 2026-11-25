@@ -25,6 +25,7 @@
 
 import { AI_PROVIDERS, getAiProviderKey, getAiProviderState } from '@/utils/aiProvider';
 import type { GamePacket } from '@/utils/gamePacket';
+import type { DayPacket } from '@/utils/playtimePlanner/dayReportPacket';
 import { gamePacketFingerprint, playerRef, UNKNOWN_PLAYER_REF } from '@/utils/gamePacket';
 import logger from '@/utils/logger';
 
@@ -75,6 +76,14 @@ export const REPORT_SECTIONS = [
   'next',
 ] as const;
 export type ReportSectionKey = (typeof REPORT_SECTIONS)[number];
+
+/**
+ * The six headings of a report over SEVERAL games (a tournament day, a
+ * tournament, a league): the match template without "how the game unfolded",
+ * which describes one game. Same keys, so drafted text lands under the same
+ * headings the coach's template has.
+ */
+export const DAY_REPORT_SECTIONS = ['overview', 'worked', 'improve', 'spirit', 'mentions', 'next'] as const satisfies readonly ReportSectionKey[];
 
 export interface DraftSection {
   section: ReportSectionKey;
@@ -244,7 +253,9 @@ export function buildDraftingInstructions(packet: GamePacket, mode: DraftingMode
       ? [
           'THIS IS A TIDYING JOB, NOT A NEW REPORT. The coach has already written the report',
           'in `attested.coachReport`. Organise THEIR account under the seven headings, keep',
-          'their judgements and their turns of phrase, and cut repetition. Do not add an',
+          'their judgements and their turns of phrase, and cut repetition. Their text may use',
+          'older names for two headings: "Mikä toimi hyvin" is `worked`, and "Kehityskohteet" or',
+          '"What we\'re working on" is `improve`. Do not add an',
           'observation they did not make, and do not replace their opinion with your own. The',
           'rest of the data is there so you can place their words correctly and fix a detail',
           'they plainly meant - never to introduce material they left out. If they wrote',
@@ -781,4 +792,191 @@ export async function groupPlayerNotes({
   }
 
   return { text: content, model: chosenModel, estimatedUsd: billed, noteCount: usable.length };
+}
+
+
+// ── Day report (Turnauspäivän raportti) ──────────────────────────────────────
+
+/** Rough cost of a day-summary request, same formula as a match draft. */
+export function estimateDaySummaryUsd(packet: DayPacket): number {
+  const inputTokens = JSON.stringify(packet).length / CHARS_PER_TOKEN;
+  const usd =
+    (inputTokens / 1_000_000) * DRAFTING_USD_PER_1M_INPUT +
+    (MAX_COMPLETION_TOKENS / 1_000_000) * DRAFTING_USD_PER_1M_OUTPUT;
+  return Math.ceil(usd * 100) / 100;
+}
+
+export interface DaySummaryDraft {
+  /** Sections in template order; only ones the model wrote something for. */
+  sections: DraftSection[];
+  model: string;
+  usage?: DraftUsage;
+}
+
+export function buildDaySummaryInstructions(packet: DayPacket): string {
+  const futsal = packet.gameType === 'futsal';
+  const scope = packet.scope ?? 'day';
+  const opening =
+    scope === 'season'
+      ? ['You draft a short report of one youth football league season so far - its games in date order -', 'for the coach who was there.']
+      : scope === 'tournament'
+        ? ['You draft a short report of one youth football tournament - a few short games, over one or', 'more days - for the coach who was there.']
+        : ['You draft a short report of one youth football day - usually a tournament of a few short', 'games played back to back - for the coach who was there.'];
+  return [
+    ...opening,
+    `Write in ${packet.language}. Plain prose, no markdown, no headings inside a section's text.`,
+    '',
+    `SPORT: ${futsal ? 'futsal (five-a-side indoor football)' : 'association football (soccer)'}, youth level.`,
+    ...(packet.ageGroup
+      ? [
+          `AGE GROUP: ${packet.ageGroup}. Write about learning, effort and enjoyment, not professional analysis.`,
+          "Nothing here is a judgement on a child's ability - and a parent may well read it.",
+        ]
+      : []),
+    packet.teamName
+      ? `SIDE: the team being reported on is ${packet.teamName}. "us" means them; "them" means the opponent of that game.`
+      : 'SIDE: "us" is the team being reported on; "them" is the opponent of that game.',
+    '',
+    'THE DATA: `games` lists the games of the day in order, each with its result and score',
+    '(recorded by the app), our goal scorers and assisters, and - where the coach wrote one -',
+    "`coachReport`, the coach's own match report for that game. The coach's reports are the",
+    'primary source: summarise THEIR observations across the day, keep their judgements, and',
+    'find what repeated from game to game. Do not retell every game in turn.',
+    '',
+    "VOICE: the coach's own report about their own team - impersonal, about the football.",
+    'In Finnish use the passive ("pallo kiersi hyvin"). Never write "according to the coach",',
+    'and never write about the record itself (what was noted, logged or entered).',
+    '',
+    'RULES:',
+    '1. Never invent an event, a player, a number or a detail that is not in the data.',
+    `2. Players are referred to by their ref exactly as given (for example ${playerRef(1)}). Never guess a name.`,
+    `3. "${UNKNOWN_PLAYER_REF}" means the text did not identify which player it was. Write about it without attributing it to anyone.`,
+    '4. Say nothing about a player the data says nothing about. No player ratings.',
+    '5. The app does not track playing time: never mention minutes played or fairness of playing time.',
+    '6. Be concrete and short. A coach reads this on a phone.',
+    '7. If the data is too thin for a section, leave its text empty rather than padding.',
+    '',
+    'Return the six sections in the given order.',
+  ].join('\n');
+}
+
+function daySummarySchema(): Record<string, unknown> {
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: ['sections'],
+    properties: {
+      sections: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['section', 'text'],
+          properties: {
+            section: { type: 'string', enum: [...DAY_REPORT_SECTIONS] },
+            text: { type: 'string' },
+          },
+        },
+      },
+    },
+  };
+}
+
+/** Keep only known, non-empty, first-seen sections, in template order. */
+export function validateDaySummary(raw: unknown): DraftSection[] {
+  if (!raw || typeof raw !== 'object') throw new DraftingError('invalidResponse', 'Draft was not an object');
+  const list = (raw as { sections?: unknown }).sections;
+  const seen = new Set<ReportSectionKey>();
+  const sections: DraftSection[] = [];
+  if (Array.isArray(list)) {
+    for (const entry of list) {
+      if (!entry || typeof entry !== 'object') continue;
+      const { section, text } = entry as { section?: unknown; text?: unknown };
+      if (typeof section !== 'string' || typeof text !== 'string') continue;
+      if (!(DAY_REPORT_SECTIONS as readonly string[]).includes(section)) continue;
+      const key = section as ReportSectionKey;
+      if (seen.has(key)) continue;
+      const clamped = clamp(text, MAX_SECTION_CHARS);
+      if (!clamped) continue;
+      seen.add(key);
+      sections.push({ section: key, text: clamped });
+    }
+  }
+  if (sections.length === 0) throw new DraftingError('invalidResponse', 'Draft had no usable sections');
+  sections.sort((a, b) => REPORT_SECTIONS.indexOf(a.section) - REPORT_SECTIONS.indexOf(b.section));
+  return sections;
+}
+
+/**
+ * Ask the coach's provider for a day-report draft from the day's results and
+ * the games' own reports. Only ever called from an explicit coach action, and
+ * returns a proposal: the caller puts it in the editor, the coach saves it.
+ */
+export async function draftDaySummary({
+  packet,
+  signal,
+  model,
+}: {
+  packet: DayPacket;
+  signal?: AbortSignal;
+  model?: string;
+}): Promise<DaySummaryDraft> {
+  const state = getAiProviderState();
+  if (!state.connected) {
+    throw new DraftingError('unauthorized', 'No AI provider is connected on this device');
+  }
+  const chosenModel = model ?? state.model ?? DRAFTING_MODEL;
+  if (packet.games.length === 0) throw new DraftingError('invalidResponse', 'No played games to summarise');
+
+  const packetJson = JSON.stringify(packet);
+  if (packetJson.length > MAX_PACKET_CHARS) {
+    // Refused here rather than billed to the coach.
+    throw new DraftingError('tooLarge', 'This day has more data than one request should carry');
+  }
+
+  const { content, ranOut, billed, inputTokens, outputTokens, shape } = await postChatCompletion({
+    model: chosenModel,
+    messages: [
+      { role: 'system', content: buildDaySummaryInstructions(packet) },
+      { role: 'user', content: packetJson },
+    ],
+    responseFormat: {
+      type: 'json_schema',
+      json_schema: { name: 'day_report_draft', strict: true, schema: daySummarySchema() },
+    },
+    signal,
+  });
+
+  if (!content) {
+    logger.warn('[aiDrafting] day summary: provider returned no content', shape);
+    throw new DraftingError(
+      'noOutput',
+      ranOut ? 'The model spent its whole output budget before writing anything' : 'Provider returned no draft content',
+      billed,
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    logger.warn('[aiDrafting] day summary content was not JSON', shape);
+    if (ranOut) throw new DraftingError('noOutput', 'The draft was cut off before it finished', billed);
+    throw new DraftingError('invalidResponse', 'Draft was not valid JSON', billed);
+  }
+
+  let sections: DraftSection[];
+  try {
+    sections = validateDaySummary(parsed);
+  } catch (error) {
+    if (error instanceof DraftingError) throw new DraftingError(error.kind, error.message, billed);
+    throw error;
+  }
+  return {
+    sections,
+    model: chosenModel,
+    ...(inputTokens || outputTokens
+      ? { usage: { inputTokens, outputTokens, estimatedUsd: completionUsd(inputTokens, outputTokens) } }
+      : {}),
+  };
 }

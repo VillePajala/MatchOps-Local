@@ -44,6 +44,17 @@ beforeAll(() => {
 });
 
 // Mocks
+// The day-report prompts read plans, links and games; they have their own
+// suites (useDayReportPrompt / dayReportPrompts / dayReportEntryPoints).
+const mockLastDayGamePlan = jest.fn((): string | null => null);
+jest.mock('@/hooks/useDayReportPrompt', () => ({
+  useDayReportPrompt: () => null,
+  useLastDayGamePlan: (...args: unknown[]) => mockLastDayGamePlan(...(args as [])),
+}));
+jest.mock('@/components/PlanDayReportLauncher', () => ({
+  __esModule: true,
+  default: ({ planId }: { planId: string }) => <div data-testid="day-report-launcher">{planId}</div>,
+}));
 jest.mock('@/utils/seasons');
 jest.mock('@/utils/tournaments');
 jest.mock('@/utils/appSettings');
@@ -1300,6 +1311,33 @@ describe('GameStatsModal', () => {
       // The match sheet is the one amber action; Share sits inside the report section.
       expect(screen.getByTestId('spine-taso-helper').className).toContain('s1-primary');
       expect(within(screen.getByTestId('spine-report')).getByTestId('spine-share-report')).toBeInTheDocument();
+    });
+
+    /** "Päivän viimeinen peli pelattu · Turnauspäivän raportti" (rule: dayReportPrompts.test) */
+    it('offers the day report after the report step when this was the day\'s last plan game', async () => {
+      mockLastDayGamePlan.mockReturnValue('plan1');
+      renderComponent({ ...getDefaultProps(), onExportOneExcel: jest.fn() });
+      await tabReady();
+      await waitFor(() => expect(stepKeys()).toContain('spine-dayReport'));
+      const keys = stepKeys();
+      expect(keys.indexOf('spine-dayReport')).toBe(keys.indexOf('spine-report') + 1);
+      const button = screen.getByTestId('spine-day-report');
+      expect(button).toHaveTextContent("The day's last game is played");
+      expect(button).toHaveTextContent('Tournament day report');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.getByTestId('day-report-launcher')).toHaveTextContent('plan1');
+      // Asked about THIS game, only on the finish tab of an open modal.
+      expect(mockLastDayGamePlan).toHaveBeenCalledWith(getDefaultProps().currentGameId, expect.anything(), true);
+      mockLastDayGamePlan.mockReturnValue(null);
+    });
+
+    it('offers no day report otherwise', async () => {
+      mockLastDayGamePlan.mockReturnValue(null);
+      renderComponent(getDefaultProps());
+      await tabReady();
+      expect(screen.queryByTestId('spine-day-report')).not.toBeInTheDocument();
     });
 
     it('shows the squad size with a way to change it', async () => {

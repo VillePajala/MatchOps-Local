@@ -1600,4 +1600,32 @@ export function BasicNoNextGameCard({
   );
 }
 
+/**
+ * "Joulufutis 12.12. valmis · Tee raportti": a plan's day is played and its
+ * day report is not written yet (useDayReportPrompt holds the rule). One row
+ * in both layouts; tapping it opens the day report.
+ */
+export function DayReportPromptRow({ planName, onOpen, t }: {
+  planName: string;
+  onOpen: () => void;
+  t: TFunction;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      data-testid="home-day-report-prompt"
+      className={`${HOME_CARD} flex min-h-14 w-full items-center gap-3.5 py-2.5 pl-4 pr-4 text-left transition-colors hover:bg-white/[0.04] ${HOME_FOCUS}`}
+    >
+      <HomeIcon name="check" className="h-[22px] w-[22px] flex-shrink-0 text-win" strokeWidth={2} />
+      <span className="min-w-0 flex-1 break-words text-base font-semibold leading-snug text-ink">
+        {t('planDayReport.homeDone', '{{name}} done', { name: planName })}
+        <span className="text-ink-3"> · </span>
+        <span className="text-action">{t('planDayReport.homeAction', 'Write the report')}</span>
+      </span>
+      <HomeIcon name="chev" className="h-4 w-4 flex-shrink-0 text-ink-3" strokeWidth={2} />
+    </button>
+  );
+}
+
 export default HomeDashboard;

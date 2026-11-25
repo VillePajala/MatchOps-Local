@@ -165,6 +165,19 @@ describe('save / get / delete round-trip', () => {
     expect(original).toBeTruthy();
   });
 
+  it('keeps the day report text with the plan', async () => {
+    const plan = { ...createPlan(baseOpts), dayReport: 'Hyvä päivä.' };
+    await savePlan(plan);
+    expect((await getPlan(plan.id))?.dayReport).toBe('Hyvä päivä.');
+  });
+
+  /** @edge-case a lenient writer's null must not get a whole stored plan dropped */
+  it('keeps a plan with a null day report, and drops only a plan with a non-string one', () => {
+    const plan = createPlan(baseOpts);
+    expect(parsePlanExport(JSON.stringify({ ...plan, dayReport: null }))).not.toBeNull();
+    expect(parsePlanExport(JSON.stringify({ ...plan, dayReport: 5 }))).toBeNull();
+  });
+
   it('keeps multiple plans side by side', async () => {
     const a = await savePlan(createPlan({ ...baseOpts, name: 'A' }));
     const b = await savePlan(createPlan({ ...baseOpts, name: 'B' }));
@@ -275,6 +288,11 @@ describe('versions & JSON (PR 1.6)', () => {
     expect(dup.id).not.toBe(plan.id);
     expect(dup.name).toBe('Sunday Cup (copy)');
     expect(dup.games).toHaveLength(plan.games.length);
+  });
+
+  it('does not copy the day report: it describes the original plan\'s games', () => {
+    const dup = duplicatePlan({ ...createPlan(baseOpts), dayReport: 'Hyvä päivä.' });
+    expect(dup).not.toHaveProperty('dayReport');
   });
 
   it('regenerates nested game ids on duplicate (no shared ids with the original)', () => {

@@ -77,6 +77,13 @@ export interface PlaytimePlan {
   teamId?: string;
   /** Archived plans are hidden from the manager list behind a toggle. */
   archived?: boolean;
+  /**
+   * The coach's own text for the day report ("Turnauspäivän raportti") over
+   * the games made from this plan. Stored on the plan so it syncs with it
+   * (the cloud row keeps the whole plan as JSON, so no migration). Absent until
+   * written.
+   */
+  dayReport?: string;
 }
 
 /** Stored shape: a map of plan id -> plan (mirrors how saved games are kept). */
@@ -153,6 +160,9 @@ export const isPlaytimePlan = (v: unknown): v is PlaytimePlan =>
   typeof v.createdAt === 'string' &&
   typeof v.updatedAt === 'string' &&
   (v.teamId === undefined || typeof v.teamId === 'string') &&
+  // Optional; null tolerated like absentIds, so a lenient writer cannot get a
+  // whole stored plan dropped on read.
+  (v.dayReport == null || typeof v.dayReport === 'string') &&
   Array.isArray(v.players) &&
   v.players.every(isPlanPlayer) &&
   new Set((v.players as PlanPlayer[]).map((p) => p.id)).size === (v.players as PlanPlayer[]).length &&

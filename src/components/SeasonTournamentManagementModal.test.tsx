@@ -11,6 +11,9 @@ import { getFilteredGames } from '@/utils/savedGames';
 import { ToastProvider } from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AppState } from '@/types/game';
+import type { Player } from '@/types';
+import { TestFixtures } from '../../tests/fixtures';
 
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -1040,4 +1043,74 @@ describe('opened from a Home card', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText('Season 1')).toBeInTheDocument();
   });
+
+  describe('competition report (Turnauksen raportti / Sarjaraportti)', () => {
+    const played = (over: Partial<AppState>): AppState =>
+      TestFixtures.games.completed({
+        teamName: 'Kotkat P11',
+        homeOrAway: 'home',
+        availablePlayers: [{ id: 'p1', name: 'Test Player' } as Player],
+        selectedPlayerIds: ['p1'],
+        playersOnField: [],
+        playerPositions: { p1: ['st'] },
+        gameEvents: [],
+        shootoutKicks: undefined,
+        isPlayed: true,
+        seasonId: 's1',
+        tournamentId: 't1',
+        ...over,
+      });
+    const actionsFor = (name: string) =>
+      screen.getByLabelText(i18n.t('seasonTournamentModal.itemActions', { name, defaultValue: 'Actions for {{name}}' }));
+
+    it('is not offered before the competition has a played game', async () => {
+      renderWithProviders({ kind: 'tournament' });
+      await act(async () => {});
+      fireEvent.click(actionsFor('Tournament 1'));
+      expect(screen.queryByTestId('competition-report-t1')).not.toBeInTheDocument();
+    });
+
+    /** @critical tournament report: same game-by-game layout, games in date/time order */
+    it('opens the tournament report over its played games in date/time order', async () => {
+      const games = {
+        late: played({ gameDate: '2026-12-12', gameTime: '13:00', opponentName: 'Late FC', homeScore: 0, awayScore: 1 }),
+        early: played({ gameDate: '2026-12-12', gameTime: '09:00', opponentName: 'Early FC', homeScore: 2, awayScore: 0 }),
+        unplayed: played({ gameDate: '2026-12-13', opponentName: 'Tomorrow FC', gameStatus: 'notStarted', homeScore: 0, awayScore: 0 }),
+      };
+      mockGetFilteredGames.mockResolvedValue(Object.entries(games));
+      mockGetSavedGames.mockResolvedValue(games);
+      renderWithProviders({ kind: 'tournament' });
+      await act(async () => {});
+      fireEvent.click(actionsFor('Tournament 1'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('competition-report-t1'));
+      });
+      const view = await screen.findByTestId('plan-day-report');
+      expect(within(view).getByTestId('day-report-game-1')).toHaveTextContent('Early FC');
+      expect(within(view).getByTestId('day-report-game-2')).toHaveTextContent('Late FC');
+      expect(within(view).queryByText('Tomorrow FC')).not.toBeInTheDocument();
+      // Not stored: no Save, and the view says so.
+      expect(within(view).queryByTestId('day-report-save')).not.toBeInTheDocument();
+      expect(within(view).getByTestId('day-report-not-saved')).toBeInTheDocument();
+    });
+
+    it('opens the league report (totals) from the league\'s details sheet', async () => {
+      const games = {
+        a: played({ gameDate: '2026-09-20', opponentName: 'Kallion Kiri', homeScore: 2, awayScore: 1 }),
+        b: played({ gameDate: '2026-09-27', opponentName: 'Harjun Haukat', homeScore: 0, awayScore: 0 }),
+      };
+      mockGetFilteredGames.mockResolvedValue(Object.entries(games));
+      mockGetSavedGames.mockResolvedValue(games);
+      renderWithProviders({ kind: 'season' });
+      await act(async () => {});
+      fireEvent.click(screen.getByText('Season 1'));
+      await act(async () => {
+        fireEvent.click(await screen.findByTestId('competition-details-report'));
+      });
+      const view = await screen.findByTestId('plan-day-report');
+      expect(within(view).getByTestId('series-report-game-1')).toHaveTextContent('20.9.');
+      expect(within(view).getByTestId('series-report-players')).toHaveTextContent('ST ×2');
+    });
+  });
 });
+
