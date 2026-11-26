@@ -2,7 +2,9 @@
  * Scene recorder: drives the real app in headless Chromium at phone size and records it.
  *
  * Everything the hero video taught, kept here so the next video does not relearn it:
- *  - The app is seeded through IndexedDB (key/value store "MatchOpsLocal") before boot, in
+ *  - The app is seeded through IndexedDB before boot (key/value store "keyValueStore"; local mode now
+ *    reads the user-scoped database "matchops_user_local", the legacy "MatchOpsLocal" gets the same
+ *    payload, and `dump` reads the user-scoped one), in
  *    local mode, with the welcome screen marked seen and the single-tab lock satisfied. No
  *    account, nothing touches staging or prod. The setup wizard, marketing consent and policy
  *    re-consent are cloud-only, so a local recording never meets them; the seeds still say
@@ -48,7 +50,9 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
   // devicePixelRatio 1, so the pitch canvas (its bitmap is sized by dpr) was drawn at half resolution and
   // upscaled: soft pitch, crisp bars. The init script reports the real ratio. (deviceScaleFactor on the
   // context is no fix: the screencast then captures at CSS size and pads the rest of the frame grey.)
-  const browser = await chromium.launch({ args: [`--force-device-scale-factor=${scale}`] });
+  // Native date/time inputs draw in the browser's own locale, which the context `locale` does not change;
+  // the headless shell takes it from the environment (LANG), so a Finnish film shows 12.12.2026, not 12/12/2026.
+  const browser = await chromium.launch({ args: [`--force-device-scale-factor=${scale}`], env: { ...process.env, LANG: LANG === 'en' ? 'en_GB.UTF-8' : 'fi_FI.UTF-8', LANGUAGE: LANG === 'en' ? 'en_GB' : 'fi' } });
 
   /** `cloud: true` records the real first run against the dev server's staging backend: nothing is seeded and
    *  the app boots to its sign-up form. Use a synthetic address; delete the accounts afterwards. */
@@ -69,10 +73,10 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
     }, { inMatch, cloud, lang: LANG, scale });
     const page = await ctx.newPage();
     await page.goto(baseUrl + '/manifest.json');
-    if (!cloud) await page.evaluate(async (d) => { await new Promise((res, rej) => { const req = indexedDB.open('MatchOpsLocal', 1);
+    if (!cloud) for (const dbName of ['MatchOpsLocal', 'matchops_user_local']) await page.evaluate(async ([d, dbName]) => { await new Promise((res, rej) => { const req = indexedDB.open(dbName, 1);
       req.onupgradeneeded = () => { const db = req.result; if (!db.objectStoreNames.contains('keyValueStore')) { const s = db.createObjectStore('keyValueStore', { keyPath: 'key' }); s.createIndex('keyIndex', 'key', { unique: true }); } };
       req.onsuccess = () => { const db = req.result; const tx = db.transaction('keyValueStore', 'readwrite'); const st = tx.objectStore('keyValueStore'); for (const [k, v] of Object.entries(d)) if (v != null) st.put({ key: k, value: JSON.stringify(v) }); tx.oncomplete = () => { db.close(); res(); }; tx.onerror = () => rej(tx.error); };
-      req.onerror = () => rej(req.error); }); }, data);
+      req.onerror = () => rej(req.error); }); }, [data, dbName]);
 
     let curPos = startCur;
     const setCur = async (x, y, dur) => { curPos = [x, y]; await page.evaluate(([x, y, dur, from]) => { let c = document.getElementById('cur'); if (!c) { c = document.createElement('div'); c.id = 'cur'; c.style.transition = 'none'; c.style.transform = `translate(${from[0]}px,${from[1]}px)`; document.body.appendChild(c); void c.offsetWidth; c.style.transition = ''; } if (dur) c.style.transitionDuration = dur + 'ms'; c.style.transform = `translate(${x}px,${y}px)`; }, [x, y, dur, curPos]); };
@@ -132,7 +136,7 @@ export async function openRecorder({ outDir, baseUrl = process.env.BASE_URL || '
     /** Write the app's whole IndexedDB payload to `file`, so the next recording can start from exactly
      *  what this one left (the lineup the plan produced, the goal just logged). The app saves on a
      *  short debounce: hold a moment after the last change before calling it. */
-    const dump = async (file) => { const d = await page.evaluate(() => new Promise((res, rej) => { const req = indexedDB.open('MatchOpsLocal');
+    const dump = async (file) => { const d = await page.evaluate(() => new Promise((res, rej) => { const req = indexedDB.open('matchops_user_local');
       req.onsuccess = () => { const db = req.result; const all = db.transaction('keyValueStore').objectStore('keyValueStore').getAll(); all.onsuccess = () => { const o = {}; for (const r of all.result) { try { o[r.key] = JSON.parse(r.value); } catch { o[r.key] = r.value; } } db.close(); res(o); }; all.onerror = () => rej(all.error); };
       req.onerror = () => rej(req.error); })); fs.writeFileSync(file, JSON.stringify(d)); return d; };
     /** A still for checking a scene by eye while writing it (out/<video>/shot-<name>.png); not part of the video. */
