@@ -31,7 +31,8 @@ import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playt
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
 import { findSimultaneityConflicts, conflictedSlotIds } from '@/utils/playtimePlanner/conflicts';
 import PlanFieldBackdrop from '@/components/PlanFieldBackdrop';
-import PlanChainSheet, { type PlanChainSheetRow } from '@/components/PlanChainSheet';
+import PlanChainExpanded, { type PlanChainRow } from '@/components/PlanChainExpanded';
+import { getPositionLabelForFormationPosition } from '@/utils/positionLabels';
 import {
   chainCardLayout,
   estimateChainCardWidthPx,
@@ -181,8 +182,8 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     | { type: 'sub'; slotId: string; subId: string; playerId: string | null };
   const [selection, setSelection] = useState<FieldSelection | null>(null);
   const [showAbsenceLocal, setShowAbsenceLocal] = useState(false);
-  // The position whose full chain is open in the sheet (a compact card's +N).
-  const [chainSheetSlotId, setChainSheetSlotId] = useState<string | null>(null);
+  // The position whose full chain is expanded in place (a compact card's +N).
+  const [expandedSlotId, setExpandedSlotId] = useState<string | null>(null);
   // Measured pitch size: how much room each chain card has depends on it.
   const pitchRef = useRef<HTMLDivElement>(null);
   const [pitchSize, setPitchSize] = useState(FALLBACK_PITCH);
@@ -441,21 +442,31 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     if (selection) setSelection(null);
   };
 
-  // The full chain of one position (opened from a compact card's +N badge).
-  // Rendered OUTSIDE the pitch div: React events bubble through portals, and
-  // the pitch's background click would clear the selection on every tap.
-  const renderChainSheet = () => {
-    if (!chainSheetSlotId) return null;
-    const index = slots.findIndex((sl) => sl.slotId === chainSheetSlotId);
+  // A position's label for people: MV for the keeper, else the formation's
+  // ST / CAM / CB ... (never the internal slot number).
+  const formationPositionLabel = (index: number): string => {
+    const slot = slots[index];
+    if (slot.isGoalie) return t('playtimePlanner.gkShort', 'GK');
+    const label = getPositionLabelForFormationPosition(slot.relX, slot.relY).label;
+    return t(`positions.${label}`, label);
+  };
+
+  // The full chain of one position, expanded in place over its compact card
+  // (opened from the card's +N badge). Rendered inside the pitch, above every
+  // other card; its backdrop swallows field taps, so closing it never also
+  // selects or clears whatever was under the tap.
+  const renderExpandedChain = () => {
+    if (!expandedSlotId) return null;
+    const index = slots.findIndex((sl) => sl.slotId === expandedSlotId);
     if (index === -1) return null;
     const slot = slots[index];
     const starterId = playerBySlot.get(slot.slotId) ?? null;
     // Each player's total planned minutes, in the same ramp colour as the field.
-    const totals = (id: string | null): Pick<PlanChainSheetRow, 'totalMinutes' | 'totalColor'> => {
+    const totals = (id: string | null): Pick<PlanChainRow, 'totalMinutes' | 'totalColor'> => {
       const fair = id ? minutesByPlayer?.[id] : undefined;
       return fair ? { totalMinutes: fair.minutes, totalColor: fairnessText(fair.ratio) } : {};
     };
-    const rows: PlanChainSheetRow[] = [
+    const rows: PlanChainRow[] = [
       {
         key: 'starter',
         minute: null,
@@ -471,11 +482,25 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
         onSelect: () => handleSubSegmentClick(slot.slotId, sub),
       })),
     ];
+    // Cover the compact card exactly: a one-row pill is centred on its slot
+    // point; a stacked card hangs from it (CHAIN_METRICS.anchorAbovePx above).
+    const pointY = slot.relY * pitchSize.h;
+    const { stacked, shownSubs } = slotCards[index];
+    const cardTop = pointY - (stacked ? CHAIN_METRICS.anchorAbovePx : PILL_HALF_HEIGHT_PX);
+    const cardBottom = stacked
+      ? cardTop + (2 + shownSubs.length) * CHAIN_METRICS.rowPx + CHAIN_METRICS.chromePx
+      : pointY + PILL_HALF_HEIGHT_PX;
     return (
-      <PlanChainSheet
-        positionLabel={slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${index}`}
+      <PlanChainExpanded
+        positionLabel={formationPositionLabel(index)}
         rows={rows}
-        onClose={() => setChainSheetSlotId(null)}
+        anchor={{
+          centerX: slot.relX * pitchSize.w,
+          top: cardTop,
+          bottom: cardBottom,
+        }}
+        fieldSize={{ widthPx: pitchSize.w, heightPx: pitchSize.h }}
+        onClose={() => setExpandedSlotId(null)}
       />
     );
   };
@@ -603,6 +628,8 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           // cleared (the engine still grants the incoming player minutes, so the
           // field must not pretend the slot is plain empty).
           const { slotSubs, hasSubs, layout, stacked, shownSubs } = slotCards[i];
+          // Another position's chain is expanded: this one steps back.
+          const chainOpenElsewhere = expandedSlotId !== null && expandedSlotId !== slot.slotId;
           // Kept in its lane beside the cards at the same height (chainLayout):
           // moved toward the touchline first, capped (names truncate) last.
           const fit = cardFits[i];
@@ -654,9 +681,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               // a plain disc's wrapper must NOT duplicate its button's label.
               role={hasSubs ? 'group' : undefined}
               aria-label={hasSubs ? `${starterLabel}${subsLabel ? `; ${subsLabel}` : ''}` : undefined}
+              data-dimmed={chainOpenElsewhere || undefined}
               className={`absolute flex flex-col items-center rounded-full ${
                 hasSubs ? 'z-10' : ''
-              } ${dimClass(involved)}`}
+              } ${chainOpenElsewhere ? 'opacity-30' : dimClass(involved)} transition-opacity duration-150 motion-reduce:transition-none`}
               style={{
                 left: `${slot.relX * 100}%`,
                 top: `${slot.relY * 100}%`,
@@ -750,9 +778,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   {layout.compact && (
                     <button
                       type="button"
-                      onClick={() => setChainSheetSlotId(slot.slotId)}
+                      onClick={() => setExpandedSlotId(slot.slotId)}
                       aria-haspopup="dialog"
-                      aria-expanded={chainSheetSlotId === slot.slotId}
+                      aria-expanded={expandedSlotId === slot.slotId}
                       aria-label={t('playtimePlanner.lineup.chainShowAll', {
                         position: positionLabel,
                         count: slotSubs.length,
@@ -825,6 +853,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             </div>
           );
         })}
+        {renderExpandedChain()}
       </div>
 
       {/* Assignment panel - no instruction copy: the actions row and the bench
@@ -1010,7 +1039,6 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           </div>
         )}
       </div>
-      {renderChainSheet()}
     </div>
   );
 };

@@ -15,7 +15,7 @@ import logger from '@/utils/logger';
 import { isSidelinePosition, getPositionLabel } from '@/utils/positionLabels';
 import type { PlannedChain } from '@/utils/playtimePlanner/plannedChains';
 import { chainCardLayout, maxChainRows, roomBesidePx } from '@/utils/playtimePlanner/chainLayout';
-import PlanChainSheet from '@/components/PlanChainSheet';
+import PlanChainExpanded from '@/components/PlanChainExpanded';
 import type { SubSlot } from '@/utils/formations';
 
 // Define props for SoccerField
@@ -2820,21 +2820,33 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           />
         );
       })}
-      {openChainIndex !== null && plannedChains?.[openChainIndex] && (
-        <PlanChainSheet
-          positionLabel={plannedChains[openChainIndex].positionLabel}
-          rows={[
-            { key: 'starter', minute: null, name: plannedChains[openChainIndex].starterName ?? '-' },
-            ...plannedChains[openChainIndex].entries.map((e) => ({
-              key: e.id,
-              minute: e.minute,
-              name: e.name,
-              minuteColor: waveColor(e.waveIndex),
-            })),
-          ]}
-          onClose={() => setOpenChainIndex(null)}
-        />
-      )}
+      {openChainIndex !== null && plannedChains?.[openChainIndex] && (() => {
+        const chain = plannedChains[openChainIndex];
+        const hit = chainHits.find((h) => h.index === openChainIndex);
+        // Expands in place over the compact pill it came from; the canvas
+        // cards cannot fade one by one, so the field behind it dims instead.
+        return (
+          <PlanChainExpanded
+            positionLabel={t(`positions.${chain.positionLabel}`, chain.positionLabel)}
+            rows={[
+              { key: 'starter', minute: null, name: chain.starterName ?? '-' },
+              ...chain.entries.map((e) => ({
+                key: e.id,
+                minute: e.minute,
+                name: e.name,
+                minuteColor: waveColor(e.waveIndex),
+              })),
+            ]}
+            anchor={
+              hit
+                ? { centerX: hit.x + hit.w / 2, top: hit.y, bottom: hit.y + hit.h }
+                : { centerX: 0, top: 0, bottom: 0 }
+            }
+            dimField
+            onClose={() => setOpenChainIndex(null)}
+          />
+        );
+      })()}
     </div>
   );
 });

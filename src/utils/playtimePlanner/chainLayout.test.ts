@@ -3,6 +3,9 @@ import {
   chainCardLayout,
   estimateChainCardWidthPx,
   chainCardFit,
+  EXPANDED_CHAIN,
+  expandedChainHeightPx,
+  expandedChainPlacement,
   type ChainFieldItem,
   maxChainRows,
   roomBelowPx,
@@ -251,5 +254,56 @@ describe('estimateChainCardWidthPx', () => {
       stacked: true,
     });
     expect(stacked).toBe(longest);
+  });
+});
+
+describe('expandedChainPlacement', () => {
+  /** A 360px phone's planner pitch (328 x 437). */
+  const PHONE = { widthPx: 328, heightPx: 437 };
+  const m = EXPANDED_CHAIN.marginPx;
+
+  it('is a header plus one fixed row per player', () => {
+    expect(expandedChainHeightPx(4)).toBe(EXPANDED_CHAIN.headerPx + 4 * EXPANDED_CHAIN.rowPx + EXPANDED_CHAIN.chromePx);
+  });
+
+  it('hangs down from the compact card, centred on it, when there is room', () => {
+    const p = expandedChainPlacement({ centerX: 164, top: 120, bottom: 200 }, 230, PHONE);
+    expect(p).toEqual({ left: 164 - EXPANDED_CHAIN.widthPx / 2, top: 120, width: EXPANDED_CHAIN.widthPx, direction: 'down' });
+  });
+
+  /** @edge-case - a back's chain near the goal line must not run off the field. */
+  it('flips up to end at the card bottom near the bottom edge', () => {
+    const p = expandedChainPlacement({ centerX: 164, top: 330, bottom: 410 }, 230, PHONE);
+    expect(p.direction).toBe('up');
+    expect(p.top).toBe(410 - 230);
+    expect(p.top + 230).toBeLessThanOrEqual(PHONE.heightPx - m);
+  });
+
+  /** @edge-case - a winger's chain shifts in from the side line. */
+  it('shifts sideways to stay inside the side lines', () => {
+    const left = expandedChainPlacement({ centerX: 20, top: 50, bottom: 120 }, 200, PHONE);
+    expect(left.left).toBe(m);
+    const right = expandedChainPlacement({ centerX: 320, top: 50, bottom: 120 }, 200, PHONE);
+    expect(right.left + right.width).toBe(PHONE.widthPx - m);
+  });
+
+  it('narrows to the field on a very narrow field', () => {
+    const p = expandedChainPlacement({ centerX: 100, top: 10, bottom: 60 }, 150, { widthPx: 200, heightPx: 400 });
+    expect(p.width).toBe(200 - 2 * m);
+    expect(p.left).toBe(m);
+  });
+
+  /** @edge-case - fits the field but neither down nor up from a mid-field card. */
+  it('pins to the field when neither direction from the card fits', () => {
+    const p = expandedChainPlacement({ centerX: 164, top: 200, bottom: 250 }, 400, PHONE);
+    expect(p.top).toBe(PHONE.heightPx - m - 400);
+    expect(p.top).toBeGreaterThanOrEqual(m);
+    expect(p.maxHeight).toBeUndefined();
+  });
+
+  it('scrolls inside a card taller than the whole field', () => {
+    const p = expandedChainPlacement({ centerX: 164, top: 200, bottom: 250 }, 600, PHONE);
+    expect(p.top).toBe(m);
+    expect(p.maxHeight).toBe(PHONE.heightPx - 2 * m);
   });
 });
