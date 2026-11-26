@@ -3853,7 +3853,7 @@
       "switchError": "Could not open that plan."
     },
     "chainSheet": {
-      "title": "{{position}} · substitutions",
+      "region": "{{position}}: substitutions",
       "start": "Start",
       "total": "{{minutes}} min in total"
     },

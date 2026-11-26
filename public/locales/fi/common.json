@@ -3853,7 +3853,7 @@
       "switchError": "Suunnitelmaa ei voitu avata."
     },
     "chainSheet": {
-      "title": "{{position}} · vaihdot",
+      "region": "{{position}}: vaihdot",
       "start": "Alku",
       "total": "yhteensä {{minutes}} min"
     },

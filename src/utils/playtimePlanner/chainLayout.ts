@@ -287,3 +287,65 @@ export function estimateChainCardWidthPx(card: {
   const subs = card.subs.reduce((sum, s) => sum + 1 + c.segmentPadPx + Math.max(minute(s.minute), name(s.name)), 0);
   return starter + subs + (card.more ? c.morePx : 0) + c.borderPx;
 }
+
+/**
+ * Geometry of a chain card EXPANDED in place (a compact card's "+N" opened on
+ * the field itself): a fixed header row (position + close) over one fixed-height
+ * row per player, so its height is known without measuring the DOM.
+ */
+export const EXPANDED_CHAIN = {
+  /** Preferred width; narrower only when the field is. */
+  widthPx: 216,
+  headerPx: 44,
+  rowPx: 44,
+  /** Vertical padding + border around the rows. */
+  chromePx: 10,
+  /** Clear space kept from the field's edges. */
+  marginPx: 6,
+} as const;
+
+/** The expanded card's natural height for `rowCount` rows (starter + changes). */
+export function expandedChainHeightPx(rowCount: number): number {
+  return EXPANDED_CHAIN.headerPx + rowCount * EXPANDED_CHAIN.rowPx + EXPANDED_CHAIN.chromePx;
+}
+
+export interface ExpandedChainPlacement {
+  left: number;
+  top: number;
+  width: number;
+  /** Set when even the whole field is too short: the rows scroll inside. */
+  maxHeight?: number;
+  /** 'down' = hangs from the compact card's top; 'up' = flipped to end at its bottom. */
+  direction: 'down' | 'up';
+}
+
+/**
+ * Where an expanded chain card goes on the field (px, field's top-left origin).
+ *
+ * It covers the compact card it came from: preferably hanging DOWN from that
+ * card's top; when that would run off the bottom of the field it flips UP so
+ * its bottom lines up with the compact card's bottom; when neither fits it is
+ * pinned inside the field (and scrolls if taller than the field). Sideways it is
+ * centred on the card and shifted back inside the side lines near an edge.
+ *
+ * @param anchor  the compact card: horizontal centre, top and bottom edges
+ */
+export function expandedChainPlacement(
+  anchor: { centerX: number; top: number; bottom: number },
+  cardHeightPx: number,
+  field: { widthPx: number; heightPx: number },
+): ExpandedChainPlacement {
+  const m = EXPANDED_CHAIN.marginPx;
+  const width = Math.max(0, Math.min(EXPANDED_CHAIN.widthPx, field.widthPx - 2 * m));
+  const maxLeft = field.widthPx - m - width;
+  const left = Math.max(m, Math.min(maxLeft, anchor.centerX - width / 2));
+
+  const room = field.heightPx - 2 * m;
+  if (cardHeightPx > room) return { left, top: m, width, maxHeight: Math.max(0, room), direction: 'down' };
+  const downTop = Math.max(m, anchor.top);
+  if (downTop + cardHeightPx <= field.heightPx - m) return { left, top: downTop, width, direction: 'down' };
+  const upTop = anchor.bottom - cardHeightPx;
+  if (upTop >= m) return { left, top: Math.min(upTop, field.heightPx - m - cardHeightPx), width, direction: 'up' };
+  // Fits the field but neither way from the card: as close to the card as the field allows.
+  return { left, top: field.heightPx - m - cardHeightPx, width, direction: 'up' };
+}
