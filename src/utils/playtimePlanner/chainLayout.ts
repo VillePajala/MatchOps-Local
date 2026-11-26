@@ -6,15 +6,18 @@
  * as 0.14 of the field apart, it ran over the next position's card and both
  * became unreadable (owner report, planner field view).
  *
- * Two rules decide the card, shared by every place a chain is drawn (the
- * planner's field view and the match field's "Substitutions and minutes" view):
+ * The rules, shared by every place a chain is drawn:
  *
- *  1. A chain of MORE THAN TWO changes is always compact: the starter, the next
- *     incoming player with their minute, and a "+N" badge for the rest. The
- *     full chain opens in a sheet on demand.
- *  2. A card never grows past the room between its own slot and the next slot
- *     below it. If even a short chain does not fit (a tight formation), it goes
- *     compact too.
+ *  1. PLANNER (the default): a chain of MORE THAN TWO changes is always
+ *     compact: the starter, the next incoming player with their minute, and a
+ *     "+N" badge for the rest. The full chain opens in a sheet on demand.
+ *  2. MATCH FIELD ("Substitutions and minutes" view, `compactAbove: null`):
+ *     the field has the room, so the FULL chain is drawn - one column, or two
+ *     columns when one column would not fit and the caller says there is room
+ *     beside the card. Compact is only the last resort there.
+ *  3. Everywhere: a card never grows past the room between its own slot and
+ *     the next slot below it. If even a short chain does not fit (a tight
+ *     formation), it goes compact.
  *
  * Pure: no DOM, no canvas. Callers pass the field size and their own card
  * metrics, so the canvas and the DOM view apply the same rule to their own
@@ -34,6 +37,23 @@ export interface ChainCardLayout {
   shownEntries: number;
   /** Incoming players behind the "+N" badge. 0 when there is no badge. */
   hiddenCount: number;
+  /** Columns the shown entries run in. Always 1 unless `twoColumnsFit`. */
+  columns: 1 | 2;
+}
+
+export interface ChainCardLayoutOptions {
+  /**
+   * Chains with more changes than this are compact whatever the room.
+   * `null` = never compact for length alone (the match field). Defaults to
+   * COMPACT_ENTRY_THRESHOLD (the planner).
+   */
+  compactAbove?: number | null;
+  /**
+   * The caller has checked that a two-column card stays clear of the cards
+   * beside it. Only then may a chain that is too tall for one column run in
+   * two instead of going compact.
+   */
+  twoColumnsFit?: boolean;
 }
 
 /**
@@ -44,13 +64,22 @@ export interface ChainCardLayout {
  *                     the card would reach the next slot below. Infinity when
  *                     the caller cannot measure.
  */
-export function chainCardLayout(entryCount: number, rowsAvailable = Infinity): ChainCardLayout {
-  const fullRows = 1 + entryCount;
+export function chainCardLayout(
+  entryCount: number,
+  rowsAvailable = Infinity,
+  options: ChainCardLayoutOptions = {},
+): ChainCardLayout {
+  const compactAbove = options.compactAbove === undefined ? COMPACT_ENTRY_THRESHOLD : options.compactAbove;
+  const full: ChainCardLayout = { compact: false, shownEntries: entryCount, hiddenCount: 0, columns: 1 };
+  const compactCard: ChainCardLayout = { compact: true, shownEntries: 1, hiddenCount: entryCount - 1, columns: 1 };
   // A single change has nothing to hide - compact and full are the same card.
-  const compact =
-    entryCount > COMPACT_ENTRY_THRESHOLD || (entryCount > 1 && fullRows > rowsAvailable);
-  if (!compact) return { compact: false, shownEntries: entryCount, hiddenCount: 0 };
-  return { compact: true, shownEntries: 1, hiddenCount: entryCount - 1 };
+  if (entryCount <= 1) return full;
+  if (compactAbove !== null && entryCount > compactAbove) return compactCard;
+  if (1 + entryCount <= rowsAvailable) return full;
+  if (options.twoColumnsFit && 1 + Math.ceil(entryCount / 2) <= rowsAvailable) {
+    return { ...full, columns: 2 };
+  }
+  return compactCard;
 }
 
 /** A slot's position on the field, 0..1 in both axes (relY grows downward). */
@@ -103,6 +132,28 @@ export function roomBelowPx(
     return { px: Math.max(0, (1 - self.relY) * metrics.fieldHeightPx), hasNeighbour: false };
   }
   return { px: nearest * metrics.fieldHeightPx, hasNeighbour: true };
+}
+
+/**
+ * Horizontal room, in pixels, from a slot's point to the nearest OTHER slot
+ * whose point lies within `bandPx` above or below it - the cards that would
+ * sit beside a card `bandPx` tall. Infinity when nothing is beside it.
+ */
+export function roomBesidePx(
+  slots: readonly ChainSlotPoint[],
+  index: number,
+  bandPx: number,
+  metrics: Pick<ChainCardMetrics, 'fieldWidthPx' | 'fieldHeightPx'>,
+): number {
+  const self = slots[index];
+  if (!self) return 0;
+  let nearest = Infinity;
+  slots.forEach((other, i) => {
+    if (i === index) return;
+    if (Math.abs(other.relY - self.relY) * metrics.fieldHeightPx > bandPx) return;
+    nearest = Math.min(nearest, Math.abs(other.relX - self.relX) * metrics.fieldWidthPx);
+  });
+  return nearest;
 }
 
 /**

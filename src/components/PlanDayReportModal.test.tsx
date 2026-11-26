@@ -269,7 +269,7 @@ describe('PlanDayReportModal', () => {
   });
 
   /** Competition reports: the text is saved on the league / tournament (migration 068). */
-  describe('league report (Sarjaraportti)', () => {
+  describe('league report', () => {
     const seasonInputs: DayReportGameInput[] = inputs.map((i, n) => ({
       ...i,
       game: { ...i.game, gameDate: `2026-09-2${n}` },
@@ -300,7 +300,9 @@ describe('PlanDayReportModal', () => {
       };
       render(<Host />);
       const props = { onSave };
-      expect(screen.getByText('League report')).toBeInTheDocument();
+      // Owner 2026-11-26: just "Report" - the league's name is right below it.
+      expect(screen.getByText('Report', { exact: true })).toBeInTheDocument();
+      expect(screen.queryByText('League report')).not.toBeInTheDocument();
       expect(screen.getByTestId('series-report-players')).toHaveTextContent('GK ×1');
       expect(screen.getByTestId('day-report-open-editor')).toHaveTextContent('Nothing written yet. Press here to write the report.');
       await openEditor();
@@ -352,7 +354,8 @@ describe('PlanDayReportModal', () => {
 
     it('asks before closing with unsaved changes, and not when nothing changed', async () => {
       const props = renderModal({ kind: 'tournament', subject: { name: 'Joulucup', players: [] }, savedText: undefined });
-      expect(screen.getByText('Tournament report')).toBeInTheDocument();
+      expect(screen.getByText('Report', { exact: true })).toBeInTheDocument();
+      expect(screen.queryByText('Tournament report')).not.toBeInTheDocument();
       // Nothing written: closes straight away.
       await act(async () => {
         fireEvent.keyDown(document, { key: 'Escape' });

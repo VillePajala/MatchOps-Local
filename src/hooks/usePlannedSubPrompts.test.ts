@@ -1,5 +1,11 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { DUE_WINDOW_SECONDS, groupSubs, usePlannedSubPrompts } from './usePlannedSubPrompts';
+import {
+  DUE_WINDOW_SECONDS,
+  groupSubs,
+  mostUrgentAlert,
+  plannedClockAlertLevel,
+  usePlannedSubPrompts,
+} from './usePlannedSubPrompts';
 import { getGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import type { Player } from '@/types';
 
@@ -49,6 +55,7 @@ describe('usePlannedSubPrompts', () => {
       },
       overdueEarlier: 0,
       hasPlan: true,
+      nextAheadSeconds: 720,
     });
   });
 
@@ -339,5 +346,38 @@ describe('groupSubs - position swaps', () => {
   it('an empty slot filled keeps a lone "on", and an unknown player is skipped', () => {
     const [g] = groupSubs([at(600, 'a', null), at(600, 'ghost', 'b'), at(600, 'c', 'gone')], squad);
     expect(g).toMatchObject({ inNames: ['A', 'C'], outNames: [], swapNames: [] });
+  });
+});
+
+describe('plannedClockAlertLevel (clock colour, option B)', () => {
+  const group = (timeSeconds: number, due: boolean) => ({
+    timeSeconds, inNames: ['Niko'], outNames: [], inShortNames: ['Niko'], outShortNames: [],
+    swapNames: [], swapShortNames: [], due,
+  });
+  const none = () => false;
+
+  /** @critical - orange a minute ahead, red while due, normal otherwise. */
+  it('walks the clock through orange to red and back', () => {
+    expect(plannedClockAlertLevel({ current: group(720, false), nextAheadSeconds: 720 }, 600, none)).toBe('none');
+    expect(plannedClockAlertLevel({ current: group(720, false), nextAheadSeconds: 720 }, 660, none)).toBe('warning');
+    expect(plannedClockAlertLevel({ current: group(720, true), nextAheadSeconds: null }, 720, none)).toBe('due');
+    // Window over: the hook moves on, nothing is due and nothing is near.
+    expect(plannedClockAlertLevel({ current: null, nextAheadSeconds: null }, 720 + DUE_WINDOW_SECONDS, none)).toBe('none');
+  });
+
+  /** @critical - "Done ✓" quiets the clock at once for that group only. */
+  it('a group marked done neither warns nor turns red', () => {
+    const done = (t: number) => t === 720;
+    expect(plannedClockAlertLevel({ current: group(720, true), nextAheadSeconds: 1500 }, 730, done)).toBe('none');
+    expect(plannedClockAlertLevel({ current: group(720, false), nextAheadSeconds: 720 }, 700, done)).toBe('none');
+    // The next group still warns on its own.
+    expect(plannedClockAlertLevel({ current: group(720, true), nextAheadSeconds: 760 }, 730, done)).toBe('warning');
+  });
+
+  it('the more urgent colour wins when the interval timer also speaks', () => {
+    expect(mostUrgentAlert('warning', 'due')).toBe('due');
+    expect(mostUrgentAlert('due', 'none')).toBe('due');
+    expect(mostUrgentAlert('none', 'warning')).toBe('warning');
+    expect(mostUrgentAlert('none', 'none')).toBe('none');
   });
 });

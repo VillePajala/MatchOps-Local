@@ -495,17 +495,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGoals}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.goals', 'Goals')}</p>
-              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgGoalsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalAssists}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.assists', 'Assists')}</p>
-              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
             <div>
               <p className="font-display text-4xl font-extrabold italic text-ink tabular-nums">{playerStats.totalGoals + playerStats.totalAssists}</p>
               <p className="text-sm text-ink-2 font-medium">{t('playerStats.points', 'Points')}</p>
-              <p className="text-xs leading-tight text-ink-3 mt-1 whitespace-nowrap">{formatAppDecimal(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame)}/{t('playerStats.perGameShort', 'game')}</p>
             </div>
           </div>
           {/* Wearing the armband, only when it happened. A zero here would

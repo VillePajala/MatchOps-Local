@@ -79,6 +79,15 @@ const numberOf = (p: Player | undefined): number | undefined => {
   return /^\d+$/.test(raw) ? Number(raw) : undefined;
 };
 
+/** Whether the player has a shirt number Taso can use (digits only). */
+export const hasTasoNumber = (p: Player): boolean => numberOf(p) !== undefined;
+
+/**
+ * What stands in the number column for a player without a number, so every
+ * line-up row still starts "number name" and the names line up.
+ */
+export const TASO_NO_NUMBER = '–';
+
 /**
  * Taso's minute on the app's clock.
  *
@@ -140,8 +149,9 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
   // both, and Taso's lineup screen has a box for each.
   const lineupLines = squad.map((p) => {
     const n = numberOf(p);
-    // No number: just the name (no placeholder).
-    const num = n === undefined ? '' : `${n} `;
+    // No number: a dash in its place, so the rows keep one shape (Taso needs
+    // the number - the finish screen says how many are missing).
+    const num = `${n === undefined ? TASO_NO_NUMBER : n} `;
     const marks = [
       p.isGoalie ? t('taso.goalie', 'GK') : undefined,
       p.id === game.captainId ? t('taso.captain', 'C') : undefined,

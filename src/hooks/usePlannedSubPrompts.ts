@@ -14,7 +14,9 @@
  * A pure function of the clock and the schedule - advisory only. It never touches
  * the field, records nothing and keeps no state of its own:
  * - No dismissal: the block simply moves on when the next group falls due. Stored
- *   dismissals used to resurface or vanish wrongly after a resume.
+ *   dismissals used to resurface or vanish wrongly after a resume. The coach's
+ *   "Done ✓" (plannedClockAlertLevel) only quiets the clock colour; the caller
+ *   keeps it in memory for the open game and never stores it.
  * - No check against the discs on the field: coaches do not move discs during play,
  *   so the field keeps showing the starting line-up. Suppressing a sub whose
  *   incoming player "is already on the field" hid every sub that brings a starter
@@ -77,6 +79,57 @@ export interface UsePlannedSubPromptsResult {
    * Null while the schedule is still loading, so neither flashes up first.
    */
   hasPlan: boolean | null;
+  /** Time of the first group still ahead of the clock (null when none is). */
+  nextAheadSeconds: number | null;
+}
+
+/**
+ * How far ahead of a planned group the clock turns orange - the same minute
+ * the interval sub timer warns ahead of its reminder (useGameSessionReducer).
+ */
+export const PLANNED_WARNING_SECONDS = 60;
+
+/**
+ * The big clock's colour for the planned subs (owner, option B): orange from
+ * PLANNED_WARNING_SECONDS before the next group, red while a group is due (its
+ * DUE_WINDOW_SECONDS - which never runs out during a break, the clock stands
+ * still), back to normal when the window ends or as soon as the coach marks
+ * that group done ("Done ✓" on the block). A done group neither warns nor
+ * turns red again.
+ *
+ * Pure: `isDone(time)` is the caller's acknowledgement for the group at that
+ * time. Nothing here changes the field or the plan.
+ */
+export function plannedClockAlertLevel(
+  prompts: Pick<UsePlannedSubPromptsResult, 'current' | 'nextAheadSeconds'>,
+  timeElapsedInSeconds: number,
+  isDone: (timeSeconds: number) => boolean,
+): 'none' | 'warning' | 'due' {
+  const { current, nextAheadSeconds } = prompts;
+  if (current?.due && !isDone(current.timeSeconds)) return 'due';
+  if (
+    nextAheadSeconds !== null &&
+    nextAheadSeconds - timeElapsedInSeconds <= PLANNED_WARNING_SECONDS &&
+    !isDone(nextAheadSeconds)
+  ) {
+    return 'warning';
+  }
+  return 'none';
+}
+
+/** Rank for "the more urgent colour wins" when two alerts meet. */
+const ALERT_RANK = { none: 0, warning: 1, due: 2 } as const;
+
+/**
+ * The clock colour when the interval sub timer and the plan both speak: the
+ * more urgent of the two wins (red over orange over normal), so neither can
+ * hide the other's reminder.
+ */
+export function mostUrgentAlert(
+  a: 'none' | 'warning' | 'due',
+  b: 'none' | 'warning' | 'due',
+): 'none' | 'warning' | 'due' {
+  return ALERT_RANK[a] >= ALERT_RANK[b] ? a : b;
 }
 
 /**
@@ -204,10 +257,16 @@ export function usePlannedSubPrompts(
     const due = groups.filter(
       (g) => g.timeSeconds <= timeElapsedInSeconds && timeElapsedInSeconds < g.timeSeconds + DUE_WINDOW_SECONDS,
     );
-    if (due.length > 0) {
-      return { current: { ...due[due.length - 1], due: true }, overdueEarlier: due.length - 1, hasPlan };
-    }
     const upcoming = groups.find((g) => g.timeSeconds > timeElapsedInSeconds);
-    return { current: upcoming ? { ...upcoming, due: false } : null, overdueEarlier: 0, hasPlan };
+    const nextAheadSeconds = upcoming ? upcoming.timeSeconds : null;
+    if (due.length > 0) {
+      return {
+        current: { ...due[due.length - 1], due: true },
+        overdueEarlier: due.length - 1,
+        hasPlan,
+        nextAheadSeconds,
+      };
+    }
+    return { current: upcoming ? { ...upcoming, due: false } : null, overdueEarlier: 0, hasPlan, nextAheadSeconds };
   }, [loaded, gameId, timeElapsedInSeconds, players]);
 }

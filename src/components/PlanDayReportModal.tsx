@@ -2,10 +2,11 @@
 
 /**
  * "Turnauspäivän raportti" - one report over the games made from a plan - and
- * the same view over a competition: "Turnauksen raportti" (a tournament's
- * games, same game-by-game layout) and "Sarjaraportti" (a league in TOTALS:
- * results, record, goals, and per player games / goals / assists / positions
- * played - see competitionReport.ts).
+ * the same view over a competition, titled just "Raportti" (owner
+ * 2026-11-26; the competition's name sits right below): a tournament's games
+ * in the same game-by-game layout, or a league in TOTALS (results, record,
+ * goals, and per player games / goals / assists / positions played - see
+ * competitionReport.ts).
  *
  * The day report opens from the plan (Plan tab, Games section) once one of
  * its games is played, from the finish screen of the day's last game and from
@@ -292,9 +293,9 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
 
   const title =
     kind === 'season'
-      ? t('competitionReport.seasonTitle', 'League report')
+      ? t('competitionReport.seasonTitle', 'Report')
       : kind === 'tournament'
-        ? t('competitionReport.tournamentTitle', 'Tournament report')
+        ? t('competitionReport.tournamentTitle', 'Report')
         : t('planDayReport.title', 'Tournament day report');
   const textHeading =
     kind === 'day' ? t('planDayReport.textHeading', 'Day report') : t('competitionReport.textHeading', 'Report text');

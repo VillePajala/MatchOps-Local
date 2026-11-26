@@ -14,7 +14,7 @@ import tinycolor from 'tinycolor2';
 import logger from '@/utils/logger';
 import { isSidelinePosition, getPositionLabel } from '@/utils/positionLabels';
 import type { PlannedChain } from '@/utils/playtimePlanner/plannedChains';
-import { chainCardLayout, maxChainRows } from '@/utils/playtimePlanner/chainLayout';
+import { chainCardLayout, maxChainRows, roomBesidePx } from '@/utils/playtimePlanner/chainLayout';
 import PlanChainSheet from '@/components/PlanChainSheet';
 import type { SubSlot } from '@/utils/formations';
 
@@ -737,10 +737,12 @@ const CHAIN_CANVAS_METRICS = {
  * each incoming player tagged with their minute. A coach reads one convention
  * in both places.
  *
- * A pill never grows over the position below it (chainLayout): a chain of
- * more than two changes - or any chain without the room - is drawn COMPACT,
- * the next change plus a "+N" badge, and the caller makes that pill a button
- * that opens the whole chain. Returns where the compact pills landed.
+ * The whole chain is drawn - the match field has the room the planner lacks.
+ * A pill still never grows over the position below it (chainLayout): a chain
+ * too tall for one column runs in two when the positions beside it leave the
+ * width, and only a chain that fits neither way is drawn COMPACT - the next
+ * change plus a "+N" badge, and the caller makes that pill a button that
+ * opens the whole chain. Returns where the compact pills landed.
  */
 function drawPlannedChains(
   ctx: CanvasRenderingContext2D,
@@ -759,35 +761,56 @@ function drawPlannedChains(
     // positions that DO change something come forward on their own.
     const settled = chain.entries.length === 0;
 
-    const layout = chainCardLayout(chain.entries.length, maxChainRows(chains, chainIndex, metrics));
-    const shown = chain.entries.slice(0, layout.shownEntries);
-    const badge = layout.compact ? `+${layout.hiddenCount}` : null;
-
     // One gutter for every minute in this pill, wide enough for the longest,
     // so the names line up in a column instead of stepping in and out as the
-    // minutes go from 5' to 30'.
-    ctx.font = `700 12px ${chipFontFamily()}`;
-    let gutter = 0;
-    shown.forEach((e) => {
-      gutter = Math.max(gutter, ctx.measureText(`${e.minute}'`).width);
-    });
-    gutter += 6;
-    const badgeW = badge ? ctx.measureText(badge).width + 10 : 0;
-
-    // Width is driven by the widest thing in the pill, so nothing is clipped.
-    ctx.font = `500 12px ${chipFontFamily()}`;
-    let cellW = 0;
-    shown.forEach((e) => {
-      cellW = Math.max(cellW, gutter + ctx.measureText(e.name).width);
-    });
-    cellW += 10 + badgeW;
+    // minutes go from 5' to 30'. Measured over the WHOLE chain first: the
+    // two-column check below needs the full card's width.
+    const measureCell = (entries: readonly PlannedChain['entries'][number][]) => {
+      ctx.font = `700 12px ${chipFontFamily()}`;
+      let g = 0;
+      entries.forEach((e) => {
+        g = Math.max(g, ctx.measureText(`${e.minute}'`).width);
+      });
+      g += 6;
+      ctx.font = `500 12px ${chipFontFamily()}`;
+      let w = 0;
+      entries.forEach((e) => {
+        w = Math.max(w, g + ctx.measureText(e.name).width);
+      });
+      return { gutter: g, cellW: w + 10 };
+    };
     ctx.font = `700 14px ${discFontFamily()}`;
     const nameW = ctx.measureText(chain.starterName ?? '-').width;
     ctx.font = `700 12px ${chipFontFamily()}`;
     const tagW = ctx.measureText(chain.positionLabel).width;
     const headW = tagW + 6 + nameW;
-    const pillW = Math.max(headW + CHAIN_PAD * 2, cellW + CHAIN_PAD * 2);
-    const pillH = CHAIN_PAD * 2 + (1 + shown.length) * CHAIN_ROW_H;
+
+    // The match field has the room: the FULL chain, in one column or - when
+    // one column would reach the next position below - two columns, if the
+    // wider card stays clear of the positions beside it. Compact ("+N") is
+    // only the fallback when neither fits (chainLayout).
+    const fullCell = measureCell(chain.entries);
+    const twoColW = Math.max(headW, 2 * fullCell.cellW) + CHAIN_PAD * 2;
+    const twoColH = CHAIN_PAD * 2 + (1 + Math.ceil(chain.entries.length / 2)) * CHAIN_ROW_H;
+    const twoColumnsFit =
+      roomBesidePx(chains, chainIndex, twoColH + CHAIN_CANVAS_METRICS.anchorAbovePx, metrics) >=
+      twoColW / 2 + CHAIN_CANVAS_METRICS.horizontalReachPx / 2;
+    const layout = chainCardLayout(chain.entries.length, maxChainRows(chains, chainIndex, metrics), {
+      compactAbove: null,
+      twoColumnsFit,
+    });
+    const shown = chain.entries.slice(0, layout.shownEntries);
+    const badge = layout.compact ? `+${layout.hiddenCount}` : null;
+    const cols = layout.columns;
+    const rows = Math.ceil(shown.length / cols);
+
+    const { gutter, cellW: baseCellW } = layout.compact ? measureCell(shown) : fullCell;
+    ctx.font = `700 12px ${chipFontFamily()}`;
+    const badgeW = badge ? ctx.measureText(badge).width + 10 : 0;
+    // Width is driven by the widest thing in the pill, so nothing is clipped.
+    const cellW = baseCellW + badgeW;
+    const pillW = Math.max(headW + CHAIN_PAD * 2, cols * cellW + CHAIN_PAD * 2);
+    const pillH = CHAIN_PAD * 2 + (1 + rows) * CHAIN_ROW_H;
 
     // Header row on the slot point, the rest hanging below it. Kept on the
     // canvas - the formation reaches relX 0.25/0.75 and relY 0.92, so an
@@ -844,8 +867,10 @@ function drawPlannedChains(
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
     ctx.stroke();
 
-    shown.forEach((entry, row) => {
-      const ex = x + CHAIN_PAD;
+    shown.forEach((entry, i) => {
+      const col = cols === 1 ? 0 : i % cols;
+      const row = cols === 1 ? i : Math.floor(i / cols);
+      const ex = x + CHAIN_PAD + col * cellW;
       const ey = divY + CHAIN_ROW_H / 2 + row * CHAIN_ROW_H;
       const hue = waveColor(entry.waveIndex);
 
@@ -853,9 +878,10 @@ function drawPlannedChains(
       // to find across eight pills; a tinted band is visible without being
       // read, which is what "who goes on together" needs to be.
       //
-      // Width comes from the PILL, not the cell, so the band never stops short
-      // of the edge when the starter's name is the widest thing in the pill.
-      const bandW = pillW - CHAIN_PAD * 2 + 4 - (badge ? badgeW : 0);
+      // In one column the width comes from the PILL, not the cell, so the band
+      // never stops short of the edge when the starter's name is the widest
+      // thing in the pill.
+      const bandW = cols === 1 ? pillW - CHAIN_PAD * 2 + 4 - (badge ? badgeW : 0) : cellW - 6;
       roundedRectPath(ctx, ex - 2, ey - CHAIN_ROW_H / 2 + 1, bandW, CHAIN_ROW_H - 2, 3);
       ctx.globalAlpha = 0.14;
       ctx.fillStyle = hue;

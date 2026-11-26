@@ -3,6 +3,7 @@ import {
   chainCardLayout,
   maxChainRows,
   roomBelowPx,
+  roomBesidePx,
   type ChainCardMetrics,
 } from './chainLayout';
 
@@ -27,23 +28,60 @@ describe('chainCardLayout', () => {
   it('keeps chains of up to two changes full when there is room', () => {
     expect(COMPACT_ENTRY_THRESHOLD).toBe(2);
     for (const n of [0, 1, 2]) {
-      expect(chainCardLayout(n)).toEqual({ compact: false, shownEntries: n, hiddenCount: 0 });
+      expect(chainCardLayout(n)).toEqual({ compact: false, shownEntries: n, hiddenCount: 0, columns: 1 });
     }
   });
 
   it('goes compact above two changes, showing the next one and counting the rest', () => {
-    expect(chainCardLayout(3)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 2 });
-    expect(chainCardLayout(5)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 4 });
+    expect(chainCardLayout(3)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 2, columns: 1 });
+    expect(chainCardLayout(5)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 4, columns: 1 });
   });
 
   /** @edge-case - a short chain in a tight formation must not collide either. */
   it('goes compact for a two-change chain when its three rows do not fit', () => {
-    expect(chainCardLayout(2, 3)).toEqual({ compact: false, shownEntries: 2, hiddenCount: 0 });
-    expect(chainCardLayout(2, 2)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 1 });
+    expect(chainCardLayout(2, 3)).toEqual({ compact: false, shownEntries: 2, hiddenCount: 0, columns: 1 });
+    expect(chainCardLayout(2, 2)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 1, columns: 1 });
   });
 
   it('never makes a single change compact - there would be nothing behind the badge', () => {
-    expect(chainCardLayout(1, 1)).toEqual({ compact: false, shownEntries: 1, hiddenCount: 0 });
+    expect(chainCardLayout(1, 1)).toEqual({ compact: false, shownEntries: 1, hiddenCount: 0, columns: 1 });
+  });
+});
+
+describe('chainCardLayout on the match field (compactAbove: null)', () => {
+  const MATCH = { compactAbove: null } as const;
+
+  /** @critical - owner: the match field shows the FULL chain, not "+N". */
+  it('keeps a long chain full when it fits in one column', () => {
+    expect(chainCardLayout(5, 6, MATCH)).toEqual({ compact: false, shownEntries: 5, hiddenCount: 0, columns: 1 });
+    expect(chainCardLayout(5, Infinity, MATCH).compact).toBe(false);
+  });
+
+  it('runs it in two columns when one column is too tall and the caller says the width is free', () => {
+    expect(chainCardLayout(4, 3, { ...MATCH, twoColumnsFit: true })).toEqual({
+      compact: false,
+      shownEntries: 4,
+      hiddenCount: 0,
+      columns: 2,
+    });
+  });
+
+  /** @edge-case - the no-overlap safety: compact only as the last resort. */
+  it('falls back to compact when neither one nor two columns fit', () => {
+    expect(chainCardLayout(4, 3, MATCH)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 3, columns: 1 });
+    expect(chainCardLayout(5, 3, { ...MATCH, twoColumnsFit: true }).compact).toBe(true);
+  });
+});
+
+describe('roomBesidePx', () => {
+  it('measures across to the nearest slot at a similar height', () => {
+    const slots = [
+      { relX: 0.5, relY: 0.5 },
+      { relX: 0.25, relY: 0.52 }, // 10px lower, 100px across
+      { relX: 0.45, relY: 0.9 }, // far below: not beside it
+    ];
+    expect(roomBesidePx(slots, 0, 20, METRICS)).toBe(100);
+    expect(roomBesidePx([{ relX: 0.5, relY: 0.5 }], 0, 20, METRICS)).toBe(Infinity);
   });
 });
 

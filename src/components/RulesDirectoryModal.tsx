@@ -20,7 +20,7 @@ import { HiOutlineArrowTopRightOnSquare, HiOutlineMagnifyingGlass } from 'react-
 import ruleLinks from '@/config/ruleLinks.json';
 import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES, findFormatForAgeGroup } from '@/config/gameFormats';
 import { AGE_GROUPS } from '@/config/gameOptions';
-import { searchRules, rulebookUrl, type RulesSport } from '@/config/rulesIndex';
+import { searchRules, rulebookUrl, hasJuniorSeriesVariant, seriesRulesUrl, type RulesSport } from '@/config/rulesIndex';
 import RuleViewerModal from '@/components/RuleViewerModal';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import type { TranslationKey } from '@/i18n-types';
@@ -111,6 +111,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
   const [query, setQuery] = React.useState('');
   const lang = i18n.language?.startsWith('en') ? 'en' : 'fi';
   const hits = React.useMemo(() => searchRules(sport, query, lang), [sport, query, lang]);
+  const seriesUrl = seriesRulesUrl();
   // What the coach tapped: the viewer opens the book at that page in the app,
   // because the "#page=" fragment only works in a desktop PDF viewer.
   const [viewing, setViewing] = React.useState<{ page: number; title: string } | null>(null);
@@ -236,6 +237,35 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
                             {t('rulesDirectory.pageN', 'p. {{n}}', { n: h.page })}
                           </span>
                         </button>
+                        {/* Junior small-sided games apply these laws by their
+                            series' own rules. Only a pointer - never rule
+                            content (see rulesIndex) - and only on a search
+                            the coach typed, not on all six rows of the
+                            default list. */}
+                        {query.trim() !== '' && hasJuniorSeriesVariant(sport, h.law) && (
+                          <p
+                            className="pl-[18px] pr-4 pb-2.5 -mt-1 font-ui text-xs text-ink-3"
+                            data-testid={`rules-hit-junior-note-${h.law}`}
+                          >
+                            {t(
+                              'rulesDirectory.juniorSeriesNote',
+                              'Junior small-sided games apply the league\'s own rules (e.g. zone offside). Check your league\'s rules.',
+                            )}
+                            {seriesUrl && (
+                              <>
+                                {' '}
+                                <button
+                                  type="button"
+                                  onClick={() => openLink(seriesUrl)}
+                                  className="font-semibold text-ink-2 underline underline-offset-2 decoration-white/30 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action rounded"
+                                  data-testid={`rules-hit-junior-link-${h.law}`}
+                                >
+                                  {t('rulesDirectory.seriesRules', 'Browse leagues (Tulospalvelu)')}
+                                </button>
+                              </>
+                            )}
+                          </p>
+                        )}
                       </li>
                     ))}
                   </ul>

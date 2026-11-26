@@ -2,7 +2,7 @@
  * @critical - what the coach copies into Palloliitto's official match report.
  * A wrong minute or a wrong shirt number here becomes a wrong official record.
  */
-import { buildTasoReport, tasoMinute, tasoPeriod, type TasoGame } from './tasoReport';
+import { TASO_NO_NUMBER, hasTasoNumber, buildTasoReport, tasoMinute, tasoPeriod, type TasoGame } from './tasoReport';
 import type { Player } from '@/types';
 import type { GameEvent } from '@/types/game';
 
@@ -38,8 +38,18 @@ describe('buildTasoReport', () => {
       '1 Emma Jones (GK)',
       '7 Noah Brown',
       '10 Liam Smith',
-      'Ada Lovelace',
+      '– Ada Lovelace',
     ]);
+  });
+
+  /** Owner: a missing number keeps its column ("–"), and the finish screen counts them. */
+  it('marks a missing or non-numeric shirt number with a dash in the number column', () => {
+    expect(hasTasoNumber({ id: 'a', name: 'A', jerseyNumber: '7' })).toBe(true);
+    expect(hasTasoNumber({ id: 'b', name: 'B', jerseyNumber: ' ' })).toBe(false);
+    expect(hasTasoNumber({ id: 'c', name: 'C', jerseyNumber: '7b' })).toBe(false);
+    expect(hasTasoNumber({ id: 'd', name: 'D' })).toBe(false);
+    const { lineup } = buildTasoReport(base, players, t);
+    expect(lineup).toContain(`${TASO_NO_NUMBER} Ada Lovelace`);
   });
 
   /**
@@ -78,7 +88,7 @@ describe('buildTasoReport', () => {
         '7 Noah Brown · CB',
         // Back-to-front order, whatever order they were recorded in.
         '10 Liam Smith · CB/ST',
-        'Ada Lovelace',
+        '– Ada Lovelace',
       ]);
     });
 
