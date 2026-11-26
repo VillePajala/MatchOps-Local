@@ -167,7 +167,7 @@ describe('TimerOverlay', () => {
 
   it('opens reset confirmation and calls onResetTimer on confirm', async () => {
     render(<TimerOverlay {...baseProps} timeElapsedInSeconds={10} />);
-    // Exact name: "Sub done" is a different control (D13).
+    // Exact name: "Reset sub timer" is a different control (D13).
     const resetButton = screen.getByRole('button', { name: /^reset$/i });
     fireEvent.click(resetButton);
 
@@ -246,6 +246,8 @@ describe('TimerOverlay', () => {
       outNames: ['Aapo', 'Elias', 'Leevi'],
       inShortNames: ['Eino', 'Niilo', 'Veeti'],
       outShortNames: ['Aapo', 'Elias', 'Leevi'],
+      swapNames: [] as string[],
+      swapShortNames: [] as string[],
     };
 
     /**
@@ -273,6 +275,8 @@ describe('TimerOverlay', () => {
         outNames: ['Jasper Tuulmägi', 'Timo Petrov', 'Jimi Myyrä'],
         inShortNames: ['Tomas', 'Muhammed', 'Sauli'],
         outShortNames: ['Jasper', 'Timo', 'Jimi'],
+        swapNames: [],
+        swapShortNames: [],
       };
       render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={named} />);
       const on = screen.getByTestId('planned-sub-on');
@@ -304,7 +308,7 @@ describe('TimerOverlay', () => {
         screen.getByTestId('tour-log-goal'),
         screen.getByRole('button', { name: /opponent \+1/i }),
         screen.getByTestId('planned-sub-group'),
-        screen.getByRole('button', { name: /sub done/i }),
+        screen.getByRole('button', { name: /reset sub timer/i }),
         screen.getByTestId('dictation-hold'),
       ];
       for (let i = 1; i < order.length; i++) {
@@ -615,14 +619,146 @@ describe('TimerOverlay', () => {
     });
 
     /** D13: the button restarts the interval countdown; it records no substitution. */
-    it('labels the interval reset "Sub done" and hides it when the host asks', () => {
+    it('labels the interval reset "Reset sub timer" and hides it when the host asks', () => {
       const { unmount } = render(<TimerOverlay {...baseProps} gameStatus="inProgress" isTimerRunning />);
-      fireEvent.click(screen.getByRole('button', { name: 'Sub done' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reset sub timer' }));
       expect(baseProps.onSubstitutionMade).toHaveBeenCalledTimes(1);
       unmount();
 
       render(<TimerOverlay {...baseProps} gameStatus="inProgress" isTimerRunning showSubTimerReset={false} />);
-      expect(screen.queryByRole('button', { name: 'Sub done' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Reset sub timer' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('one sub mechanism at a time (sub timer visibility)', () => {
+    const withHistory = {
+      ...baseProps,
+      gameStatus: 'inProgress' as const,
+      isTimerRunning: true,
+      timeElapsedInSeconds: 400,
+      lastSubTime: 300,
+      completedIntervalDurations: [{ period: 1, duration: 300, timestamp: 300 }],
+    };
+
+    /**
+     * Hidden sub timer: no interval in the info line, no "Since sub", no
+     * reset button, no interval history, no sub alert colour on the clock -
+     * but the game length still opens the menu with the switch.
+     * @critical
+     */
+    it('hides every part of the interval sub timer when the host says so', () => {
+      render(<TimerOverlay {...withHistory} subAlertLevel="due" showSubTimer={false} onShowSubTimerChange={jest.fn()} />);
+      const infoButton = screen.getByTestId('timer-sub-interval');
+      expect(infoButton).toHaveTextContent('2 × 10 min');
+      expect(infoButton).not.toHaveTextContent(/sub 5 min/);
+      expect(screen.getByTestId('timer-since-sub')).toBeEmptyDOMElement();
+      expect(screen.queryByRole('button', { name: 'Reset sub timer' })).not.toBeInTheDocument();
+      expect(screen.queryByText('Play Time History')).not.toBeInTheDocument();
+      expect(screen.getByTestId('timer-clock').querySelector('.text-red-400')).toBeNull();
+
+      fireEvent.click(infoButton);
+      const menu = screen.getByTestId('timer-interval-menu');
+      expect(within(menu).queryByRole('button', { name: /decrease interval/i })).not.toBeInTheDocument();
+      expect(within(menu).getByRole('switch', { name: 'Show sub timer' })).not.toBeChecked();
+    });
+
+    it('keeps the whole sub timer, alerts and history when shown', () => {
+      render(<TimerOverlay {...withHistory} subAlertLevel="due" showSubTimer onShowSubTimerChange={jest.fn()} />);
+      expect(screen.getByTestId('timer-sub-interval')).toHaveTextContent(/sub 5 min/);
+      expect(screen.getByTestId('timer-since-sub')).toHaveTextContent('01:40');
+      expect(screen.getByRole('button', { name: 'Reset sub timer' })).toBeEnabled();
+      expect(screen.getByText('Play Time History')).toBeInTheDocument();
+      expect(screen.getByTestId('timer-clock').querySelector('.text-red-400')).not.toBeNull();
+      fireEvent.click(screen.getByTestId('timer-sub-interval'));
+      expect(screen.getByRole('button', { name: /decrease interval/i })).toBeInTheDocument();
+      expect(screen.getByRole('switch', { name: 'Show sub timer' })).toBeChecked();
+    });
+
+    it('the menu switch reports the new choice', () => {
+      const onShowSubTimerChange = jest.fn();
+      render(<TimerOverlay {...withHistory} showSubTimer={false} hasPlan onShowSubTimerChange={onShowSubTimerChange} />);
+      fireEvent.click(screen.getByTestId('timer-sub-interval'));
+      fireEvent.click(screen.getByRole('switch', { name: 'Show sub timer' }));
+      expect(onShowSubTimerChange).toHaveBeenCalledWith(true);
+    });
+
+    /** A game without a plan: the menu offers the planner (closing the timer first). */
+    it('offers "Make a plan for this game" only for a game without a plan', () => {
+      const onOpenPlanner = jest.fn();
+      const onClose = jest.fn();
+      const { unmount } = render(
+        <TimerOverlay {...withHistory} hasPlan={false} onOpenPlanner={onOpenPlanner} onClose={onClose} onShowSubTimerChange={jest.fn()} />,
+      );
+      fireEvent.click(screen.getByTestId('timer-sub-interval'));
+      fireEvent.click(screen.getByRole('button', { name: 'Make a plan for this game' }));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onOpenPlanner).toHaveBeenCalledTimes(1);
+      unmount();
+
+      render(<TimerOverlay {...withHistory} hasPlan showSubTimer={false} onOpenPlanner={onOpenPlanner} onShowSubTimerChange={jest.fn()} />);
+      fireEvent.click(screen.getByTestId('timer-sub-interval'));
+      expect(screen.queryByRole('button', { name: 'Make a plan for this game' })).not.toBeInTheDocument();
+    });
+
+    /**
+     * A partial plan: nothing planned ahead any more, so the block's place
+     * offers the sub timer for the rest of the game.
+     * @critical
+     */
+    it('offers "Show sub timer" where the plan block was once the plan has nothing ahead', () => {
+      const onShowSubTimerChange = jest.fn();
+      const { rerender } = render(
+        <TimerOverlay {...withHistory} hasPlan showSubTimer={false} plannedSubGroup={null} onShowSubTimerChange={onShowSubTimerChange} />,
+      );
+      fireEvent.click(screen.getByTestId('timer-plan-ended-show-sub-timer'));
+      expect(onShowSubTimerChange).toHaveBeenCalledWith(true);
+
+      // Not while a planned change is still on screen, not once the timer shows,
+      // not without a plan, and not after full time.
+      const group = { timeSeconds: 900, inNames: ['Eino'], outNames: ['Aapo'], inShortNames: ['Eino'], outShortNames: ['Aapo'], swapNames: [], swapShortNames: [] };
+      rerender(<TimerOverlay {...withHistory} hasPlan showSubTimer={false} plannedSubGroup={group} onShowSubTimerChange={onShowSubTimerChange} />);
+      expect(screen.queryByTestId('timer-plan-ended-show-sub-timer')).not.toBeInTheDocument();
+      rerender(<TimerOverlay {...withHistory} hasPlan showSubTimer plannedSubGroup={null} onShowSubTimerChange={onShowSubTimerChange} />);
+      expect(screen.queryByTestId('timer-plan-ended-show-sub-timer')).not.toBeInTheDocument();
+      rerender(<TimerOverlay {...withHistory} hasPlan={false} showSubTimer={false} plannedSubGroup={null} onShowSubTimerChange={onShowSubTimerChange} />);
+      expect(screen.queryByTestId('timer-plan-ended-show-sub-timer')).not.toBeInTheDocument();
+      rerender(<TimerOverlay {...withHistory} gameStatus="gameEnd" hasPlan showSubTimer={false} plannedSubGroup={null} onShowSubTimerChange={onShowSubTimerChange} />);
+      expect(screen.queryByTestId('timer-plan-ended-show-sub-timer')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('position swaps in the planned block', () => {
+    const base = { timeSeconds: 600, inNames: [], outNames: [], inShortNames: [], outShortNames: [] };
+    const visibleText = (el: HTMLElement) =>
+      Array.from(el.querySelectorAll('[aria-hidden="true"]')).map((n) => n.textContent).join(' ');
+
+    it('a pure swap is one swap line, with no on or off line', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={{ ...base, swapNames: ['Väinö Virta', 'Onni Oja'], swapShortNames: ['Väinö', 'Onni'] }} />);
+      expect(screen.queryByTestId('planned-sub-on')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('planned-sub-off')).not.toBeInTheDocument();
+      const swap = screen.getByTestId('planned-sub-swap');
+      expect(visibleText(swap)).toBe('↔ Väinö and Onni swap positions');
+      expect(swap.querySelector('.sr-only')).toHaveTextContent('Väinö Virta and Onni Oja swap positions');
+    });
+
+    it('a swap next to a real sub keeps the on/off lines for the real change', () => {
+      render(
+        <TimerOverlay
+          {...baseProps}
+          gameStatus="inProgress"
+          plannedSubGroup={{ ...base, inNames: ['Eino'], inShortNames: ['Eino'], outNames: ['Aapo'], outShortNames: ['Aapo'], swapNames: ['Väinö', 'Onni'], swapShortNames: ['Väinö', 'Onni'] }}
+        />,
+      );
+      expect(visibleText(screen.getByTestId('planned-sub-on'))).toBe('↑ Eino');
+      expect(visibleText(screen.getByTestId('planned-sub-off'))).toBe('↓ Aapo');
+      expect(visibleText(screen.getByTestId('planned-sub-swap'))).toBe('↔ Väinö and Onni swap positions');
+    });
+
+    it('one player changing position, and a rotation of three, read naturally', () => {
+      const { rerender } = render(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={{ ...base, swapNames: ['Bo'], swapShortNames: ['Bo'] }} />);
+      expect(visibleText(screen.getByTestId('planned-sub-swap'))).toBe('↔ Bo changes position');
+      rerender(<TimerOverlay {...baseProps} gameStatus="inProgress" plannedSubGroup={{ ...base, swapNames: ['A', 'B', 'C'], swapShortNames: ['A', 'B', 'C'] }} />);
+      expect(visibleText(screen.getByTestId('planned-sub-swap'))).toBe('↔ Swapping positions: A, B, C');
     });
   });
 });

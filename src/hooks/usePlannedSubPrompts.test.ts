@@ -1,5 +1,5 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { DUE_WINDOW_SECONDS, usePlannedSubPrompts } from './usePlannedSubPrompts';
+import { DUE_WINDOW_SECONDS, groupSubs, usePlannedSubPrompts } from './usePlannedSubPrompts';
 import { getGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import type { Player } from '@/types';
 
@@ -43,8 +43,12 @@ describe('usePlannedSubPrompts', () => {
     // Give the load effect a tick to resolve, then assert nothing is due (720 > 0).
     await act(async () => {});
     expect(result.current).toEqual({
-      current: { timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], inShortNames: ['Niko'], outShortNames: ['Sam'], due: false },
+      current: {
+        timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], inShortNames: ['Niko'], outShortNames: ['Sam'],
+        swapNames: [], swapShortNames: [], due: false,
+      },
       overdueEarlier: 0,
+      hasPlan: true,
     });
   });
 
@@ -105,7 +109,7 @@ describe('usePlannedSubPrompts', () => {
     rerender({ t: 720 });
     await waitFor(() => expect(result.current.current).not.toBeNull());
     expect(result.current.current).toEqual({
-      timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], inShortNames: ['Niko'], outShortNames: ['Sam'], due: true,
+      timeSeconds: 720, inNames: ['Niko'], outNames: ['Sam'], inShortNames: ['Niko'], outShortNames: ['Sam'], swapNames: [], swapShortNames: [], due: true,
     });
   });
 
@@ -161,7 +165,7 @@ describe('usePlannedSubPrompts', () => {
       inNames: ['Niko', 'Alex', 'Aapo'],
       outNames: ['Sam'],
       inShortNames: ['Niko', 'Alex', 'Aapo'],
-      outShortNames: ['Sam'],
+      outShortNames: ['Sam'], swapNames: [], swapShortNames: [],
       due: true,
     });
     expect(result.current.overdueEarlier).toBe(0);
@@ -214,7 +218,7 @@ describe('usePlannedSubPrompts', () => {
     ]);
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 620, players));
     await waitFor(() => expect(result.current.current).not.toBeNull());
-    expect(result.current.current).toEqual({ timeSeconds: 600, inNames: ['Alex'], outNames: [], inShortNames: ['Alex'], outShortNames: [], due: true });
+    expect(result.current.current).toEqual({ timeSeconds: 600, inNames: ['Alex'], outNames: [], inShortNames: ['Alex'], outShortNames: [], swapNames: [], swapShortNames: [], due: true });
   });
 
   it('loads nothing and shows nothing when there is no game', async () => {
@@ -254,5 +258,86 @@ describe('usePlannedSubPrompts', () => {
       outNames: ['Jasper Tuulmägi'],
       outShortNames: ['Jasper'],
     });
+  });
+
+  /** The timer picks its sub mechanism from this: plan block vs interval timer. */
+  it('reports whether the game has a plan, and null while it loads', async () => {
+    let resolve: (subs: PlannedGameSub[]) => void = () => {};
+    mockGetGameSubs.mockReturnValue(new Promise((r) => { resolve = r; }));
+    const { result } = renderHook(() => usePlannedSubPrompts('g1', 0, players));
+    expect(result.current.hasPlan).toBeNull();
+    await act(async () => resolve([]));
+    expect(result.current.hasPlan).toBe(false);
+  });
+
+  it('a plan with every group behind the clock still counts as a plan', async () => {
+    mockGetGameSubs.mockResolvedValue([sub({ timeSeconds: 60 })]);
+    const { result } = renderHook(() => usePlannedSubPrompts('g1', 2000, players));
+    await waitFor(() => expect(result.current.hasPlan).toBe(true));
+    expect(result.current.current).toBeNull();
+  });
+
+  it('with no game loaded there is no plan (and nothing to wait for)', () => {
+    const { result } = renderHook(() => usePlannedSubPrompts(null, 0, players));
+    expect(result.current.hasPlan).toBe(false);
+  });
+});
+
+describe('groupSubs - position swaps', () => {
+  const squad: Player[] = ['vaino', 'onni', 'eino', 'aapo', 'a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({
+    id,
+    name: id.charAt(0).toUpperCase() + id.slice(1),
+  }));
+  const at = (timeSeconds: number, inPlayerId: string, outPlayerId: string | null, slotId = inPlayerId) =>
+    sub({ id: `${timeSeconds}-${inPlayerId}`, timeSeconds, slotId, inPlayerId, outPlayerId });
+
+  /** Väinö and Onni trade positions: both stay on, so neither is "on" or "off". */
+  it('a pure swap is a swap only', () => {
+    const [g] = groupSubs([at(600, 'vaino', 'onni', 'rm'), at(600, 'onni', 'vaino', 'lm')], squad);
+    expect(g).toMatchObject({ inNames: [], outNames: [], swapNames: ['Vaino', 'Onni'], swapShortNames: ['Vaino', 'Onni'] });
+  });
+
+  it('a swap and a real sub in the same group are kept apart', () => {
+    const [g] = groupSubs(
+      [at(600, 'vaino', 'onni', 'rm'), at(600, 'eino', 'aapo', 'st'), at(600, 'onni', 'vaino', 'lm')],
+      squad,
+    );
+    expect(g).toMatchObject({ inNames: ['Eino'], outNames: ['Aapo'], swapNames: ['Vaino', 'Onni'] });
+  });
+
+  /** A on for B, B moves on for C: B stays on (position change), A comes on, C goes off. */
+  it('a chain A -> B -> C makes only the middle player a position change', () => {
+    const [g] = groupSubs([at(900, 'a', 'b', 's1'), at(900, 'b', 'c', 's2')], squad);
+    expect(g).toMatchObject({ inNames: ['A'], outNames: ['C'], swapNames: ['B'] });
+  });
+
+  it('a half-time mass change keeps the real changes and lists the movers once', () => {
+    const [g] = groupSubs(
+      [
+        at(1500, 'a', 'd', 's1'),
+        at(1500, 'b', 'e', 's2'),
+        at(1500, 'c', 'f', 's3'),
+        at(1500, 'vaino', 'onni', 's4'),
+        at(1500, 'onni', 'eino', 's5'),
+        at(1500, 'eino', 'vaino', 's6'),
+      ],
+      squad,
+    );
+    expect(g.inNames).toEqual(['A', 'B', 'C']);
+    expect(g.outNames).toEqual(['D', 'E', 'F']);
+    expect(g.swapNames).toEqual(['Vaino', 'Onni', 'Eino']);
+  });
+
+  it('only players of the same moment count as moving', () => {
+    const groups = groupSubs([at(600, 'vaino', 'onni'), at(900, 'onni', 'vaino')], squad);
+    expect(groups.map((g) => [g.inNames, g.outNames, g.swapNames])).toEqual([
+      [['Vaino'], ['Onni'], []],
+      [['Onni'], ['Vaino'], []],
+    ]);
+  });
+
+  it('an empty slot filled keeps a lone "on", and an unknown player is skipped', () => {
+    const [g] = groupSubs([at(600, 'a', null), at(600, 'ghost', 'b'), at(600, 'c', 'gone')], squad);
+    expect(g).toMatchObject({ inNames: ['A', 'C'], outNames: [], swapNames: [] });
   });
 });
