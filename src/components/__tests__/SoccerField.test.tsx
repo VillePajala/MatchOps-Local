@@ -7,6 +7,11 @@ import { render, fireEvent } from '../../../tests/utils/test-utils';
 import SoccerField, { SoccerFieldHandle } from '../SoccerField';
 import { Player, Opponent, Point } from '@/types';
 
+// The chain sheet's phone-back registration is covered in its own suites.
+jest.mock('@/hooks/useModalHardwareBack', () => ({
+  useHardwareBackSubLevel: jest.fn(),
+}));
+
 // Mock players for testing
 const createMockPlayer = (id: string, overrides?: Partial<Player>): Player => ({
   id,
@@ -706,10 +711,9 @@ describe('SoccerField Component - Interaction Testing', () => {
 
     /**
      * @critical - the chain view is read on the touchline to decide who goes
-     * on next. Every planned change must reach the canvas; the owner's
-     * requirement is the WHOLE chain, not an abbreviated one.
+     * on next. Every planned change of a short chain is on the canvas itself.
      */
-    it('paints the position, starter and every minute in the chain', () => {
+    it('paints the position, starter and every minute of a chain of up to two changes', () => {
       const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
       render(
         <SoccerField
@@ -722,15 +726,88 @@ describe('SoccerField Component - Interaction Testing', () => {
               starterName: 'Petja',
               entries: [
                 { id: 'a', minute: 10, name: 'Tomas', waveIndex: 0 },
-                { id: 'b', minute: 20, name: 'Petja', waveIndex: 1 },
-                { id: 'c', minute: 30, name: 'Tomas', waveIndex: 2 },
+                { id: 'b', minute: 20, name: 'Tiitus', waveIndex: 1 },
               ],
             },
           ]}
         />,
       );
       const drawn = spy.mock.calls.map((c) => String(c[0]));
-      expect(drawn).toEqual(expect.arrayContaining(['LM', 'Petja', "10'", "20'", "30'", 'Tomas']));
+      expect(drawn).toEqual(expect.arrayContaining(['LM', 'Petja', "10'", "20'", 'Tomas', 'Tiitus']));
+      expect(drawn.some((d) => d.startsWith('+'))).toBe(false);
+      spy.mockRestore();
+    });
+
+    /**
+     * @critical - a long chain stacked down the pitch ran over the next
+     * position's pill (owner report). Above two changes the pill is compact:
+     * the next change and a "+N" badge, and the whole chain is one tap away.
+     */
+    it('draws a longer chain compact and opens the whole chain from it', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      const { getByRole, getByTestId, queryByRole } = render(
+        <SoccerField
+          {...defaultProps}
+          plannedChains={[
+            {
+              positionLabel: 'ST',
+              relX: 0.5,
+              relY: 0.24,
+              starterName: 'Kalle',
+              entries: [
+                { id: 'a', minute: 2, name: 'Eino', waveIndex: 0 },
+                { id: 'b', minute: 7, name: 'Sampo', waveIndex: 1 },
+                { id: 'c', minute: 12, name: 'Rafael', waveIndex: 2 },
+                { id: 'd', minute: 17, name: 'Kai', waveIndex: 3 },
+              ],
+            },
+          ]}
+        />,
+      );
+      const drawn = drawnTexts(spy);
+      expect(drawn).toEqual(expect.arrayContaining(['ST', 'Kalle', "2'", 'Eino', '+3']));
+      expect(drawn).not.toContain('Sampo');
+      expect(drawn).not.toContain("17'");
+      spy.mockRestore();
+
+      const more = getByTestId('planned-chain-more');
+      expect(more).toHaveAttribute('aria-haspopup', 'dialog');
+      expect(more.getAttribute('aria-label')).toMatch(/ST/);
+      fireEvent.click(more);
+      const dialog = getByRole('dialog');
+      for (const text of ['Kalle', "2'", 'Eino', "7'", 'Sampo', "12'", 'Rafael', "17'", 'Kai']) {
+        expect(dialog).toHaveTextContent(text);
+      }
+      fireEvent.click(getByTestId('plan-chain-sheet-backdrop'));
+      expect(queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    /** @edge-case - a two-change pill must not reach the pill right below it either. */
+    it('draws even a two-change chain compact when the next position is too close', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      const { getAllByTestId } = render(
+        <SoccerField
+          {...defaultProps}
+          plannedChains={[
+            {
+              positionLabel: 'ST',
+              relX: 0.5,
+              relY: 0.24,
+              starterName: 'Kalle',
+              entries: [
+                { id: 'a', minute: 2, name: 'Eino', waveIndex: 0 },
+                { id: 'b', minute: 7, name: 'Sampo', waveIndex: 1 },
+              ],
+            },
+            // 0.06 of a 600px field below: 36px, room for two rows at most.
+            { positionLabel: 'CAM', relX: 0.5, relY: 0.3, starterName: 'Kai', entries: [] },
+          ]}
+        />,
+      );
+      const drawn = drawnTexts(spy);
+      expect(drawn).toEqual(expect.arrayContaining(['Eino', '+1']));
+      expect(drawn).not.toContain('Sampo');
+      expect(getAllByTestId('planned-chain-more')).toHaveLength(1);
       spy.mockRestore();
     });
 

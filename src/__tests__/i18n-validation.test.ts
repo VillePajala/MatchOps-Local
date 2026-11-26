@@ -782,7 +782,8 @@ describe('Translation File Validation', () => {
       // Merge of feat/pelitapa with master (3784): +73 pelitapa keys. 3857.
       // +2 privacyPolicy.dataWeCollect.featureAccess* (feature / content access records). 3859.
       // Timer sub clarity: timerOverlay.confirmSubButton -> resetSubTimerButton, +plannedSwapOne/Two/Many, showSubTimer, makePlanForGame. 3864.
-      expect(enKeys.length).toBe(3864);
+      // Compact chain cards: +2 playtimePlanner.lineup.chainShowAll_one/_other, +3 playtimePlanner.chainSheet.*. 3869.
+      expect(enKeys.length).toBe(3869);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -1019,7 +1020,8 @@ describe('Translation File Validation', () => {
       // Merge of feat/pelitapa with master (3784): +73 pelitapa keys. 3857.
       // +2 privacyPolicy.dataWeCollect.featureAccess* (feature / content access records). 3859.
       // Timer sub clarity: timerOverlay.confirmSubButton -> resetSubTimerButton, +plannedSwapOne/Two/Many, showSubTimer, makePlanForGame. 3864.
-      expect(fiKeys.length).toBe(3864);
+      // Compact chain cards: +2 playtimePlanner.lineup.chainShowAll_one/_other, +3 playtimePlanner.chainSheet.*. 3869.
+      expect(fiKeys.length).toBe(3869);
     });
   });
 });

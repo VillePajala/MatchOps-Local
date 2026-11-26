@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import PlanFieldView from './PlanFieldView';
 import type { PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 
@@ -11,9 +11,24 @@ const interpolate = (template: string, options?: Record<string, unknown>): strin
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (_k: string, dv?: string | Record<string, unknown>, opts?: Record<string, unknown>) =>
-      typeof dv === 'string' ? interpolate(dv, opts) : '',
+    t: (_k: string, dv?: string | Record<string, unknown>, opts?: Record<string, unknown>) => {
+      if (typeof dv === 'string') return interpolate(dv, opts);
+      // Options-object form incl. i18next plurals: t(key, { count, defaultValue_one, defaultValue_other }).
+      const o = (dv ?? {}) as Record<string, unknown>;
+      const template =
+        o.count === 1 && typeof o.defaultValue_one === 'string'
+          ? o.defaultValue_one
+          : typeof o.defaultValue_other === 'string'
+            ? o.defaultValue_other
+            : '';
+      return interpolate(template, o);
+    },
   }),
+}));
+
+// The chain sheet's phone-back registration is covered in its own suites.
+jest.mock('@/hooks/useModalHardwareBack', () => ({
+  useHardwareBackSubLevel: jest.fn(),
 }));
 
 const players: PlanPlayer[] = [
@@ -499,3 +514,114 @@ describe('PlanFieldView conflict banner (simultaneity flags)', () => {
   });
 });
 
+
+/**
+ * Owner report: long chains stacked down the pitch and ran over the next
+ * position's card. A chain card is now compact above two changes (or when it
+ * has no room), and the whole chain opens in a sheet.
+ */
+describe('PlanFieldView compact chain cards', () => {
+  const sub = (id: string, slotId: string, minute: number, inPlayerId: string) => ({
+    id,
+    slotId,
+    timeSeconds: minute * 60,
+    inPlayerId,
+  });
+
+  /** @critical */
+  it('shows the starter, the next change and "+N" for a chain of more than two', () => {
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 's2', playerId: 'p1' }]),
+      subs: [sub('a', 's2', 2, 'p2'), sub('b', 's2', 7, 'p3'), sub('c', 's2', 12, 'p4')],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    // The group label still carries the WHOLE chain for screen readers.
+    const card = screen.getByRole('group', { name: "#3: Alex; 2' Sam, 7' Jo, 12' Max" });
+    expect(within(card).getByRole('button', { name: '#3: Alex' })).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: "2' Sam (#3)" })).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: "7' Jo (#3)" })).not.toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: "12' Max (#3)" })).not.toBeInTheDocument();
+    const more = within(card).getByRole('button', { name: '#3: 3 changes, show all' });
+    expect(more).toHaveTextContent('+2');
+    expect(more).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('counts every hidden change in the badge', () => {
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 's2', playerId: 'p1' }]),
+      subs: [
+        sub('a', 's2', 2, 'p2'),
+        sub('b', 's2', 7, 'p3'),
+        sub('c', 's2', 12, 'p4'),
+        sub('d', 's2', 17, 'p5'),
+        sub('e', 's2', 20, 'p2'),
+      ],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    expect(screen.getByRole('button', { name: '#3: 5 changes, show all' })).toHaveTextContent('+4');
+  });
+
+  it('keeps a two-change chain stacked in full when there is room below it', () => {
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 's2', playerId: 'p1' }]),
+      subs: [sub('a', 's2', 6, 'p2'), sub('b', 's2', 12, 'p3')],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    expect(screen.getByRole('button', { name: "6' Sam (#3)" })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "12' Jo (#3)" })).toBeInTheDocument();
+    expect(screen.queryByTestId('plan-chain-more')).not.toBeInTheDocument();
+  });
+
+  /** @edge-case - ST sits 0.14 above CAM in the 8v8 2-1-2-1-1: three rows do not fit. */
+  it('makes even a two-change chain compact when the slot below is too close', () => {
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 's6', playerId: 'p1' }]),
+      formationId: '8v8-2-1-2-1-1',
+      subs: [sub('a', 's6', 6, 'p2'), sub('b', 's6', 12, 'p3')],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    expect(screen.getByRole('button', { name: "6' Sam (#7)" })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: "12' Jo (#7)" })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '#7: 2 changes, show all' })).toHaveTextContent('+1');
+  });
+
+  it('opens the full chain in a sheet and closes it on a tap outside', () => {
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 's2', playerId: 'p1' }]),
+      subs: [sub('a', 's2', 2, 'p2'), sub('b', 's2', 7, 'p3'), sub('c', 's2', 12, 'p4')],
+    };
+    render(
+      <PlanFieldView
+        game={game}
+        players={players}
+        onAssign={jest.fn()}
+        minutesByPlayer={{ p1: { minutes: 20, ratio: 1 } }}
+      />,
+    );
+    const more = screen.getByRole('button', { name: '#3: 3 changes, show all' });
+    fireEvent.click(more);
+    expect(more).toHaveAttribute('aria-expanded', 'true');
+    const dialog = screen.getByRole('dialog', { name: '#3 · substitutions' });
+    const rows = within(dialog).getAllByRole('listitem');
+    expect(rows.map((r) => r.textContent)).toEqual(["StartAlex20'", "2'Sam", "7'Jo", "12'Max"]);
+
+    fireEvent.click(screen.getByTestId('plan-chain-sheet-backdrop'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  /** Select-and-place still reaches a stint hidden behind the badge. */
+  it('picking a hidden stint in the sheet selects it and shows it on the card', () => {
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 's2', playerId: 'p1' }]),
+      subs: [sub('a', 's2', 2, 'p2'), sub('b', 's2', 7, 'p3'), sub('c', 's2', 12, 'p4')],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} onRemoveSub={jest.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: '#3: 3 changes, show all' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /12'.*Max/ }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    const shown = screen.getByRole('button', { name: "12' Max (#3)" });
+    expect(shown).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: "2' Sam (#3)" })).not.toBeInTheDocument();
+  });
+});
