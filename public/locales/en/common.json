@@ -3774,6 +3774,8 @@
       "absentHeading": "Absent from this game",
       "benchEmptyAbsent": "Everyone is placed or absent.",
       "subStint": "{{minute}}' {{player}} ({{position}})",
+      "chainShowAll_one": "{{position}}: {{count}} change, show all",
+      "chainShowAll_other": "{{position}}: {{count}} changes, show all",
       "removeSubAction": "Remove sub",
       "clearAll": "Clear field",
       "clearedAll": "Field cleared",
@@ -3845,6 +3847,11 @@
       "exportError": "Could not export the plan.",
       "copySuffix": "(copy)",
       "switchError": "Could not open that plan."
+    },
+    "chainSheet": {
+      "title": "{{position}} · substitutions",
+      "start": "Start",
+      "total": "{{minutes}} min in total"
     },
     "gkShort": "GK",
     "players": {
