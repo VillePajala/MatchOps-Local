@@ -32,7 +32,14 @@ import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
 import { findSimultaneityConflicts, conflictedSlotIds } from '@/utils/playtimePlanner/conflicts';
 import PlanFieldBackdrop from '@/components/PlanFieldBackdrop';
 import PlanChainSheet, { type PlanChainSheetRow } from '@/components/PlanChainSheet';
-import { chainCardLayout, maxChainRows, type ChainCardMetrics } from '@/utils/playtimePlanner/chainLayout';
+import {
+  chainCardLayout,
+  estimateChainCardWidthPx,
+  chainCardFit,
+  maxChainRows,
+  type ChainCardMetrics,
+  type ChainFieldItem,
+} from '@/utils/playtimePlanner/chainLayout';
 import {
   subtextStyle,
   primaryButtonStyle,
@@ -130,6 +137,12 @@ const CHAIN_METRICS: Omit<ChainCardMetrics, 'fieldWidthPx' | 'fieldHeightPx'> = 
   chromePx: 4,
 };
 const FALLBACK_PITCH = { w: 328, h: 437 };
+/** A one-row pill is h-10, centred on its slot point. */
+const PILL_HALF_HEIGHT_PX = 20;
+/** A plain disc is w-11 h-11, centred on its slot point. */
+const DISC_PX = 44;
+/** A capped card never gets narrower than this; names truncate inside it. */
+const MIN_CARD_WIDTH_PX = 72;
 
 /** Short display token for a disc: nickname, else first name, else initials. */
 const shortName = (name: string): string => {
@@ -525,6 +538,47 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     );
   };
 
+  // Each position's card form, worked out for all slots first: a card's width
+  // lane depends on the marks beside it (chainLayout.chainCardFit).
+  const slotCards = slots.map((slot, i) => {
+    const slotSubs = subsBySlot.get(slot.slotId) ?? [];
+    const hasSubs = slotSubs.length > 0;
+    // Long chains (and any chain without room below it) go COMPACT: the
+    // starter, ONE incoming stint and a "+N" badge that opens the whole
+    // chain in a sheet - a card never grows over the position below it.
+    const layout = chainCardLayout(slotSubs.length, maxChainRows(slots, i, chainMetrics));
+    const stacked = hasSubs && !layout.compact && slotSubs.length > 1;
+    // The one stint a compact card shows: the selected one when it lives
+    // behind the badge (so a selection picked in the sheet stays visible),
+    // else the next change.
+    const shownSubs = layout.compact
+      ? [slotSubs.find((sub) => selection?.type === 'sub' && selection.subId === sub.id) ?? slotSubs[0]]
+      : slotSubs;
+    const starterId = playerBySlot.get(slot.slotId) ?? null;
+    const item: ChainFieldItem = hasSubs
+      ? {
+          relX: slot.relX,
+          relY: slot.relY,
+          abovePx: stacked ? CHAIN_METRICS.anchorAbovePx : PILL_HALF_HEIGHT_PX,
+          belowPx: stacked
+            ? (1 + shownSubs.length) * CHAIN_METRICS.rowPx + CHAIN_METRICS.chromePx - CHAIN_METRICS.anchorAbovePx
+            : PILL_HALF_HEIGHT_PX,
+          naturalWidthPx: estimateChainCardWidthPx({
+            starter: starterId ? shortName(nameById.get(starterId) ?? '') : '+',
+            subs: shownSubs.map((sub) => ({
+              minute: Math.round(sub.timeSeconds / 60),
+              name: shortName(sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?'),
+            })),
+            more: layout.compact,
+            stacked,
+          }),
+        }
+      : { relX: slot.relX, relY: slot.relY, abovePx: DISC_PX / 2, belowPx: DISC_PX / 2, fixedWidthPx: DISC_PX };
+    return { slotSubs, hasSubs, layout, stacked, shownSubs, item };
+  });
+  const cardItems = slotCards.map((c) => c.item);
+  const cardFits = slotCards.map((c, i) => (c.hasSubs ? chainCardFit(cardItems, i, chainMetrics) : null));
+
   return (
     <div className="space-y-4">
       {/* Pitch - the REAL field: the live game's grass + markings painted by
@@ -545,22 +599,16 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           // field slot `s0` reads as `#1`. Intentional - friendlier than slotId.
           // GK shorthand is localized (fi coaches read "MV", not "GK").
           const positionLabel = slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${i}`;
-          const slotSubs = subsBySlot.get(slot.slotId) ?? [];
           // The pill renders whenever subs are scheduled - even with the starter
           // cleared (the engine still grants the incoming player minutes, so the
           // field must not pretend the slot is plain empty).
-          const hasSubs = slotSubs.length > 0;
-          // Long chains (and any chain without room below it) go COMPACT: the
-          // starter, ONE incoming stint and a "+N" badge that opens the whole
-          // chain in a sheet - a card never grows over the position below it.
-          const layout = chainCardLayout(slotSubs.length, maxChainRows(slots, i, chainMetrics));
-          const stacked = hasSubs && !layout.compact && slotSubs.length > 1;
-          // The one stint a compact card shows: the selected one when it lives
-          // behind the badge (so a selection picked in the sheet stays visible),
-          // else the next change.
-          const shownSubs = layout.compact
-            ? [slotSubs.find((sub) => selection?.type === 'sub' && selection.subId === sub.id) ?? slotSubs[0]]
-            : slotSubs;
+          const { slotSubs, hasSubs, layout, stacked, shownSubs } = slotCards[i];
+          // Kept in its lane beside the cards at the same height (chainLayout):
+          // moved toward the touchline first, capped (names truncate) last.
+          const fit = cardFits[i];
+          const cardMaxWidth =
+            fit && Number.isFinite(fit.maxWidthPx) ? Math.max(MIN_CARD_WIDTH_PX, Math.floor(fit.maxWidthPx)) : undefined;
+          const cardShift = fit ? Math.round(fit.shiftPx) : 0;
           const involved =
             anyHighlight && (isTracked(playerId) || slotSubs.some((sub) => isTracked(sub.inPlayerId)));
           // Screen readers: aria-label OVERRIDES the button's contents, so the
@@ -625,7 +673,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 // A stacked pill hangs DOWN from its slot (top row on the point,
                 // see CHAIN_METRICS) - the room below is what chainLayout caps.
                 transform: hasSubs
-                  ? `translate(-${(slot.relX * 100).toFixed(1)}%, ${stacked ? '-13px' : '-20px'})`
+                  ? `translate(calc(-${(slot.relX * 100).toFixed(1)}% + ${cardShift}px), ${stacked ? '-13px' : '-20px'})`
                   : 'translate(-50%, -22px)',
               }}
             >
@@ -641,6 +689,8 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     'border-white/90',
                     conflictRing,
                   ].join(' ')}
+                  // Never wider than its lane (see cardFits); names truncate.
+                  style={cardMaxWidth !== undefined ? { maxWidth: cardMaxWidth } : undefined}
                 >
                   <button
                     type="button"
@@ -648,7 +698,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     aria-label={starterLabel}
                     aria-pressed={slotSelected}
                     className={[
-                      'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap',
+                      'flex min-w-0 items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap',
                       stacked ? 'py-1' : '',
                       segmentFocus,
                       slotSelected ? `${selectionRing} z-10` : '',
@@ -661,7 +711,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                     }}
                   >
-                    {filled ? shortName(name ?? '') : '+'}
+                    <span className="truncate">{filled ? shortName(name ?? '') : '+'}</span>
                   </button>
                   {shownSubs.map((sub) => {
                     const inName = sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?';
@@ -678,7 +728,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                         })}
                         aria-pressed={subSelected}
                         className={[
-                          'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-white/35 gap-1',
+                          'flex min-w-0 items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-white/35 gap-1',
                           stacked ? 'flex-row py-1 border-t' : 'flex-col border-l',
                           segmentFocus,
                           subSelected ? `${selectionRing} z-10` : '',
@@ -690,10 +740,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                           textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                         }}
                       >
-                        <span className="text-xs font-extrabold text-amber-200 leading-none tabular-nums bg-black/30 rounded px-1 py-0.5">
+                        <span className="shrink-0 text-xs font-extrabold text-amber-200 leading-none tabular-nums bg-black/30 rounded px-1 py-0.5">
                           {Math.round(sub.timeSeconds / 60)}&#39;
                         </span>
-                        {shortName(inName)}
+                        <span className="truncate max-w-full">{shortName(inName)}</span>
                       </button>
                     );
                   })}
@@ -711,7 +761,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       })}
                       data-testid="plan-chain-more"
                       className={[
-                        'flex items-center justify-center min-w-9 px-1.5 border-l border-white/35 bg-slate-900/85',
+                        'flex shrink-0 items-center justify-center min-w-9 px-1.5 border-l border-white/35 bg-slate-900/85',
                         'text-xs font-extrabold text-amber-200 tabular-nums',
                         segmentFocus,
                       ].join(' ')}

@@ -2486,6 +2486,29 @@ describe('NewGameSetupModal', () => {
       expect(selectedCountText()).toMatch(/1\s*\/\s*2/);
     });
 
+    /**
+     * Pins what a team game stores as its squad: the whole active club roster
+     * (the team roster only pre-selects). Games created from a plan store the
+     * same set - see createFromPlan.test.ts.
+     * @critical
+     */
+    it('a team game keeps the active club roster as its squad and selects the team', async () => {
+      getTeamRoster.mockResolvedValue([{ id: 'player1', name: 'John Doe' }]);
+      await openDefaults({
+        masterRoster: [...roster, { id: 'player3', name: 'Old Boy', archived: true }],
+      });
+      await waitFor(() => expect(selectedCountText()).toMatch(/1\s*\/\s*2/));
+      fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), { target: { value: 'Rival' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const args = mockOnStart.mock.calls[0];
+      expect(args[0]).toEqual(['player1']); // selectedPlayerIds: the team
+      expect(args[20]).toBe('team1'); // teamId
+      expect((args[21] as { id: string }[]).map((p) => p.id)).toEqual(['player1', 'player2']); // availablePlayersForGame
+    });
+
     it('carries the previous game of the team, but not opponent or pitch', async () => {
       await openDefaults({ savedGames: { g1: previousHomeGame } });
       expect(document.querySelector('#periodDurationInput')).toHaveValue('25');
