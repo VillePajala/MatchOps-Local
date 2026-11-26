@@ -14,6 +14,8 @@ import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import { useAppLayout } from '@/hooks/useAppLayout';
+import { useModalContextOptional } from '@/contexts/ModalProvider';
+import { isSubTimerShown, readSubTimerChoice, writeSubTimerChoice } from '@/utils/subTimerVisibility';
 import type {
   Player,
   Team,
@@ -359,6 +361,34 @@ export function FieldContainer({
   const plannedSubGroup = inExtraTime ? null : plannedPrompts.current;
   const plannedSubsEarlier = inExtraTime ? 0 : plannedPrompts.overdueEarlier;
 
+  // ONE sub mechanism by default: a game with planned subs shows the plan's
+  // block, a game without shows the interval sub timer. The coach's per-game
+  // "Show sub timer" choice overrides that (device-local, see
+  // utils/subTimerVisibility). Tagged with the game, read again on a switch.
+  const liveGameId = currentGameId === DEFAULT_GAME_ID ? null : currentGameId;
+  const [subTimerChoice, setSubTimerChoiceState] = useState(() => ({
+    gameId: liveGameId,
+    choice: readSubTimerChoice(liveGameId),
+  }));
+  let currentSubTimerChoice = subTimerChoice;
+  if (subTimerChoice.gameId !== liveGameId) {
+    currentSubTimerChoice = { gameId: liveGameId, choice: readSubTimerChoice(liveGameId) };
+    setSubTimerChoiceState(currentSubTimerChoice);
+  }
+  const hasPlan = plannedPrompts.hasPlan;
+  // While the schedule loads (hasPlan null) neither the plan nor the timer is
+  // known to be the one; the coach's own choice still applies at once.
+  const showSubTimer = hasPlan === null
+    ? currentSubTimerChoice.choice === true
+    : isSubTimerShown(currentSubTimerChoice.choice, hasPlan);
+  const setShowSubTimer = useCallback((show: boolean) => {
+    if (liveGameId) writeSubTimerChoice(liveGameId, show);
+    setSubTimerChoiceState({ gameId: liveGameId, choice: show });
+  }, [liveGameId]);
+  const modalContext = useModalContextOptional();
+  const setIsPlaytimePlannerOpen = modalContext?.setIsPlaytimePlannerOpen;
+  const openPlanner = useCallback(() => setIsPlaytimePlannerOpen?.(true), [setIsPlaytimePlannerOpen]);
+
   return (
     // The pitch's own box: the whole area between the match view's top panel
     // and its control strip (see GameContainer), nothing overlapping it. The
@@ -372,7 +402,7 @@ export function FieldContainer({
       {tmShowOverlay && (
         <TimerOverlay
           timeElapsedInSeconds={tmTime}
-          subAlertLevel={tmSubAlert}
+          subAlertLevel={showSubTimer ? tmSubAlert : 'none'}
           onSubstitutionMade={substitutionMade}
           completedIntervalDurations={gameSessionState.completedIntervalDurations || []}
           subIntervalMinutes={gameSessionState.subIntervalMinutes}
@@ -388,9 +418,13 @@ export function FieldContainer({
           plannedSubGroup={plannedSubGroup}
           plannedSubsEarlier={plannedSubsEarlier}
           onToggleGoalLogModal={quickGoal}
-          // Basic layout: no "Vaihto tehty" (D13) - the plan's
+          // Basic layout: no "Nollaa vaihtoajastin" (D13) - the plan's
           // reminders are the basic coach's sub timing.
           showSubTimerReset={appLayout !== 'basic'}
+          showSubTimer={showSubTimer}
+          hasPlan={hasPlan === true}
+          onShowSubTimerChange={liveGameId ? setShowSubTimer : undefined}
+          onOpenPlanner={setIsPlaytimePlannerOpen ? openPlanner : undefined}
           onOpenPlayerAssessmentModal={assessmentsEnabled ? onOpenPlayerAssessmentModal : undefined}
           onFinishGame={onFinishGame}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}

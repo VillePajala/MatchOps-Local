@@ -48,7 +48,7 @@ Kaikki tallentuu automaattisesti jokaisen toiminnon jälkeen. **Pikatallennus** 
 
 ## Iso kello
 
-Paina ohjainpalkin kelloa. Ison kellon yläosassa näkyvät ottelun tilanne, peliaika ja jakso. Sen alla ovat järjestyksessä kellon ohjaus, maalipainikkeet **Maali meille** ja **Vastustaja +1** heti **Käynnistä**-painikkeen alla, **Seuraava vaihto** (kun pelillä on suunnitelma), Koko näkymässä **Vaihto tehty** ja mikrofonipainike **Pidä pohjassa ja puhu**.
+Paina ohjainpalkin kelloa. Ison kellon yläosassa näkyvät ottelun tilanne, peliaika ja jakso. Sen alla ovat järjestyksessä kellon ohjaus, maalipainikkeet **Maali meille** ja **Vastustaja +1** heti **Käynnistä**-painikkeen alla, **Seuraava vaihto** (kun pelillä on suunnitelma) tai vaihtoajastin (kun suunnitelmaa ei ole), Koko näkymässä vaihtoajastimen kanssa **Nollaa vaihtoajastin** ja mikrofonipainike **Pidä pohjassa ja puhu**.
 
 - **Käynnistä** / **Tauko** / **Jatka** – kellon ohjaus
 - **Päätä jakso** / **Päätä ottelu** – siirtää kellon jakson tai ottelun loppuun, jos peli päättyy aiemmin
@@ -90,15 +90,20 @@ Paina **Vastustaja +1** ja vahvista ("Lisätäänkö vastustajan maali?").
 
 ### Seuraava vaihto
 
-Kun pelillä on suunnitelma, isossa kellossa näkyy **Seuraava vaihto**: vaihdon aika (ja merkintä **tauolla**, jos vaihto tehdään jaksojen välissä), kuka tulee kentälle (vihreä nuoli ↑) ja kuka menee vaihtoon (punainen nuoli ↓). Jos aiempia vaihtoja on jäänyt väliin, näkyy myös "+1 aiemmin". Mitään ei tarvitse kuitata: kun vaihdon aika on mennyt, näkyviin tulee seuraava vaihto.
+Kun pelillä on suunnitelma, isossa kellossa näkyy **Seuraava vaihto**: vaihdon aika (ja merkintä **tauolla**, jos vaihto tehdään jaksojen välissä), kuka tulee kentälle (vihreä nuoli ↑) ja kuka menee vaihtoon (punainen nuoli ↓). Kentällä jo olevat pelaajat, jotka vain vaihtavat paikkaa, näkyvät omalla rivillään (↔ esim. "Väinö ja Onni vaihtavat paikkaa"). Jos aiempia vaihtoja on jäänyt väliin, näkyy myös "+1 aiemmin". Mitään ei tarvitse kuitata: kun vaihdon aika on mennyt, näkyviin tulee seuraava vaihto.
 
 Vaihdot teet itse kentän laidalla; sovellus näyttää, mitä suunnitelmassa on seuraavana. Kentän painikkeesta vaihdat näkymää: **Kokoonpano** näyttää kentällä olevat pelaajat ja vaihtopenkillä odottavat vaihtopelaajat, **Vaihdot ja minuutit** jokaisen paikan koko vaihtosuunnitelman minuutteineen. Kenttä aukeaa aina kokoonpanoon.
 
-### Vaihtoväli ja Vaihto tehty
+### Vaihtoajastin
 
-Vaihtoväli näkyy ison kellon tietorivillä (esim. "vaihto 5 min"). Paina sitä, niin voit muuttaa väliä painikkeilla − ja +. Kun olet painanut **Vaihto tehty** kerran, kello näyttää ajan viimeisestä vaihdosta ("Vaihdosta"). Kellon väri vaihtuu, kun vaihdon aika lähestyy ja kun on aika vaihtaa.
+Isossa kellossa on oletuksena yksi vaihtojen apu: jos pelillä on suunnitelma, näkyy **Seuraava vaihto**. Jos suunnitelmaa ei ole, näkyy vaihtoajastin.
 
-Koko näkymässä painike **Vaihto tehty** käynnistää vaihtoajastimen alusta, kun olet tehnyt vaihdot. Kevennetyssä näkymässä painiketta ei ole.
+Vaihtoajastimen vaihtoväli näkyy ison kellon tietorivillä (esim. "vaihto 5 min"). Paina sitä, niin voit muuttaa väliä painikkeilla − ja +. Kellon väri vaihtuu, kun vaihdon aika lähestyy ja kun on aika vaihtaa. Koko näkymässä painike **Nollaa vaihtoajastin** käynnistää ajastimen alusta, kun olet tehnyt vaihdot. Painalluksen jälkeen kello näyttää ajan viimeisestä vaihdosta ("Vaihdosta"). Kevennetyssä näkymässä painiketta ei ole.
+
+Samasta tietorivin valikosta saat vaihtoajastimen näkyviin tai pois tälle pelille kytkimellä **Näytä vaihtoajastin**. Kun pelillä on suunnitelma, tietorivillä näkyy vain pelin pituus (esim. "2 × 25 min"); paina sitä, niin valikko aukeaa. Valinta muistetaan tällä puhelimella tälle pelille.
+
+- Jos suunnitelma kattaa vain osan pelistä, kohtaan **Seuraava vaihto** tulee viimeisen suunnitellun vaihdon jälkeen linkki **Näytä vaihtoajastin**.
+- Jos pelillä ei ole suunnitelmaa, valikossa on linkki **Tee suunnitelma tälle pelille**. Se avaa Ottelusuunnittelun.
 
 <Callout type="info">
 Vaihtoajastin on muistutus. Se ei kirjaa, keitä vaihdettiin.
