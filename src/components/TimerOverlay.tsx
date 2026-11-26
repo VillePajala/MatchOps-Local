@@ -10,7 +10,7 @@ import SteadyDigits from '@/components/SteadyDigits';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import { HiOutlineMicrophone, HiOutlineChevronDown, HiOutlineMinus, HiOutlinePlus } from 'react-icons/hi2';
-import { chipStyle, chipSelectedStyle, inlineFieldStyle, sectionLabelStyle } from '@/styles/modalStyles';
+import { chipStyle, chipSelectedStyle, inlineFieldStyle, sectionLabelStyle, switchInputStyle } from '@/styles/modalStyles';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import { clockContinuation } from '@/utils/clockContinuation';
 import { liveScoreNumeralClass } from '@/utils/gameResult';
@@ -77,10 +77,25 @@ interface TimerOverlayProps {
   /** Kirjuri voice notes (PR 2): press-hold recorder controls; absent = feature not wired. */
   dictation?: DictationControls;
   /**
-   * Shows "Sub done" (D13). The basic layout will pass false to hide it;
-   * the full layout keeps it. Defaults to shown.
+   * Shows "Reset sub timer" (D13, was "Sub done") while the sub timer shows.
+   * The basic layout passes false to hide it; the full layout keeps it.
+   * Defaults to shown.
    */
   showSubTimerReset?: boolean;
+  /**
+   * Whether the interval sub timer shows: the interval in the info line, the
+   * clock's sub alerts, "Since sub", "Reset sub timer" and the interval
+   * history. ONE sub mechanism by default - the host passes false for a game
+   * with planned subs (the plan's block is the sub timing then) unless the
+   * coach turned the timer on for the game. Defaults to shown.
+   */
+  showSubTimer?: boolean;
+  /** The game has planned subs (a plan), whether or not any are still ahead. */
+  hasPlan?: boolean;
+  /** "Show sub timer" in the interval menu (per game). Absent: no switch. */
+  onShowSubTimerChange?: (show: boolean) => void;
+  /** "Make a plan for this game" in the interval menu of a game without a plan. */
+  onOpenPlanner?: () => void;
 }
 
 /**
@@ -135,6 +150,10 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   plannedSubGroup = null,
   plannedSubsEarlier = 0,
   showSubTimerReset = true,
+  showSubTimer = true,
+  hasPlan = false,
+  onShowSubTimerChange,
+  onOpenPlanner,
 }) => {
   const { t } = useTranslation(); // Initialize translation hook
 
@@ -192,8 +211,10 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
   // The clock is white; the substitution timer walks it through orange to red
   // (a status escalation, not decoration - see config/palette STATUS).
-  const clockAlertClass =
-    subAlertLevel === 'due' ? 'text-red-400' : subAlertLevel === 'warning' ? 'text-orange-300' : null;
+  // Hidden sub timer, no sub alerts: only the mechanism on screen may signal.
+  const clockAlertClass = !showSubTimer
+    ? null
+    : subAlertLevel === 'due' ? 'text-red-400' : subAlertLevel === 'warning' ? 'text-orange-300' : null;
 
   // Buttons: ONE amber primary (start/pause, or the end-of-game hand-off),
   // everything else quiet. Pills of 56px+ - usable with cold thumbs.
@@ -387,6 +408,14 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const shownSubAtBreak = shownSubGroup !== null
     && Array.from({ length: Math.max(0, numberOfPeriods - 1) }, (_, i) => periodEndSeconds(structure, i + 1))
       .includes(shownSubGroup.timeSeconds);
+  // "Väinö ja Onni vaihtavat paikkaa"; one player of a chain "vaihtaa paikkaa";
+  // three or more, a list.
+  const swapLine = (names: string[]): string =>
+    names.length === 1
+      ? t('timerOverlay.plannedSwapOne', '{{name}} changes position', { name: names[0] })
+      : names.length === 2
+        ? t('timerOverlay.plannedSwapTwo', '{{a}} and {{b}} swap positions', { a: names[0], b: names[1] })
+        : t('timerOverlay.plannedSwapMany', 'Swapping positions: {{names}}', { names: names.join(', ') });
 
   return (
     // Full screen over the pitch; the control capsule (z-40) floats over its
@@ -482,8 +511,15 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               {periodPillLabel}
             </span>
           )}
-          <span className="text-[15px] font-medium text-ink-2 whitespace-nowrap">{gameSpecs}</span>
-          <span className="text-ink-3" aria-hidden="true">·</span>
+          {/* With the sub timer hidden the interval part goes, and the game
+              length itself opens the menu - the "Show sub timer" switch
+              lives there. */}
+          {showSubTimer && (
+            <>
+              <span className="text-[15px] font-medium text-ink-2 whitespace-nowrap">{gameSpecs}</span>
+              <span className="text-ink-3" aria-hidden="true">·</span>
+            </>
+          )}
           <button
             type="button"
             data-testid="timer-sub-interval"
@@ -492,7 +528,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             title={t('timerOverlay.subIntervalLabel', 'Sub Interval:').replace(/:\s*$/, '')}
             className={`inline-flex items-center gap-1 min-h-11 -my-2 px-2 rounded-full text-[15px] font-medium text-ink-2 whitespace-nowrap hover:text-ink hover:bg-white/[0.06] ${focusRingClass}`}
           >
-            {t('timerOverlay.subIntervalInline', 'sub {{minutes}} min', { minutes: intervalText })}
+            {showSubTimer
+              ? t('timerOverlay.subIntervalInline', 'sub {{minutes}} min', { minutes: intervalText })
+              : gameSpecs}
             <HiOutlineChevronDown aria-hidden className={`w-4 h-4 text-ink-3 transition-transform ${showIntervalAdjuster ? 'rotate-180' : ''}`} />
           </button>
         </div>
@@ -500,7 +538,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             The row keeps its height either way, so the first sub does not
             push the buttons down. */}
         <div className="mb-4 mt-1 h-6 flex items-center justify-center text-sm font-medium text-ink-3" data-testid="timer-since-sub">
-          {hasMadeSub && gameStatus !== 'notStarted' && (
+          {showSubTimer && hasMadeSub && gameStatus !== 'notStarted' && (
             <span>
               {t('timerOverlay.sinceSub', 'Since sub')}{' '}
               <SteadyDigits className="text-ink-2 font-semibold">{formatTime(timeSinceLastSub)}</SteadyDigits>
@@ -523,29 +561,63 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           </button>
         )}
 
-        {/* Substitution interval adjuster, opened from the info line. */}
+        {/* The interval menu, opened from the info line: the interval
+            stepper (while the sub timer shows), the per-game "Show sub
+            timer" switch, and - for a game without a plan - the way to
+            make one. */}
         {showIntervalAdjuster && (
-          <div className="w-full mb-4 s1-list min-h-[60px] flex items-center justify-between gap-3 pl-[18px] pr-2">
-            {/* The label's trailing colon is a leftover of the inline layout. */}
-            <span className="text-base font-medium text-ink">{t('timerOverlay.subIntervalLabel', 'Sub Interval:').replace(/:\s*$/, '')}</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
-                // 1 minute is the real minimum (the reducer clamps to it, review 4.33):
-                // at 1 the button used to stay enabled and do nothing.
-                disabled={subIntervalMinutes <= 1}
-                className={stepperButtonStyle} aria-label={t('timerOverlay.decreaseInterval', 'Decrease interval')}>
-                <HiOutlineMinus className="w-6 h-6" aria-hidden="true" />
-              </button>
-              <span className="min-w-11 px-1 text-center font-display italic font-extrabold text-[30px] leading-none text-ink">
-                {intervalText}
-              </span>
-              <button
-                onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}
-                className={stepperButtonStyle} aria-label={t('timerOverlay.increaseInterval', 'Increase interval')}>
-                <HiOutlinePlus className="w-6 h-6" aria-hidden="true" />
-              </button>
-            </div>
+          <div className="w-full mb-4 s1-list" data-testid="timer-interval-menu">
+            {showSubTimer && (
+              <div className="min-h-[60px] flex items-center justify-between gap-3 pl-[18px] pr-2">
+                {/* The label's trailing colon is a leftover of the inline layout. */}
+                <span className="text-base font-medium text-ink">{t('timerOverlay.subIntervalLabel', 'Sub Interval:').replace(/:\s*$/, '')}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => onSetSubInterval(subIntervalMinutes - 0.5)}
+                    // 1 minute is the real minimum (the reducer clamps to it, review 4.33):
+                    // at 1 the button used to stay enabled and do nothing.
+                    disabled={subIntervalMinutes <= 1}
+                    className={stepperButtonStyle} aria-label={t('timerOverlay.decreaseInterval', 'Decrease interval')}>
+                    <HiOutlineMinus className="w-6 h-6" aria-hidden="true" />
+                  </button>
+                  <span className="min-w-11 px-1 text-center font-display italic font-extrabold text-[30px] leading-none text-ink">
+                    {intervalText}
+                  </span>
+                  <button
+                    onClick={() => onSetSubInterval(subIntervalMinutes + 0.5)}
+                    className={stepperButtonStyle} aria-label={t('timerOverlay.increaseInterval', 'Increase interval')}>
+                    <HiOutlinePlus className="w-6 h-6" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+            {onShowSubTimerChange && (
+              <label
+                className={`min-h-[60px] flex items-center justify-between gap-3 pl-[18px] pr-4 cursor-pointer ${showSubTimer ? 'border-t border-white/[0.06]' : ''}`}
+              >
+                <span className="text-base font-medium text-ink">{t('timerOverlay.showSubTimer', 'Show sub timer')}</span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  data-testid="timer-show-sub-timer"
+                  checked={showSubTimer}
+                  onChange={(e) => onShowSubTimerChange(e.target.checked)}
+                  className={switchInputStyle}
+                />
+              </label>
+            )}
+            {!hasPlan && onOpenPlanner && (
+              <div className="border-t border-white/[0.06] px-[18px] py-2">
+                <button
+                  type="button"
+                  data-testid="timer-make-plan"
+                  onClick={() => { onClose?.(); onOpenPlanner(); }}
+                  className={`min-h-11 -mx-2 px-2 rounded-full text-[15px] font-medium text-ink-2 underline underline-offset-4 decoration-white/30 hover:text-ink ${focusRingClass}`}
+                >
+                  {t('timerOverlay.makePlanForGame', 'Make a plan for this game')}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -708,14 +780,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 </span>
               )}
             </div>
-            <p
-              className="mt-1 flex items-baseline gap-2 text-[15px] font-semibold text-ink"
-              data-testid="planned-sub-on"
-            >
-              <span aria-hidden="true" className="w-3 shrink-0 text-center text-win">↑</span>
-              <span aria-hidden="true" className="min-w-0">{shownSubGroup.inShortNames.join(', ')}</span>
-              <span className="sr-only">{t('timerOverlay.plannedSubsOn', 'On')}: {shownSubGroup.inNames.join(', ')}</span>
-            </p>
+            {shownSubGroup.inNames.length > 0 && (
+              <p
+                className="mt-1 flex items-baseline gap-2 text-[15px] font-semibold text-ink"
+                data-testid="planned-sub-on"
+              >
+                <span aria-hidden="true" className="w-3 shrink-0 text-center text-win">↑</span>
+                <span aria-hidden="true" className="min-w-0">{shownSubGroup.inShortNames.join(', ')}</span>
+                <span className="sr-only">{t('timerOverlay.plannedSubsOn', 'On')}: {shownSubGroup.inNames.join(', ')}</span>
+              </p>
+            )}
             {shownSubGroup.outNames.length > 0 && (
               <p
                 className="flex items-baseline gap-2 text-[15px] font-medium text-ink-2"
@@ -726,11 +800,36 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 <span className="sr-only">{t('timerOverlay.plannedSubsOff', 'Off')}: {shownSubGroup.outNames.join(', ')}</span>
               </p>
             )}
+            {/* Players who stay on and only change position (a swap, or the
+                middle of a chain) - not "on" and "off". */}
+            {(shownSubGroup.swapNames?.length ?? 0) > 0 && (
+              <p
+                className={`${shownSubGroup.inNames.length === 0 ? 'mt-1 ' : ''}flex items-baseline gap-2 text-[15px] font-medium text-ink-2`}
+                data-testid="planned-sub-swap"
+              >
+                <span aria-hidden="true" className="w-3 shrink-0 text-center text-ink-3">↔</span>
+                <span aria-hidden="true" className="min-w-0">{swapLine(shownSubGroup.swapShortNames ?? [])}</span>
+                <span className="sr-only">{swapLine(shownSubGroup.swapNames ?? [])}</span>
+              </p>
+            )}
           </div>
         )}
 
+        {/* A plan with nothing left ahead (a partial plan, or extra time):
+            the block's place offers the sub timer for the rest of the game. */}
+        {!shownSubGroup && hasPlan && !showSubTimer && gameStatus !== 'gameEnd' && onShowSubTimerChange && (
+          <button
+            type="button"
+            data-testid="timer-plan-ended-show-sub-timer"
+            onClick={() => onShowSubTimerChange(true)}
+            className={`mb-3 min-h-11 px-3 rounded-full text-[15px] font-medium text-ink-2 underline underline-offset-4 decoration-white/30 hover:text-ink ${focusRingClass}`}
+          >
+            {t('timerOverlay.showSubTimer', 'Show sub timer')}
+          </button>
+        )}
+
         {/* Secondary actions, below the plan (owner, 2026-11-19): the
-            legacy assess hand-off, "Sub done", dictation, and the
+            legacy assess hand-off, "Reset sub timer", dictation, and the
             overtime / penalties expander. */}
         <div className="w-full mb-3 space-y-3">
           <div className="flex flex-col gap-2.5">
@@ -744,11 +843,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 {t('timerOverlay.assessPlayersButton', 'Assess players')}
               </button>
             )}
-            {/* Sub done (D13; was "Substitution made"): restarts the
-                interval countdown and records nothing about who came on. A
-                quiet pill, dimmed while the clock is stopped. Hidden where the
-                host says so (the basic layout). */}
-            {showSubTimerReset && (
+            {/* Reset sub timer (D13; was "Sub done", before that
+                "Substitution made"): logs the interval and restarts the
+                countdown; records nothing about who came on. A quiet pill,
+                dimmed while the clock is stopped. Only with the sub timer on
+                screen, and hidden where the host says so (the basic layout). */}
+            {showSubTimer && showSubTimerReset && (
             <div className="flex justify-center">
               <button 
                 onClick={handleConfirmSubClick}
@@ -757,7 +857,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 title={!(gameStatus === 'inProgress' && isTimerRunning) ? t('timerOverlay.disabledWhenPaused', 'Disabled while paused') ?? undefined : undefined}
                 className={`${secondaryActionStyle} w-full`}
               >
-                {t('timerOverlay.confirmSubButton', 'Sub done')}
+                {t('timerOverlay.resetSubTimerButton', 'Reset sub timer')}
               </button>
             </div>
             )}
@@ -864,7 +964,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         </div>
 
         {/* Play Time History - show recent items only to reduce clutter */}
-        {completedIntervalDurations.length > 0 && (
+        {showSubTimer && completedIntervalDurations.length > 0 && (
           <div className="w-full s1-list p-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
             <h3 className={`${sectionLabelStyle} mb-1.5 text-center`}>{t('timerOverlay.historyTitle', 'Play Time History')}</h3>
             <ul className="list-none text-sm space-y-0.5 text-center">

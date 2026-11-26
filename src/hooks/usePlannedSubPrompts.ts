@@ -27,16 +27,30 @@ import logger from '@/utils/logger';
 import { playerShortNames } from '@/utils/gamePlayerList';
 import type { Player } from '@/types';
 
-/** Every planned sub due at one moment of the match. */
+/**
+ * Every planned sub due at one moment of the match, split by what really
+ * happens on the touchline:
+ *
+ * - in / out: changes between the bench and the field.
+ * - swap: players who are on the field before AND after the moment and only
+ *   change position. In the plan data a position swap is two sub rows whose
+ *   players appear on both sides (Väinö on for Onni at one position, Onni on
+ *   for Väinö at another), and a chain (A on for B, B on for C elsewhere)
+ *   makes B such a player. Listing them under both "on" and "off" read as if
+ *   they left the pitch, so they get a line of their own.
+ */
 export interface PlannedSubGroup {
   timeSeconds: number;
-  /** Display names of the players coming on. */
+  /** Display names of the players coming on from the bench. */
   inNames: string[];
-  /** Display names of the players coming off (empty slots contribute none). */
+  /** Display names of the players going to the bench (empty slots contribute none). */
   outNames: string[];
   /** The same players by their short (disc) names, in the same order - see playerShortNames. */
   inShortNames: string[];
   outShortNames: string[];
+  /** Display names of the players who stay on and change position, in plan order. */
+  swapNames: string[];
+  swapShortNames: string[];
 }
 
 /** The group the timer shows, and whether its time has come. */
@@ -57,6 +71,12 @@ export interface UsePlannedSubPromptsResult {
   current: PlannedSubPrompt | null;
   /** How many earlier groups are also due now (changes planned seconds apart). */
   overdueEarlier: number;
+  /**
+   * Whether the game has a planned sub schedule at all (any group, past or
+   * ahead): the timer shows the plan, not the interval sub timer, by default.
+   * Null while the schedule is still loading, so neither flashes up first.
+   */
+  hasPlan: boolean | null;
 }
 
 /**
@@ -95,26 +115,45 @@ export function groupDueSubs(
   return groupSubs(subs.filter((s) => s.timeSeconds <= timeElapsedInSeconds), players);
 }
 
-/** Groups subs by time (any time), resolving names; see groupDueSubs for the rules. */
+/**
+ * Groups subs by time (any time), resolving names; see groupDueSubs for the
+ * rules. Within a group, a player named both as coming on and as going off is
+ * a position change (see PlannedSubGroup): they move to `swap` and leave the
+ * in and out lists, which then hold only the real bench <-> field changes.
+ */
 export function groupSubs(subs: PlannedGameSub[], players: Player[]): PlannedSubGroup[] {
   const nameById = new Map(players.map((p) => [p.id, p.name]));
   const shortById = playerShortNames(players);
-  const byTime = new Map<number, PlannedSubGroup>();
+  const byTime = new Map<number, { inIds: string[]; outIds: string[] }>();
   for (const s of subs) {
-    const inName = nameById.get(s.inPlayerId);
-    if (!inName) continue;
-    const group = byTime.get(s.timeSeconds)
-      ?? { timeSeconds: s.timeSeconds, inNames: [], outNames: [], inShortNames: [], outShortNames: [] };
-    group.inNames.push(inName);
-    group.inShortNames.push(shortById.get(s.inPlayerId) ?? inName);
-    const outName = s.outPlayerId ? nameById.get(s.outPlayerId) : undefined;
-    if (s.outPlayerId && outName) {
-      group.outNames.push(outName);
-      group.outShortNames.push(shortById.get(s.outPlayerId) ?? outName);
-    }
-    byTime.set(s.timeSeconds, group);
+    if (!nameById.has(s.inPlayerId)) continue;
+    const ids = byTime.get(s.timeSeconds) ?? { inIds: [], outIds: [] };
+    ids.inIds.push(s.inPlayerId);
+    if (s.outPlayerId && nameById.has(s.outPlayerId)) ids.outIds.push(s.outPlayerId);
+    byTime.set(s.timeSeconds, ids);
   }
-  return [...byTime.values()].sort((a, b) => a.timeSeconds - b.timeSeconds);
+  const name = (id: string) => nameById.get(id) as string;
+  const short = (id: string) => shortById.get(id) ?? name(id);
+  const groups: PlannedSubGroup[] = [];
+  for (const [timeSeconds, { inIds, outIds }] of byTime) {
+    const outSet = new Set(outIds);
+    const inSet = new Set(inIds);
+    // Plan order, each player once: the in-list order first, as the rows run.
+    const swapIds = [...new Set(inIds.filter((id) => outSet.has(id)))];
+    const swapSet = new Set(swapIds);
+    const realIn = [...new Set(inIds.filter((id) => !swapSet.has(id)))];
+    const realOut = [...new Set(outIds.filter((id) => !inSet.has(id)))];
+    groups.push({
+      timeSeconds,
+      inNames: realIn.map(name),
+      outNames: realOut.map(name),
+      inShortNames: realIn.map(short),
+      outShortNames: realOut.map(short),
+      swapNames: swapIds.map(name),
+      swapShortNames: swapIds.map(short),
+    });
+  }
+  return groups.sort((a, b) => a.timeSeconds - b.timeSeconds);
 }
 
 /**
@@ -158,15 +197,17 @@ export function usePlannedSubPrompts(
   }, [gameId, refreshKey]);
 
   return useMemo<UsePlannedSubPromptsResult>(() => {
+    const ready = !gameId || (loaded !== null && loaded.gameId === gameId);
     const subs = loaded && loaded.gameId === gameId ? loaded.subs : [];
     const groups = groupSubs(subs, players);
+    const hasPlan = ready ? subs.length > 0 : null;
     const due = groups.filter(
       (g) => g.timeSeconds <= timeElapsedInSeconds && timeElapsedInSeconds < g.timeSeconds + DUE_WINDOW_SECONDS,
     );
     if (due.length > 0) {
-      return { current: { ...due[due.length - 1], due: true }, overdueEarlier: due.length - 1 };
+      return { current: { ...due[due.length - 1], due: true }, overdueEarlier: due.length - 1, hasPlan };
     }
     const upcoming = groups.find((g) => g.timeSeconds > timeElapsedInSeconds);
-    return { current: upcoming ? { ...upcoming, due: false } : null, overdueEarlier: 0 };
+    return { current: upcoming ? { ...upcoming, due: false } : null, overdueEarlier: 0, hasPlan };
   }, [loaded, gameId, timeElapsedInSeconds, players]);
 }

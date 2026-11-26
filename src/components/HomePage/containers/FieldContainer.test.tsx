@@ -7,6 +7,12 @@ jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => mockAppLayout }))
 // The plan's chain view for the plan-view toggle; none unless a test sets it.
 let mockPlannedChains: unknown[] = [];
 jest.mock('@/hooks/usePlannedChains', () => ({ usePlannedChains: () => mockPlannedChains }));
+// The planned-sub schedule the timer sees; no plan unless a test sets one.
+let mockPlannedPrompts: { current: unknown; overdueEarlier: number; hasPlan: boolean | null } = {
+  current: null, overdueEarlier: 0, hasPlan: false,
+};
+jest.mock('@/hooks/usePlannedSubPrompts', () => ({ usePlannedSubPrompts: () => mockPlannedPrompts }));
+const mockSetIsPlaytimePlannerOpen = jest.fn();
 // The props the field was last drawn with, for asserting what each view shows.
 const mockSoccerFieldRender = jest.fn();
 const fieldProps = (): Record<string, unknown> => mockSoccerFieldRender.mock.calls.at(-1)?.[0] ?? {};
@@ -17,8 +23,31 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import { TestFixtures } from '../../../../tests/fixtures';
 
 jest.mock('@/components/TimerOverlay', () => {
-  const TimerOverlay = ({ showSubTimerReset }: { showSubTimerReset?: boolean }) => (
-    <div data-testid="timer-overlay" data-sub-timer-reset={String(showSubTimerReset)} />
+  const TimerOverlay = ({
+    showSubTimerReset, showSubTimer, hasPlan, subAlertLevel, onShowSubTimerChange, onOpenPlanner,
+  }: {
+    showSubTimerReset?: boolean;
+    showSubTimer?: boolean;
+    hasPlan?: boolean;
+    subAlertLevel?: string;
+    onShowSubTimerChange?: (show: boolean) => void;
+    onOpenPlanner?: () => void;
+  }) => (
+    <div
+      data-testid="timer-overlay"
+      data-sub-timer-reset={String(showSubTimerReset)}
+      data-show-sub-timer={String(showSubTimer)}
+      data-has-plan={String(hasPlan)}
+      data-sub-alert={subAlertLevel}
+    >
+      {onShowSubTimerChange && (
+        <>
+          <button type="button" onClick={() => onShowSubTimerChange(true)}>switch on</button>
+          <button type="button" onClick={() => onShowSubTimerChange(false)}>switch off</button>
+        </>
+      )}
+      {onOpenPlanner && <button type="button" onClick={onOpenPlanner}>make plan</button>}
+    </div>
   );
   TimerOverlay.displayName = 'TimerOverlay';
   return { __esModule: true, default: TimerOverlay };
@@ -115,6 +144,7 @@ jest.mock('@/hooks/useSyncStatus', () => ({
 
 // Mock ModalProvider context (required by SyncStatusIndicator used in children)
 jest.mock('@/contexts/ModalProvider', () => ({
+  useModalContextOptional: () => ({ setIsPlaytimePlannerOpen: mockSetIsPlaytimePlannerOpen }),
   useModalContext: () => ({
     isGameSettingsModalOpen: false,
     setIsGameSettingsModalOpen: jest.fn(),
@@ -229,9 +259,87 @@ describe('FieldContainer', () => {
   afterEach(() => {
     mockAppLayout = 'full';
     mockPlannedChains = [];
+    mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: false };
+    localStorage.clear();
   });
 
-  /** Onboarding v3 (D13): the basic layout has no "Vaihto tehty". */
+  describe('one sub mechanism by default, per game', () => {
+    const liveGame = (gameId = 'game_1', subAlertLevel: 'none' | 'warning' | 'due' = 'due') => ({
+      ...baseProps(),
+      currentGameId: gameId,
+      timerVM: { ...baseProps().timerVM, showLargeTimerOverlay: true, subAlertLevel },
+    });
+    const overlay = () => screen.getByTestId('timer-overlay');
+
+    /**
+     * The visibility matrix: plan / no plan x the per-game switch. The basic
+     * layout only changes the reset button (D13), never which mechanism shows.
+     * @critical
+     */
+    it.each([
+      { layout: 'full' as const, plan: true, choice: undefined, shown: false },
+      { layout: 'full' as const, plan: true, choice: true, shown: true },
+      { layout: 'full' as const, plan: false, choice: undefined, shown: true },
+      { layout: 'full' as const, plan: false, choice: false, shown: false },
+      { layout: 'basic' as const, plan: true, choice: undefined, shown: false },
+      { layout: 'basic' as const, plan: true, choice: true, shown: true },
+      { layout: 'basic' as const, plan: false, choice: undefined, shown: true },
+      { layout: 'basic' as const, plan: false, choice: false, shown: false },
+    ])('$layout layout, plan $plan, switch $choice -> sub timer shown $shown', ({ layout, plan, choice, shown }) => {
+      mockAppLayout = layout;
+      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: plan };
+      if (choice !== undefined) {
+        localStorage.setItem('matchops_sub_timer_visibility', JSON.stringify({ game_1: choice }));
+      }
+      render(<FieldContainer {...liveGame()} />);
+      expect(overlay()).toHaveAttribute('data-show-sub-timer', String(shown));
+      expect(overlay()).toHaveAttribute('data-has-plan', String(plan));
+      expect(overlay()).toHaveAttribute('data-sub-timer-reset', String(layout === 'full'));
+      // A hidden sub timer raises no sub alerts on the clock.
+      expect(overlay()).toHaveAttribute('data-sub-alert', shown ? 'due' : 'none');
+    });
+
+    it('decides nothing while the schedule is still loading (no flash of either)', () => {
+      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: null };
+      render(<FieldContainer {...liveGame()} />);
+      expect(overlay()).toHaveAttribute('data-show-sub-timer', 'false');
+      expect(overlay()).toHaveAttribute('data-has-plan', 'false');
+    });
+
+    /**
+     * The switch is remembered with the game: a reload/resume (a fresh mount)
+     * keeps it, and another game keeps its own default.
+     * @critical
+     */
+    it('remembers the switch per game across a remount, and not for other games', () => {
+      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: true };
+      const { unmount } = render(<FieldContainer {...liveGame()} />);
+      expect(overlay()).toHaveAttribute('data-show-sub-timer', 'false');
+      act(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'switch on' }));
+      });
+      expect(overlay()).toHaveAttribute('data-show-sub-timer', 'true');
+      unmount();
+
+      const { rerender } = render(<FieldContainer {...liveGame()} />);
+      expect(overlay()).toHaveAttribute('data-show-sub-timer', 'true');
+      rerender(<FieldContainer {...liveGame('game_2')} />);
+      expect(overlay()).toHaveAttribute('data-show-sub-timer', 'false');
+      rerender(<FieldContainer {...liveGame()} />);
+      expect(overlay()).toHaveAttribute('data-show-sub-timer', 'true');
+    });
+
+    it('opens the planner from the timer, and offers no switch without a saved game', () => {
+      const { unmount } = render(<FieldContainer {...liveGame()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'make plan' }));
+      expect(mockSetIsPlaytimePlannerOpen).toHaveBeenCalledWith(true);
+      unmount();
+      render(<FieldContainer {...liveGame(DEFAULT_GAME_ID)} />);
+      expect(screen.queryByRole('button', { name: 'switch on' })).not.toBeInTheDocument();
+    });
+  });
+
+  /** Onboarding v3 (D13): the basic layout has no "Nollaa vaihtoajastin". */
   it('hides the sub-timer reset on the timer in the basic layout only', () => {
     const withOverlay = () => ({ ...baseProps(), timerVM: { ...baseProps().timerVM, showLargeTimerOverlay: true } });
     const { unmount } = render(<FieldContainer {...withOverlay()} />);
