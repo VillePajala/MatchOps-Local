@@ -39,7 +39,7 @@ import GameRecapModal from './GameRecapModal';
 import PlanDayReportLauncher from './PlanDayReportLauncher';
 import { useLastDayGamePlan } from '@/hooks/useDayReportPrompt';
 import GameNoteComposer from './GameStatsModal/components/GameNoteComposer';
-import { buildTasoReport } from '@/utils/tasoReport';
+import { buildTasoReport, hasTasoNumber } from '@/utils/tasoReport';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
 import { extraTimeGoals } from '@/utils/matchStructure';
@@ -171,6 +171,8 @@ interface GameStatsModalProps {
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
   onOpenSettings?: () => void;
+  /** Opens the roster (where shirt numbers are edited) from the match-sheet hint. */
+  onOpenRoster?: () => void;
   /** W6/W7: the wrap-up rows open GAME settings (Ottelun tiedot), NOT app
    *  settings - tapping a row lands where the item can be completed. */
   onOpenGameSettings?: (section: 'roster' | 'competition') => void;
@@ -245,6 +247,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   currentGameOnly = false,
   masterRoster = [],
   onOpenSettings,
+  onOpenRoster,
   onOpenGameSettings,
   onPlayerPositionsChange,
   gameType,
@@ -902,6 +905,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     ? availablePlayers.find(p => p.id === captainId)?.name
     : undefined;
 
+  // Taso needs a shirt number for every player on the sheet; the sheet shows
+  // "–" for a missing one, and the finish screen says how many are missing.
+  const missingNumberCount = useMemo(() => {
+    const byId = new Map(availablePlayers.map((p) => [p.id, p]));
+    return selectedPlayerIds.filter((id) => {
+      const p = byId.get(id);
+      return p !== undefined && !hasTasoNumber(p);
+    }).length;
+  }, [availablePlayers, selectedPlayerIds]);
+
   const tasoText = useMemo(() => {
     const r = buildTasoReport(
       {
@@ -1170,6 +1183,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     spineSteps.push({
       key: 'taso',
       content: (
+        <>
         <button
           type="button"
           onClick={() => setShowTaso(true)}
@@ -1179,6 +1193,31 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           <HiOutlineClipboardDocument className="w-5 h-5" aria-hidden="true" />
           {t('taso.button', 'Match sheet')}
         </button>
+        {missingNumberCount > 0 && (
+          <p
+            className="mt-2 flex flex-wrap items-center gap-x-2 px-1 font-ui text-[14px] text-ink-2"
+            data-testid="spine-taso-missing-numbers"
+          >
+            <span>
+              {t('taso.missingNumbers', {
+                count: missingNumberCount,
+                defaultValue_one: '{{count}} player is missing a shirt number – Taso needs the numbers',
+                defaultValue_other: '{{count}} players are missing a shirt number – Taso needs the numbers',
+              })}
+            </span>
+            {onOpenRoster && (
+              <button
+                type="button"
+                onClick={onOpenRoster}
+                data-testid="spine-taso-missing-numbers-fix"
+                className="min-h-11 px-2 rounded-full font-semibold text-ink underline underline-offset-4 decoration-white/30 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                {t('taso.missingNumbersFix', 'Add numbers')}
+              </button>
+            )}
+          </p>
+        )}
+        </>
       ),
     });
     spineSteps.push({

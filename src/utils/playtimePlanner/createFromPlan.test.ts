@@ -16,7 +16,8 @@ import {
 import type { PlanLinksCollection } from './planLinks';
 import type { PlanGame, PlaytimePlan } from './types';
 import type { Player, Season, Team, Tournament } from '@/types';
-import type { StartNewGameRequest } from '@/components/HomePage/utils/newGameHandlers';
+import { buildNewGameState, type StartNewGameRequest } from '@/components/HomePage/utils/newGameHandlers';
+import { activePlayers } from '@/utils/gamePlayerList';
 
 const roster: Player[] = [
   { id: 'a', name: 'Alex' },
@@ -208,6 +209,49 @@ describe('buildPlanGameRequest', () => {
       { ...roster[5], archived: true },
     ]);
     expect(req.initialSelectedPlayerIds).not.toContain('f');
+  });
+
+  /**
+   * A team game created from a plan stores the same squad (availablePlayers)
+   * as the normal new-game form for that team: the form keeps the whole
+   * active club roster and only PRE-SELECTS the team's players
+   * (NewGameSetupModal: "Always show master roster, pre-select team players").
+   * @critical
+   */
+  it('stores the same availablePlayers as the new-game form for a team game', () => {
+    const club: Player[] = [
+      ...roster,
+      { id: 'g', name: 'Other team kid' },
+      { id: 'h', name: 'Left the club', archived: true },
+    ];
+    const plan = makePlan();
+    const planReq = buildPlanGameRequest(plan, plan.games[0], shared(), row('g1'), club);
+    // What NewGameSetupModal passes as availablePlayersForGame with team1 picked
+    // (its pickableRoster; the team roster only drives the selection).
+    const formReq: StartNewGameRequest = {
+      ...planReq,
+      initialSelectedPlayerIds: ['a', 'b', 'c', 'd', 'e', 'f'],
+      availablePlayersForGame: activePlayers(club),
+      prefill: undefined,
+    };
+    const deps = { availablePlayers: club, defaultSubIntervalMinutes: 5 };
+    const fromPlan = buildNewGameState(planReq, deps).gameState;
+    const fromForm = buildNewGameState(formReq, deps).gameState;
+    const ids = (players: Player[]) => players.map((p) => p.id).sort();
+    expect(ids(fromPlan.availablePlayers)).toEqual(ids(fromForm.availablePlayers));
+    expect(ids(fromPlan.availablePlayers)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g']);
+    // Line-up from the plan; Rule 3 holds: onField ⊆ selected ⊆ available.
+    const available = new Set(ids(fromPlan.availablePlayers));
+    expect(fromPlan.selectedPlayerIds.every((id) => available.has(id))).toBe(true);
+    expect(fromPlan.playersOnField.every((p) => fromPlan.selectedPlayerIds.includes(p.id))).toBe(true);
+    expect(fromPlan.selectedPlayerIds).not.toContain('g');
+  });
+
+  it('stores the same availablePlayers as the new-game form without a team', () => {
+    const plan = makePlan();
+    const planReq = buildPlanGameRequest(plan, plan.games[0], shared({ teamId: null }), row('g1'), roster);
+    expect(planReq.teamId).toBeNull();
+    expect(planReq.availablePlayersForGame.map((p) => p.id)).toEqual(activePlayers(roster).map((p) => p.id));
   });
 });
 

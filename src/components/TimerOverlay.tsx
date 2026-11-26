@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaPlay, FaPause, FaUndo } from 'react-icons/fa'; // Import icons
 import { useTranslation } from 'react-i18next'; // Import translation hook
 import { IntervalLog, SubAlertLevel } from '@/types'; // Import types
-import type { PlannedSubGroup } from '@/hooks/usePlannedSubPrompts';
+import { PLANNED_WARNING_SECONDS, mostUrgentAlert, type PlannedSubGroup } from '@/hooks/usePlannedSubPrompts';
 import { formatTime } from '@/utils/time';
 import SteadyDigits from '@/components/SteadyDigits';
 import logger from '@/utils/logger';
@@ -74,6 +74,16 @@ interface TimerOverlayProps {
   plannedSubGroup?: (PlannedSubGroup & { due?: boolean }) | null;
   /** How many earlier groups were also due (shown as "+N earlier"). */
   plannedSubsEarlier?: number;
+  /**
+   * The plan's own clock colour (plannedClockAlertLevel): orange a minute
+   * before the next group, red while it is due. Applies whether or not the
+   * interval sub timer shows; with both, the more urgent colour wins.
+   */
+  plannedAlertLevel?: SubAlertLevel;
+  /** The coach has marked the shown group done - the clock is quiet for it. */
+  plannedSubDone?: boolean;
+  /** "Done ✓" on the block: acknowledges the shown group. Absent: no button. */
+  onPlannedSubDone?: () => void;
   /** Kirjuri voice notes (PR 2): press-hold recorder controls; absent = feature not wired. */
   dictation?: DictationControls;
   /**
@@ -149,6 +159,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   isLoaded,
   plannedSubGroup = null,
   plannedSubsEarlier = 0,
+  plannedAlertLevel = 'none',
+  plannedSubDone = false,
+  onPlannedSubDone,
   showSubTimerReset = true,
   showSubTimer = true,
   hasPlan = false,
@@ -211,10 +224,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
   // The clock is white; the substitution timer walks it through orange to red
   // (a status escalation, not decoration - see config/palette STATUS).
-  // Hidden sub timer, no sub alerts: only the mechanism on screen may signal.
-  const clockAlertClass = !showSubTimer
-    ? null
-    : subAlertLevel === 'due' ? 'text-red-400' : subAlertLevel === 'warning' ? 'text-orange-300' : null;
+  // Hidden sub timer, no interval alerts: only the mechanism on screen may
+  // signal. The plan's block signals the same way (orange a minute before its
+  // next group, red while due), and when both are on screen the more urgent
+  // colour wins. After full time the plan has nothing left to say.
+  const clockAlertLevel = mostUrgentAlert(
+    showSubTimer ? subAlertLevel : 'none',
+    gameStatus === 'gameEnd' ? 'none' : plannedAlertLevel,
+  );
+  const clockAlertClass =
+    clockAlertLevel === 'due' ? 'text-red-400' : clockAlertLevel === 'warning' ? 'text-orange-300' : null;
 
   // Buttons: ONE amber primary (start/pause, or the end-of-game hand-off),
   // everything else quiet. Pills of 56px+ - usable with cold thumbs.
@@ -404,6 +423,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // after full time - the plan has nothing left to say then.
   const shownSubGroup = gameStatus === 'gameEnd' ? null : plannedSubGroup;
   const shownSubDue = shownSubGroup !== null && shownSubGroup.due !== false;
+  // "Done ✓" from a minute before the group until its window ends: the coach
+  // may make the change a little early. It only quiets the clock.
+  const shownSubSoon = shownSubGroup !== null
+    && (shownSubDue || shownSubGroup.timeSeconds - timeElapsedInSeconds <= PLANNED_WARNING_SECONDS);
+  const shownSubAmber = shownSubDue && !plannedSubDone;
   // A change planned for the end of a regulation period happens at the break.
   const shownSubAtBreak = shownSubGroup !== null
     && Array.from({ length: Math.max(0, numberOfPeriods - 1) }, (_, i) => periodEndSeconds(structure, i + 1))
@@ -749,9 +773,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         )}
 
         {/* The next planned change (Playing-Time Planner, D3c): every change
-            planned for one moment, as one block. Persistent - no dismiss, no
-            "OK", and it records nothing: it moves on by itself once its time
-            has passed. Amber while due, quiet while still ahead. Shown
+            planned for one moment, as one block. Persistent - no dismiss, and
+            it records nothing: it moves on by itself once its time has passed.
+            Its optional "Done ✓" only quiets the clock colour for that group. Amber while due, quiet while still ahead. Shown
             before kick-off and through the breaks (half-time is exactly when
             planned subs happen), never after full time.
             Compact (owner, 2026-11-19): two short lines with the disc names
@@ -763,13 +787,35 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             role="status"
             data-testid="planned-sub-group"
             data-due={shownSubDue ? 'true' : 'false'}
-            className={`w-full mb-3 px-4 py-3 text-left rounded-[18px] ${
-              shownSubDue
+            data-done={plannedSubDone ? 'true' : 'false'}
+            className={`relative w-full mb-3 px-4 py-3 text-left rounded-[18px] ${
+              shownSubAmber
                 ? 'bg-[linear-gradient(180deg,rgb(255_178_36/0.16),rgb(255_178_36/0.07))] shadow-[inset_0_0_0_1.5px_rgb(255_178_36/0.75)]'
                 : 's1-list'
             }`}
           >
-            <div className={`text-xs font-bold uppercase tracking-[0.14em] ${shownSubDue ? 'text-action' : 'text-ink-3'}`}>
+            {/* "Done ✓": acknowledges this group only - the clock goes back to
+                normal at once. Never changes the field or the plan. */}
+            {onPlannedSubDone && shownSubSoon && (
+              plannedSubDone ? (
+                <span
+                  data-testid="planned-sub-done-label"
+                  className="absolute right-3 top-2.5 text-xs font-bold text-ink-3"
+                >
+                  {t('timerOverlay.plannedSubDone', 'Done ✓')}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="planned-sub-done"
+                  onClick={onPlannedSubDone}
+                  className={`absolute right-2 top-1.5 min-h-9 px-3 rounded-full text-[13px] font-bold text-ink s1-ghost pointer-events-auto ${focusRingClass}`}
+                >
+                  {t('timerOverlay.plannedSubDone', 'Done ✓')}
+                </button>
+              )
+            )}
+            <div className={`text-xs font-bold uppercase tracking-[0.14em] pr-20 ${shownSubAmber ? 'text-action' : 'text-ink-3'}`}>
               {t('timerOverlay.plannedSubTitle', 'Next change')} · {formatTime(shownSubGroup.timeSeconds)}
               {shownSubAtBreak && (
                 <span className="normal-case tracking-normal"> ({t('timerOverlay.plannedSubAtBreak', 'at the break')})</span>

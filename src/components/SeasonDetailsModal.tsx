@@ -303,7 +303,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               className={`${secondaryButtonStyle} w-full mb-3`}
             >
               <HiOutlineDocumentText className="w-5 h-5" aria-hidden="true" />
-              {t('competitionReport.seasonTitle', 'League report')}
+              {t('competitionReport.seasonTitle', 'Report')}
             </button>
           )}
           <div className={cardStyle}>

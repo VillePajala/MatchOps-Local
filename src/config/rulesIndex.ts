@@ -78,6 +78,33 @@ export function findLaw(sport: RulesSport, law: number | null): LawRef | null {
 }
 
 /**
+ * Laws that junior small-sided football (5v5, 8v8 ...) applies by the
+ * series' own rules - zone offside, kick-in or dribble-in instead of a
+ * throw-in, the keeper's restarts and so on. Conservative on purpose: only
+ * the restarts and offside, where a series rule is common. We name NO rule
+ * content here (see the module note); the search result only says "your
+ * series decides" and links to where the series rules are.
+ *
+ * Football only: futsal juniors play the futsal laws, which are already a
+ * small-sided game.
+ */
+export const JUNIOR_SERIES_VARIANT_LAWS: Readonly<Record<RulesSport, readonly number[]>> = {
+  // 8 kick-off, 11 offside, 13 free kicks, 14 penalty kick, 15 throw-in, 16 goal kick
+  football: [8, 11, 13, 14, 15, 16],
+  futsal: [],
+};
+
+/** Whether a search hit should carry the "junior series apply their own rules" note. */
+export function hasJuniorSeriesVariant(sport: RulesSport, law: number | null): boolean {
+  return law !== null && (JUNIOR_SERIES_VARIANT_LAWS[sport] ?? []).includes(law);
+}
+
+/** Where a coach finds their own series' rules (ruleLinks group 'series'). */
+export function seriesRulesUrl(): string | null {
+  return ruleLinks.links.find((l) => l.group === 'series')?.url ?? null;
+}
+
+/**
  * Search topics and law titles for a sport.
  *
  * Matches the coach's word (our topic names, either language) and the official

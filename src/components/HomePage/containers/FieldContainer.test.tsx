@@ -8,10 +8,18 @@ jest.mock('@/hooks/useAppLayout', () => ({ useAppLayout: () => mockAppLayout }))
 let mockPlannedChains: unknown[] = [];
 jest.mock('@/hooks/usePlannedChains', () => ({ usePlannedChains: () => mockPlannedChains }));
 // The planned-sub schedule the timer sees; no plan unless a test sets one.
-let mockPlannedPrompts: { current: unknown; overdueEarlier: number; hasPlan: boolean | null } = {
-  current: null, overdueEarlier: 0, hasPlan: false,
+let mockPlannedPrompts: {
+  current: unknown;
+  overdueEarlier: number;
+  hasPlan: boolean | null;
+  nextAheadSeconds: number | null;
+} = {
+  current: null, overdueEarlier: 0, hasPlan: false, nextAheadSeconds: null,
 };
-jest.mock('@/hooks/usePlannedSubPrompts', () => ({ usePlannedSubPrompts: () => mockPlannedPrompts }));
+jest.mock('@/hooks/usePlannedSubPrompts', () => ({
+  ...jest.requireActual('@/hooks/usePlannedSubPrompts'),
+  usePlannedSubPrompts: () => mockPlannedPrompts,
+}));
 const mockSetIsPlaytimePlannerOpen = jest.fn();
 // The props the field was last drawn with, for asserting what each view shows.
 const mockSoccerFieldRender = jest.fn();
@@ -25,7 +33,11 @@ import { TestFixtures } from '../../../../tests/fixtures';
 jest.mock('@/components/TimerOverlay', () => {
   const TimerOverlay = ({
     showSubTimerReset, showSubTimer, hasPlan, subAlertLevel, onShowSubTimerChange, onOpenPlanner,
+    plannedAlertLevel, plannedSubDone, onPlannedSubDone,
   }: {
+    plannedAlertLevel?: string;
+    plannedSubDone?: boolean;
+    onPlannedSubDone?: () => void;
     showSubTimerReset?: boolean;
     showSubTimer?: boolean;
     hasPlan?: boolean;
@@ -39,7 +51,10 @@ jest.mock('@/components/TimerOverlay', () => {
       data-show-sub-timer={String(showSubTimer)}
       data-has-plan={String(hasPlan)}
       data-sub-alert={subAlertLevel}
+      data-planned-alert={plannedAlertLevel}
+      data-planned-done={String(plannedSubDone)}
     >
+      {onPlannedSubDone && <button type="button" onClick={onPlannedSubDone}>planned done</button>}
       {onShowSubTimerChange && (
         <>
           <button type="button" onClick={() => onShowSubTimerChange(true)}>switch on</button>
@@ -259,7 +274,7 @@ describe('FieldContainer', () => {
   afterEach(() => {
     mockAppLayout = 'full';
     mockPlannedChains = [];
-    mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: false };
+    mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: false, nextAheadSeconds: null };
     localStorage.clear();
   });
 
@@ -287,7 +302,7 @@ describe('FieldContainer', () => {
       { layout: 'basic' as const, plan: false, choice: false, shown: false },
     ])('$layout layout, plan $plan, switch $choice -> sub timer shown $shown', ({ layout, plan, choice, shown }) => {
       mockAppLayout = layout;
-      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: plan };
+      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: plan, nextAheadSeconds: null };
       if (choice !== undefined) {
         localStorage.setItem('matchops_sub_timer_visibility', JSON.stringify({ game_1: choice }));
       }
@@ -300,7 +315,7 @@ describe('FieldContainer', () => {
     });
 
     it('decides nothing while the schedule is still loading (no flash of either)', () => {
-      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: null };
+      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: null, nextAheadSeconds: null };
       render(<FieldContainer {...liveGame()} />);
       expect(overlay()).toHaveAttribute('data-show-sub-timer', 'false');
       expect(overlay()).toHaveAttribute('data-has-plan', 'false');
@@ -312,7 +327,7 @@ describe('FieldContainer', () => {
      * @critical
      */
     it('remembers the switch per game across a remount, and not for other games', () => {
-      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: true };
+      mockPlannedPrompts = { current: null, overdueEarlier: 0, hasPlan: true, nextAheadSeconds: null };
       const { unmount } = render(<FieldContainer {...liveGame()} />);
       expect(overlay()).toHaveAttribute('data-show-sub-timer', 'false');
       act(() => {
@@ -327,6 +342,37 @@ describe('FieldContainer', () => {
       expect(overlay()).toHaveAttribute('data-show-sub-timer', 'false');
       rerender(<FieldContainer {...liveGame()} />);
       expect(overlay()).toHaveAttribute('data-show-sub-timer', 'true');
+    });
+
+    /**
+     * Option B: the plan colours the clock; "Done" quiets it for that group in
+     * this game only, in memory (a remount - a resume - starts fresh).
+     * @critical
+     */
+    it('passes the plan\'s clock colour and lets "Done" quiet it for that group and game', () => {
+      const due = {
+        timeSeconds: 600, inNames: ['Eino'], outNames: [], inShortNames: ['Eino'], outShortNames: [],
+        swapNames: [], swapShortNames: [], due: true,
+      };
+      mockPlannedPrompts = { current: due, overdueEarlier: 0, hasPlan: true, nextAheadSeconds: null };
+      const game = (id: string) => ({
+        ...liveGame(id),
+        timerVM: { ...liveGame(id).timerVM, timeElapsedInSeconds: 610 },
+      });
+      const { rerender, unmount } = render(<FieldContainer {...game('game_1')} />);
+      expect(overlay()).toHaveAttribute('data-planned-alert', 'due');
+      expect(overlay()).toHaveAttribute('data-planned-done', 'false');
+      act(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'planned done' }));
+      });
+      expect(overlay()).toHaveAttribute('data-planned-alert', 'none');
+      expect(overlay()).toHaveAttribute('data-planned-done', 'true');
+      // Another game has its own groups.
+      rerender(<FieldContainer {...game('game_2')} />);
+      expect(overlay()).toHaveAttribute('data-planned-alert', 'due');
+      unmount();
+      render(<FieldContainer {...game('game_1')} />);
+      expect(overlay()).toHaveAttribute('data-planned-alert', 'due');
     });
 
     it('opens the planner from the timer, and offers no switch without a saved game', () => {

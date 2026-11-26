@@ -95,6 +95,28 @@ describe('RulesDirectoryModal', () => {
   });
 
   /**
+   * Owner: a law that junior small-sided games apply by the series' own rules
+   * carries a pointer to the series rules - and nothing else (no rule text).
+   */
+  it('notes under a junior-variant law that the league decides, with the league rules link', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'paitsio' } });
+    const note = screen.getByTestId('rules-hit-junior-note-11');
+    expect(note).toHaveTextContent(/zone offside/);
+    fireEvent.click(screen.getByTestId('rules-hit-junior-link-11'));
+    expect(mockWindowOpen).toHaveBeenCalledWith('https://tulospalvelu.palloliitto.fi/categories', '_blank', 'noopener,noreferrer');
+    // Opening the note's link does not open the rulebook page.
+    expect(getPage).not.toHaveBeenCalled();
+  });
+
+  it('adds no junior note to laws every game plays the same', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    fireEvent.change(screen.getByTestId('rules-search'), { target: { value: '12' } });
+    expect(within(screen.getByTestId('rules-hits')).getByText(/Law 12/)).toBeInTheDocument();
+    expect(screen.queryByTestId('rules-hit-junior-note-12')).not.toBeInTheDocument();
+  });
+
+  /**
    * Tests that modal returns null when closed
    * @critical
    */
@@ -434,6 +456,8 @@ describe('RulesDirectoryModal', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     // 17 laws plus the football-only sin bin guidance entry.
     expect(within(screen.getByTestId('rules-hits')).getAllByRole('button')).toHaveLength(18);
+    // The junior note is for a search, not for six rows of the default list.
+    expect(screen.queryByTestId('rules-hit-junior-note-11')).not.toBeInTheDocument();
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'zzzznotarule' } });
     expect(screen.getByTestId('rules-no-hits')).toBeInTheDocument();
   });

@@ -141,6 +141,7 @@ interface ModalManagerHandlers {
   wrapUpToGoalLog: () => void;
   /** Leave the stats view, then open app settings (same layer, so order matters). */
   wrapUpToAppSettings: () => void;
+  wrapUpToRoster?: () => void;
 }
 
 export interface ModalManagerProps {
@@ -270,6 +271,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             onPlayerPositionsChange={handlers.playerPositionsChange}
             gameType={data.gameSessionState.gameType}
           onOpenSettings={handlers.wrapUpToAppSettings}
+          onOpenRoster={handlers.wrapUpToRoster}
           onOpenGameSettings={handlers.wrapUpToGameSettings}
           onOpenAssessments={assessmentsEnabled ? handlers.wrapUpToAssessments : undefined}
           onAddGoal={handlers.wrapUpToGoalLog}

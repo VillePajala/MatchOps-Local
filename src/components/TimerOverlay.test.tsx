@@ -630,6 +630,73 @@ describe('TimerOverlay', () => {
     });
   });
 
+  describe('clock colour for planned subs (option B)', () => {
+    const group = {
+      timeSeconds: 1500,
+      inNames: ['Eino'],
+      outNames: ['Aapo'],
+      inShortNames: ['Eino'],
+      outShortNames: ['Aapo'],
+      swapNames: [] as string[],
+      swapShortNames: [] as string[],
+    };
+    const clock = () => screen.getByTestId('timer-clock');
+    const live = { ...baseProps, gameStatus: 'inProgress' as const, showSubTimer: false };
+
+    /** @critical - the plan colours the clock like the interval timer does. */
+    it('turns the clock orange before the next group and red while it is due', () => {
+      const { rerender } = render(
+        <TimerOverlay {...live} timeElapsedInSeconds={1450} plannedSubGroup={{ ...group, due: false }} plannedAlertLevel="warning" />,
+      );
+      expect(clock().querySelector('.text-orange-300')).not.toBeNull();
+      rerender(<TimerOverlay {...live} timeElapsedInSeconds={1500} plannedSubGroup={group} plannedAlertLevel="due" />);
+      expect(clock().querySelector('.text-red-400')).not.toBeNull();
+      rerender(<TimerOverlay {...live} timeElapsedInSeconds={1500} plannedSubGroup={group} plannedAlertLevel="none" />);
+      expect(clock().querySelector('.text-red-400, .text-orange-300')).toBeNull();
+    });
+
+    it('the more urgent colour wins when the interval timer also shows', () => {
+      const { rerender } = render(
+        <TimerOverlay {...live} showSubTimer subAlertLevel="warning" plannedSubGroup={group} plannedAlertLevel="due" />,
+      );
+      expect(clock().querySelector('.text-red-400')).not.toBeNull();
+      rerender(<TimerOverlay {...live} showSubTimer subAlertLevel="due" plannedSubGroup={group} plannedAlertLevel="warning" />);
+      expect(clock().querySelector('.text-red-400')).not.toBeNull();
+      rerender(<TimerOverlay {...live} showSubTimer subAlertLevel="none" plannedSubGroup={group} plannedAlertLevel="warning" />);
+      expect(clock().querySelector('.text-orange-300')).not.toBeNull();
+    });
+
+    it('never colours the clock after full time', () => {
+      render(<TimerOverlay {...live} gameStatus="gameEnd" plannedSubGroup={group} plannedAlertLevel="due" />);
+      expect(clock().querySelector('.text-red-400')).toBeNull();
+    });
+
+    /** @critical - "Done ✓" only acknowledges: one call, nothing else changes. */
+    it('offers "Done" on a due group and reports the tap', () => {
+      const onPlannedSubDone = jest.fn();
+      const { rerender } = render(
+        <TimerOverlay {...live} timeElapsedInSeconds={1500} plannedSubGroup={group} plannedAlertLevel="due" onPlannedSubDone={onPlannedSubDone} />,
+      );
+      fireEvent.click(screen.getByTestId('planned-sub-done'));
+      expect(onPlannedSubDone).toHaveBeenCalledTimes(1);
+      rerender(
+        <TimerOverlay {...live} timeElapsedInSeconds={1500} plannedSubGroup={group} plannedAlertLevel="none" plannedSubDone onPlannedSubDone={onPlannedSubDone} />,
+      );
+      expect(screen.queryByTestId('planned-sub-done')).not.toBeInTheDocument();
+      expect(screen.getByTestId('planned-sub-done-label')).toHaveTextContent('Done ✓');
+      expect(screen.getByTestId('planned-sub-group')).toHaveAttribute('data-done', 'true');
+      // The block itself stays: the names are still there to read.
+      expect(screen.getByTestId('planned-sub-on')).toHaveTextContent('Eino');
+    });
+
+    it('hides "Done" while the group is still more than a minute away', () => {
+      render(
+        <TimerOverlay {...live} timeElapsedInSeconds={1000} plannedSubGroup={{ ...group, due: false }} onPlannedSubDone={jest.fn()} />,
+      );
+      expect(screen.queryByTestId('planned-sub-done')).not.toBeInTheDocument();
+    });
+  });
+
   describe('one sub mechanism at a time (sub timer visibility)', () => {
     const withHistory = {
       ...baseProps,

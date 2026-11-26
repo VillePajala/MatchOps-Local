@@ -318,7 +318,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
               className={`${secondaryButtonStyle} w-full mb-3`}
             >
               <HiOutlineDocumentText className="w-5 h-5" aria-hidden="true" />
-              {t('competitionReport.tournamentTitle', 'Tournament report')}
+              {t('competitionReport.tournamentTitle', 'Report')}
             </button>
           )}
           <div className={cardStyle}>

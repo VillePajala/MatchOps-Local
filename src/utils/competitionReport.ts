@@ -1,5 +1,5 @@
 /**
- * Reports over a COMPETITION's games ("Turnauksen raportti", "Sarjaraportti").
+ * Reports over a COMPETITION's games (tournament and league "Raportti").
  *
  * - A tournament is a few days of short games: it uses the day report's
  *   game-by-game layout as it is (dayReport.ts), with the tournament's played

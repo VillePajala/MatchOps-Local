@@ -169,6 +169,7 @@ interface TestProps {
   availablePlayers: Player[];
   gameEvents: GameEvent[];
   selectedPlayerIds: string[];
+  onOpenRoster?: () => void;
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
   seasonId: string | null;
@@ -1404,6 +1405,33 @@ describe('GameStatsModal', () => {
       const box = await screen.findByRole('textbox', { name: i18n.t('taso.title', 'Match sheet') });
       expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.lineupTitle', 'Squad'));
       expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.reportTitle', 'Match sheet'));
+    });
+
+    /**
+     * Owner: Taso needs the numbers. The finish screen says how many of the
+     * squad have none, and hands off to the roster where they are edited.
+     */
+    it('says how many squad players lack a shirt number and opens the roster', async () => {
+      const onOpenRoster = jest.fn();
+      const props = getDefaultProps();
+      renderComponent({
+        ...props,
+        onOpenRoster,
+        availablePlayers: props.availablePlayers.map((p) => (p.id === 'p2' ? { ...p, jerseyNumber: '' } : p)),
+      });
+      await screen.findByTestId('finish-game-spine');
+      const hint = screen.getByTestId('spine-taso-missing-numbers');
+      expect(hint).toHaveTextContent(
+        i18n.t('taso.missingNumbers', { count: 1, defaultValue: '1 player is missing a shirt number – Taso needs the numbers' }) as string,
+      );
+      fireEvent.click(screen.getByTestId('spine-taso-missing-numbers-fix'));
+      expect(onOpenRoster).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows no shirt-number hint when every squad player has a number', async () => {
+      renderComponent(getDefaultProps());
+      await screen.findByTestId('finish-game-spine');
+      expect(screen.queryByTestId('spine-taso-missing-numbers')).not.toBeInTheDocument();
     });
 
     it('offers a way to write a note about a player by hand', async () => {
