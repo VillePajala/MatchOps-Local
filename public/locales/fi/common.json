@@ -3774,6 +3774,8 @@
       "absentHeading": "Poissa tästä pelistä",
       "benchEmptyAbsent": "Kaikki ovat kentällä tai poissa.",
       "subStint": "{{minute}}' {{player}} ({{position}})",
+      "chainShowAll_one": "{{position}}: {{count}} vaihto, näytä kaikki",
+      "chainShowAll_other": "{{position}}: {{count}} vaihtoa, näytä kaikki",
       "removeSubAction": "Poista vaihto",
       "clearAll": "Tyhjennä kenttä",
       "clearedAll": "Kenttä tyhjennetty",
@@ -3845,6 +3847,11 @@
       "exportError": "Suunnitelmaa ei voitu viedä.",
       "copySuffix": "(kopio)",
       "switchError": "Suunnitelmaa ei voitu avata."
+    },
+    "chainSheet": {
+      "title": "{{position}} · vaihdot",
+      "start": "Alku",
+      "total": "yhteensä {{minutes}} min"
     },
     "gkShort": "MV",
     "players": {

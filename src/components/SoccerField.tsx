@@ -14,6 +14,8 @@ import tinycolor from 'tinycolor2';
 import logger from '@/utils/logger';
 import { isSidelinePosition, getPositionLabel } from '@/utils/positionLabels';
 import type { PlannedChain } from '@/utils/playtimePlanner/plannedChains';
+import { chainCardLayout, maxChainRows } from '@/utils/playtimePlanner/chainLayout';
+import PlanChainSheet from '@/components/PlanChainSheet';
 import type { SubSlot } from '@/utils/formations';
 
 // Define props for SoccerField
@@ -700,6 +702,30 @@ const CHAIN_WAVE_COLORS = ['#F59E0B', '#38BDF8', '#A78BFA', '#34D399', '#FB7185'
 const waveColor = (i: number): string =>
   CHAIN_WAVE_COLORS[((i % CHAIN_WAVE_COLORS.length) + CHAIN_WAVE_COLORS.length) % CHAIN_WAVE_COLORS.length];
 
+/** Where a compact chain card landed, in CSS pixels - the tap target that
+ *  opens its full chain. */
+export interface PlannedChainHit {
+  index: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * The canvas pill's geometry for chainLayout: the header row sits ON the slot
+ * point (the pill hangs down from it), so every pill reaches PAD + ROW/2 above
+ * its point - its own and the neighbour's alike.
+ */
+const CHAIN_CANVAS_METRICS = {
+  horizontalReachPx: 110,
+  anchorAbovePx: CHAIN_PAD + CHAIN_ROW_H / 2,
+  neighbourAbovePx: CHAIN_PAD + CHAIN_ROW_H / 2,
+  gapPx: 4,
+  rowPx: CHAIN_ROW_H,
+  chromePx: CHAIN_PAD * 2,
+} as const;
+
 /**
  * Draw the full plan: one divided pill per position.
  *
@@ -711,60 +737,65 @@ const waveColor = (i: number): string =>
  * each incoming player tagged with their minute. A coach reads one convention
  * in both places.
  *
- * Chains of three or more run in TWO COLUMNS rather than growing downward.
- * Centre-column positions sit as little as 0.14 apart - about 60px on a phone -
- * so a tall pill would sit on its neighbour's head. Width is the cheap
- * direction here, now that the sideline column is gone.
+ * A pill never grows over the position below it (chainLayout): a chain of
+ * more than two changes - or any chain without the room - is drawn COMPACT,
+ * the next change plus a "+N" badge, and the caller makes that pill a button
+ * that opens the whole chain. Returns where the compact pills landed.
  */
 function drawPlannedChains(
   ctx: CanvasRenderingContext2D,
   chains: readonly PlannedChain[],
   W: number,
   H: number,
-): void {
+): PlannedChainHit[] {
   ctx.save();
   ctx.textBaseline = 'middle';
+  const hits: PlannedChainHit[] = [];
+  const metrics = { ...CHAIN_CANVAS_METRICS, fieldWidthPx: W, fieldHeightPx: H };
 
-  chains.forEach((chain) => {
+  chains.forEach((chain, chainIndex) => {
     // A position nobody leaves has nothing to schedule. It still has to be
     // there - a hole in the eleven reads as a bug - but it recedes, so the
     // positions that DO change something come forward on their own.
     const settled = chain.entries.length === 0;
 
-    const cols = chain.entries.length >= 3 ? 2 : 1;
-    const rows = Math.ceil(chain.entries.length / cols);
+    const layout = chainCardLayout(chain.entries.length, maxChainRows(chains, chainIndex, metrics));
+    const shown = chain.entries.slice(0, layout.shownEntries);
+    const badge = layout.compact ? `+${layout.hiddenCount}` : null;
 
     // One gutter for every minute in this pill, wide enough for the longest,
     // so the names line up in a column instead of stepping in and out as the
     // minutes go from 5' to 30'.
     ctx.font = `700 12px ${chipFontFamily()}`;
     let gutter = 0;
-    chain.entries.forEach((e) => {
+    shown.forEach((e) => {
       gutter = Math.max(gutter, ctx.measureText(`${e.minute}'`).width);
     });
     gutter += 6;
+    const badgeW = badge ? ctx.measureText(badge).width + 10 : 0;
 
     // Width is driven by the widest thing in the pill, so nothing is clipped.
     ctx.font = `500 12px ${chipFontFamily()}`;
     let cellW = 0;
-    chain.entries.forEach((e) => {
+    shown.forEach((e) => {
       cellW = Math.max(cellW, gutter + ctx.measureText(e.name).width);
     });
-    cellW += 10;
+    cellW += 10 + badgeW;
     ctx.font = `700 14px ${discFontFamily()}`;
     const nameW = ctx.measureText(chain.starterName ?? '-').width;
     ctx.font = `700 12px ${chipFontFamily()}`;
     const tagW = ctx.measureText(chain.positionLabel).width;
     const headW = tagW + 6 + nameW;
-    const pillW = Math.max(headW + CHAIN_PAD * 2, cols * cellW + CHAIN_PAD * 2);
-    const pillH = CHAIN_PAD * 2 + (1 + rows) * CHAIN_ROW_H;
+    const pillW = Math.max(headW + CHAIN_PAD * 2, cellW + CHAIN_PAD * 2);
+    const pillH = CHAIN_PAD * 2 + (1 + shown.length) * CHAIN_ROW_H;
 
-    // Keep the whole pill on the canvas - the formation reaches relX 0.25/0.75
-    // and relY 0.92, so an unclamped pill leaves the pitch at the edges.
+    // Header row on the slot point, the rest hanging below it. Kept on the
+    // canvas - the formation reaches relX 0.25/0.75 and relY 0.92, so an
+    // unclamped pill leaves the pitch at the edges.
     const cx = Math.min(Math.max(chain.relX * W, pillW / 2 + 2), W - pillW / 2 - 2);
-    const cy = Math.min(Math.max(chain.relY * H, pillH / 2 + 2), H - pillH / 2 - 2);
+    const top = chain.relY * H - CHAIN_CANVAS_METRICS.anchorAbovePx;
+    const y = Math.min(Math.max(top, 2), H - pillH - 2);
     const x = cx - pillW / 2;
-    const y = cy - pillH / 2;
 
     // A soft shadow, because grass is a busy, mid-tone texture and a flat dark
     // panel on it reads as smudge rather than card.
@@ -813,10 +844,8 @@ function drawPlannedChains(
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
     ctx.stroke();
 
-    chain.entries.forEach((entry, i) => {
-      const col = cols === 1 ? 0 : i % cols;
-      const row = cols === 1 ? i : Math.floor(i / cols);
-      const ex = x + CHAIN_PAD + col * cellW;
+    shown.forEach((entry, row) => {
+      const ex = x + CHAIN_PAD;
       const ey = divY + CHAIN_ROW_H / 2 + row * CHAIN_ROW_H;
       const hue = waveColor(entry.waveIndex);
 
@@ -824,11 +853,9 @@ function drawPlannedChains(
       // to find across eight pills; a tinted band is visible without being
       // read, which is what "who goes on together" needs to be.
       //
-      // Width comes from the PILL, not the cell. The pill is as wide as the
-      // header when a starter's name is longer than any entry, and sizing the
-      // band off cellW left a dark strip at the right edge - a row highlight
-      // that stops short reads as a half-filled progress bar.
-      const bandW = cols === 1 ? pillW - CHAIN_PAD * 2 + 4 : cellW - 6;
+      // Width comes from the PILL, not the cell, so the band never stops short
+      // of the edge when the starter's name is the widest thing in the pill.
+      const bandW = pillW - CHAIN_PAD * 2 + 4 - (badge ? badgeW : 0);
       roundedRectPath(ctx, ex - 2, ey - CHAIN_ROW_H / 2 + 1, bandW, CHAIN_ROW_H - 2, 3);
       ctx.globalAlpha = 0.14;
       ctx.fillStyle = hue;
@@ -846,9 +873,25 @@ function drawPlannedChains(
       ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
       ctx.fillText(entry.name, ex + gutter, ey);
     });
+
+    // The "+N" badge: how many more changes the full chain (one tap) holds.
+    if (badge) {
+      const by = divY + CHAIN_ROW_H / 2;
+      const bx = x + pillW - CHAIN_PAD - badgeW + 2;
+      roundedRectPath(ctx, bx, by - CHAIN_ROW_H / 2 + 1, badgeW - 2, CHAIN_ROW_H - 2, 7);
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+      ctx.fill();
+      ctx.font = `700 12px ${chipFontFamily()}`;
+      ctx.fillStyle = '#FCD34D';
+      ctx.textAlign = 'center';
+      ctx.fillText(badge, bx + (badgeW - 2) / 2, by);
+      ctx.textAlign = 'left';
+      hits.push({ index: chainIndex, x, y, w: pillW, h: pillH });
+    }
   });
 
   ctx.restore();
+  return hits;
 }
 
 /** What a drop near the formation points should do. Exported for tests. */
@@ -1076,6 +1119,21 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 }, ref) => {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Compact chain pills (as last drawn) and the one whose full chain is open.
+  const [chainHits, setChainHits] = useState<PlannedChainHit[]>([]);
+  const [openChainIndex, setOpenChainIndex] = useState<number | null>(null);
+  // Only a real change re-renders: draw() runs every frame-worthy update.
+  const syncChainHits = useCallback((next: PlannedChainHit[]) => {
+    setChainHits((prev) =>
+      prev.length === next.length &&
+      prev.every((h, i) => {
+        const n = next[i];
+        return h.index === n.index && h.x === n.x && h.y === n.y && h.w === n.w && h.h === n.h;
+      })
+        ? prev
+        : next,
+    );
+  }, []);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState<boolean>(false);
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
   const [isDraggingOpponent, setIsDraggingOpponent] = useState<boolean>(false);
@@ -1703,9 +1761,12 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     // --- Draw Planned Chains ---
-    if (!isTacticsBoardView && plannedChains && plannedChains.length > 0) {
-      drawPlannedChains(context, plannedChains, W, H);
-    }
+    // The compact pills' rects feed the DOM buttons that open a full chain.
+    const chainHits =
+      !isTacticsBoardView && plannedChains && plannedChains.length > 0
+        ? drawPlannedChains(context, plannedChains, W, H)
+        : [];
+    syncChainHits(chainHits);
 
     // --- Draw Players ---
     if (!isTacticsBoardView) {
@@ -1759,7 +1820,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     // --- End of draw ---
-  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, draggingPlayerId, subSlots, t, formationSnapPoints, plannedChains]);
+  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, draggingPlayerId, subSlots, t, formationSnapPoints, plannedChains, syncChainHits]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {
@@ -2709,7 +2770,45 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       />
-      {/* Optional: Render player names/numbers as separate HTML elements over the canvas? */}
+      {/* A compact chain pill is drawn on the canvas but pressed as a real
+          button laid over it: focusable, labelled, and it opens the full chain. */}
+      {chainHits.map((hit) => {
+        const chain = plannedChains?.[hit.index];
+        if (!chain) return null;
+        return (
+          <button
+            key={`${chain.positionLabel}-${hit.index}`}
+            type="button"
+            onClick={() => setOpenChainIndex(hit.index)}
+            aria-haspopup="dialog"
+            aria-expanded={openChainIndex === hit.index}
+            aria-label={t('playtimePlanner.lineup.chainShowAll', {
+              position: chain.positionLabel,
+              count: chain.entries.length,
+              defaultValue_one: '{{position}}: {{count}} change, show all',
+              defaultValue_other: '{{position}}: {{count}} changes, show all',
+            })}
+            data-testid="planned-chain-more"
+            className="absolute rounded-md bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            style={{ left: hit.x, top: hit.y, width: hit.w, height: hit.h }}
+          />
+        );
+      })}
+      {openChainIndex !== null && plannedChains?.[openChainIndex] && (
+        <PlanChainSheet
+          positionLabel={plannedChains[openChainIndex].positionLabel}
+          rows={[
+            { key: 'starter', minute: null, name: plannedChains[openChainIndex].starterName ?? '-' },
+            ...plannedChains[openChainIndex].entries.map((e) => ({
+              key: e.id,
+              minute: e.minute,
+              name: e.name,
+              minuteColor: waveColor(e.waveIndex),
+            })),
+          ]}
+          onClose={() => setOpenChainIndex(null)}
+        />
+      )}
     </div>
   );
 });

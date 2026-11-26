@@ -24,13 +24,15 @@
  * ramp colour. Colour never stands alone: the minutes number is always printed.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { HiChevronDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
 import { findSimultaneityConflicts, conflictedSlotIds } from '@/utils/playtimePlanner/conflicts';
 import PlanFieldBackdrop from '@/components/PlanFieldBackdrop';
+import PlanChainSheet, { type PlanChainSheetRow } from '@/components/PlanChainSheet';
+import { chainCardLayout, maxChainRows, type ChainCardMetrics } from '@/utils/playtimePlanner/chainLayout';
 import {
   subtextStyle,
   primaryButtonStyle,
@@ -112,6 +114,23 @@ interface PlanFieldViewProps {
   onToggleAbsenceOpen?: () => void;
 }
 
+/**
+ * This view's chain-card geometry (see chainLayout). A stacked pill row is
+ * ~25px (py-1 + 10px text + hairline); the pill's top row is anchored on the
+ * slot point, so the card reaches 13px above it and grows DOWN; the mark at
+ * the slot below reaches up to 22px (a disc's half height) above its point.
+ * Field size is measured; these are the fallbacks for a 360px phone.
+ */
+const CHAIN_METRICS: Omit<ChainCardMetrics, 'fieldWidthPx' | 'fieldHeightPx'> = {
+  horizontalReachPx: 96,
+  anchorAbovePx: 13,
+  neighbourAbovePx: 22,
+  gapPx: 4,
+  rowPx: 25,
+  chromePx: 4,
+};
+const FALLBACK_PITCH = { w: 328, h: 437 };
+
 /** Short display token for a disc: nickname, else first name, else initials. */
 const shortName = (name: string): string => {
   const trimmed = name.trim();
@@ -149,11 +168,32 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     | { type: 'sub'; slotId: string; subId: string; playerId: string | null };
   const [selection, setSelection] = useState<FieldSelection | null>(null);
   const [showAbsenceLocal, setShowAbsenceLocal] = useState(false);
+  // The position whose full chain is open in the sheet (a compact card's +N).
+  const [chainSheetSlotId, setChainSheetSlotId] = useState<string | null>(null);
+  // Measured pitch size: how much room each chain card has depends on it.
+  const pitchRef = useRef<HTMLDivElement>(null);
+  const [pitchSize, setPitchSize] = useState(FALLBACK_PITCH);
+  useEffect(() => {
+    const el = pitchRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      const { width, height } = el.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        setPitchSize((prev) => (prev.w === width && prev.h === height ? prev : { w: width, h: height }));
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const showAbsence = absenceOpen ?? showAbsenceLocal;
   const toggleAbsenceOpen = onToggleAbsenceOpen ?? (() => setShowAbsenceLocal((v) => !v));
   const absentSet = useMemo(() => new Set(game.absentIds ?? []), [game.absentIds]);
 
   const slots = useMemo(() => getGameSlots(game.formationId), [game.formationId]);
+  const chainMetrics = useMemo<ChainCardMetrics>(
+    () => ({ ...CHAIN_METRICS, fieldWidthPx: pitchSize.w, fieldHeightPx: pitchSize.h }),
+    [pitchSize],
+  );
   const assignments = useMemo(() => ensureStartingSlots(game), [game]);
   const nameById = useMemo(
     () => new Map(players.map((p) => [p.id, p.name])),
@@ -388,6 +428,45 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     if (selection) setSelection(null);
   };
 
+  // The full chain of one position (opened from a compact card's +N badge).
+  // Rendered OUTSIDE the pitch div: React events bubble through portals, and
+  // the pitch's background click would clear the selection on every tap.
+  const renderChainSheet = () => {
+    if (!chainSheetSlotId) return null;
+    const index = slots.findIndex((sl) => sl.slotId === chainSheetSlotId);
+    if (index === -1) return null;
+    const slot = slots[index];
+    const starterId = playerBySlot.get(slot.slotId) ?? null;
+    // Each player's total planned minutes, in the same ramp colour as the field.
+    const totals = (id: string | null): Pick<PlanChainSheetRow, 'totalMinutes' | 'totalColor'> => {
+      const fair = id ? minutesByPlayer?.[id] : undefined;
+      return fair ? { totalMinutes: fair.minutes, totalColor: fairnessText(fair.ratio) } : {};
+    };
+    const rows: PlanChainSheetRow[] = [
+      {
+        key: 'starter',
+        minute: null,
+        name: starterId ? nameById.get(starterId) ?? starterId : '-',
+        ...totals(starterId),
+        onSelect: () => handleStarterClick(slot.slotId),
+      },
+      ...(subsBySlot.get(slot.slotId) ?? []).map((sub) => ({
+        key: sub.id,
+        minute: Math.round(sub.timeSeconds / 60),
+        name: sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?',
+        ...totals(sub.inPlayerId),
+        onSelect: () => handleSubSegmentClick(slot.slotId, sub),
+      })),
+    ];
+    return (
+      <PlanChainSheet
+        positionLabel={slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${index}`}
+        rows={rows}
+        onClose={() => setChainSheetSlotId(null)}
+      />
+    );
+  };
+
   // One bench disc. `inGame` marks a player already in this game (offered
   // only while a stint is selected): a dashed border, like the sub sheet.
   const renderBenchDisc = (id: string, inGame: boolean) => {
@@ -451,6 +530,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       {/* Pitch - the REAL field: the live game's grass + markings painted by
           the shared canvas painters (PlanFieldBackdrop), discs as DOM on top. */}
       <div
+        ref={pitchRef}
         className="relative w-full max-w-sm mx-auto rounded-[18px] overflow-hidden shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_16px_26px_-18px_rgb(2_6_23/0.85)]"
         style={{ aspectRatio: '3 / 4', background: '#427B44' }}
         onClick={handlePitchBackgroundClick}
@@ -470,6 +550,17 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           // cleared (the engine still grants the incoming player minutes, so the
           // field must not pretend the slot is plain empty).
           const hasSubs = slotSubs.length > 0;
+          // Long chains (and any chain without room below it) go COMPACT: the
+          // starter, ONE incoming stint and a "+N" badge that opens the whole
+          // chain in a sheet - a card never grows over the position below it.
+          const layout = chainCardLayout(slotSubs.length, maxChainRows(slots, i, chainMetrics));
+          const stacked = hasSubs && !layout.compact && slotSubs.length > 1;
+          // The one stint a compact card shows: the selected one when it lives
+          // behind the badge (so a selection picked in the sheet stays visible),
+          // else the next change.
+          const shownSubs = layout.compact
+            ? [slotSubs.find((sub) => selection?.type === 'sub' && selection.subId === sub.id) ?? slotSubs[0]]
+            : slotSubs;
           const involved =
             anyHighlight && (isTracked(playerId) || slotSubs.some((sub) => isTracked(sub.inPlayerId)));
           // Screen readers: aria-label OVERRIDES the button's contents, so the
@@ -531,8 +622,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 // All offsets live in this ONE transform - Tailwind 4 translate
                 // classes use the CSS `translate` property and would COMPOSE
                 // with it (the doubled-shift bug).
+                // A stacked pill hangs DOWN from its slot (top row on the point,
+                // see CHAIN_METRICS) - the room below is what chainLayout caps.
                 transform: hasSubs
-                  ? `translate(-${(slot.relX * 100).toFixed(1)}%, ${slotSubs.length > 1 ? '-50%' : '-20px'})`
+                  ? `translate(-${(slot.relX * 100).toFixed(1)}%, ${stacked ? '-13px' : '-20px'})`
                   : 'translate(-50%, -22px)',
               }}
             >
@@ -544,7 +637,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 <span
                   className={[
                     'flex overflow-hidden border-2 transition-colors shadow-md shadow-black/40',
-                    slotSubs.length > 1 ? 'flex-col rounded-2xl' : 'rounded-full h-10',
+                    stacked ? 'flex-col rounded-2xl' : 'rounded-full h-10',
                     'border-white/90',
                     conflictRing,
                   ].join(' ')}
@@ -556,7 +649,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     aria-pressed={slotSelected}
                     className={[
                       'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap',
-                      slotSubs.length > 1 ? 'py-1' : '',
+                      stacked ? 'py-1' : '',
                       segmentFocus,
                       slotSelected ? `${selectionRing} z-10` : '',
                     ].join(' ')}
@@ -570,7 +663,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   >
                     {filled ? shortName(name ?? '') : '+'}
                   </button>
-                  {slotSubs.map((sub) => {
+                  {shownSubs.map((sub) => {
                     const inName = sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?';
                     const subSelected = selection?.type === 'sub' && selection.subId === sub.id;
                     return (
@@ -586,7 +679,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                         aria-pressed={subSelected}
                         className={[
                           'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-white/35 gap-1',
-                          slotSubs.length > 1 ? 'flex-row py-1 border-t' : 'flex-col border-l',
+                          stacked ? 'flex-row py-1 border-t' : 'flex-col border-l',
                           segmentFocus,
                           subSelected ? `${selectionRing} z-10` : '',
                         ].join(' ')}
@@ -604,6 +697,28 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       </button>
                     );
                   })}
+                  {layout.compact && (
+                    <button
+                      type="button"
+                      onClick={() => setChainSheetSlotId(slot.slotId)}
+                      aria-haspopup="dialog"
+                      aria-expanded={chainSheetSlotId === slot.slotId}
+                      aria-label={t('playtimePlanner.lineup.chainShowAll', {
+                        position: positionLabel,
+                        count: slotSubs.length,
+                        defaultValue_one: '{{position}}: {{count}} change, show all',
+                        defaultValue_other: '{{position}}: {{count}} changes, show all',
+                      })}
+                      data-testid="plan-chain-more"
+                      className={[
+                        'flex items-center justify-center min-w-9 px-1.5 border-l border-white/35 bg-slate-900/85',
+                        'text-xs font-extrabold text-amber-200 tabular-nums',
+                        segmentFocus,
+                      ].join(' ')}
+                    >
+                      +{layout.hiddenCount}
+                    </button>
+                  )}
                 </span>
               ) : (
                 <button
@@ -845,6 +960,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           </div>
         )}
       </div>
+      {renderChainSheet()}
     </div>
   );
 };
