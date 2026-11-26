@@ -738,29 +738,75 @@ describe('SoccerField Component - Interaction Testing', () => {
       spy.mockRestore();
     });
 
+    const LONG_ST = {
+      positionLabel: 'ST',
+      relX: 0.5,
+      relY: 0.24,
+      starterName: 'Kalle',
+      entries: [
+        { id: 'a', minute: 2, name: 'Eino', waveIndex: 0 },
+        { id: 'b', minute: 7, name: 'Sampo', waveIndex: 1 },
+        { id: 'c', minute: 12, name: 'Rafael', waveIndex: 2 },
+        { id: 'd', minute: 17, name: 'Kai', waveIndex: 3 },
+      ],
+    };
+
     /**
-     * @critical - a long chain stacked down the pitch ran over the next
-     * position's pill (owner report). Above two changes the pill is compact:
-     * the next change and a "+N" badge, and the whole chain is one tap away.
+     * @critical - owner: the match field has the room, so a long chain is
+     * drawn in FULL there (the planner keeps its compact "+N" card).
      */
-    it('draws a longer chain compact and opens the whole chain from it', () => {
+    it('draws a long chain in full when there is room', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      const { queryByTestId } = render(<SoccerField {...defaultProps} plannedChains={[LONG_ST]} />);
+      const drawn = drawnTexts(spy);
+      expect(drawn).toEqual(
+        expect.arrayContaining(['ST', 'Kalle', "2'", 'Eino', "7'", 'Sampo', "12'", 'Rafael', "17'", 'Kai']),
+      );
+      expect(drawn.some((d) => d.startsWith('+'))).toBe(false);
+      expect(queryByTestId('planned-chain-more')).not.toBeInTheDocument();
+      spy.mockRestore();
+    });
+
+    /** @edge-case - too tall for one column: two columns, still the full chain. */
+    it('runs a long chain in two columns when one column would reach the position below', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      const { queryByTestId } = render(
+        <SoccerField
+          {...defaultProps}
+          plannedChains={[
+            LONG_ST,
+            // 0.13 of a 600px field below: 78px, room for three rows (header + 2).
+            { positionLabel: 'CAM', relX: 0.5, relY: 0.37, starterName: 'Leo', entries: [] },
+          ]}
+        />,
+      );
+      const drawn = drawnTexts(spy);
+      expect(drawn).toEqual(expect.arrayContaining(['Eino', 'Sampo', 'Rafael', 'Kai']));
+      expect(drawn.some((d) => d.startsWith('+'))).toBe(false);
+      expect(queryByTestId('planned-chain-more')).not.toBeInTheDocument();
+      // Two columns: Sampo sits beside Eino, on the same row.
+      const yOf = (name: string) => spy.mock.calls.find((c) => c[0] === name)![2];
+      const xOf = (name: string) => spy.mock.calls.find((c) => c[0] === name)![1];
+      expect(yOf('Sampo')).toBe(yOf('Eino'));
+      expect(xOf('Sampo')).toBeGreaterThan(xOf('Eino'));
+      spy.mockRestore();
+    });
+
+    /**
+     * @critical - the no-overlap safety stays: a chain that fits neither one
+     * nor two columns falls back to compact, and the whole chain is one tap away.
+     */
+    it('falls back to a compact chain only when the full chain cannot fit, and opens it', () => {
       const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
       const { getByRole, getByTestId, queryByRole } = render(
         <SoccerField
           {...defaultProps}
           plannedChains={[
-            {
-              positionLabel: 'ST',
-              relX: 0.5,
-              relY: 0.24,
-              starterName: 'Kalle',
-              entries: [
-                { id: 'a', minute: 2, name: 'Eino', waveIndex: 0 },
-                { id: 'b', minute: 7, name: 'Sampo', waveIndex: 1 },
-                { id: 'c', minute: 12, name: 'Rafael', waveIndex: 2 },
-                { id: 'd', minute: 17, name: 'Kai', waveIndex: 3 },
-              ],
-            },
+            LONG_ST,
+            { positionLabel: 'CAM', relX: 0.5, relY: 0.37, starterName: 'Leo', entries: [] },
+            // Positions right beside it leave no width for a second column.
+            { positionLabel: 'LW', relX: 0.4, relY: 0.24, starterName: 'Ilmari', entries: [] },
+            { positionLabel: 'RW', relX: 0.6, relY: 0.24, starterName: 'Oiva', entries: [] },
           ]}
         />,
       );

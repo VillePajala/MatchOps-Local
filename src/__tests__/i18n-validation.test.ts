@@ -783,7 +783,8 @@ describe('Translation File Validation', () => {
       // +2 privacyPolicy.dataWeCollect.featureAccess* (feature / content access records). 3859.
       // Timer sub clarity: timerOverlay.confirmSubButton -> resetSubTimerButton, +plannedSwapOne/Two/Many, showSubTimer, makePlanForGame. 3864.
       // Compact chain cards: +2 playtimePlanner.lineup.chainShowAll_one/_other, +3 playtimePlanner.chainSheet.*. 3869.
-      expect(enKeys.length).toBe(3869);
+      // Demo findings batch: +taso.missingNumbers_one/_other/Fix, +timerOverlay.plannedSubDone, +rulesDirectory.juniorSeriesNote, -playerStats.perGameShort. 3873.
+      expect(enKeys.length).toBe(3873);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -1021,7 +1022,8 @@ describe('Translation File Validation', () => {
       // +2 privacyPolicy.dataWeCollect.featureAccess* (feature / content access records). 3859.
       // Timer sub clarity: timerOverlay.confirmSubButton -> resetSubTimerButton, +plannedSwapOne/Two/Many, showSubTimer, makePlanForGame. 3864.
       // Compact chain cards: +2 playtimePlanner.lineup.chainShowAll_one/_other, +3 playtimePlanner.chainSheet.*. 3869.
-      expect(fiKeys.length).toBe(3869);
+      // Demo findings batch: +taso.missingNumbers_one/_other/Fix, +timerOverlay.plannedSubDone, +rulesDirectory.juniorSeriesNote, -playerStats.perGameShort. 3873.
+      expect(fiKeys.length).toBe(3873);
     });
   });
 });

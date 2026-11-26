@@ -10,7 +10,7 @@ import ShootoutModal from '@/components/ShootoutModal';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
 import { exportFieldAsImage, isExportSupported } from '@/utils/export';
 import { useExportMetadata } from '@/hooks/useExportMetadata';
-import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
+import { usePlannedSubPrompts, plannedClockAlertLevel } from '@/hooks/usePlannedSubPrompts';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import { useAppLayout } from '@/hooks/useAppLayout';
@@ -385,6 +385,33 @@ export function FieldContainer({
     if (liveGameId) writeSubTimerChoice(liveGameId, show);
     setSubTimerChoiceState({ gameId: liveGameId, choice: show });
   }, [liveGameId]);
+  // "Done ✓" on the plan's block: the planned groups (by time) the coach has
+  // marked done in THIS game. In memory only, tagged with the game and reset
+  // on a switch - it quiets the clock colour and nothing else, so it is never
+  // stored (a stored dismissal resurfaced or vanished wrongly after a resume,
+  // see usePlannedSubPrompts). After a reload a still-due group simply shows
+  // red again until its window ends.
+  const [doneSubGroups, setDoneSubGroups] = useState<{ gameId: string | null; times: number[] }>({
+    gameId: liveGameId,
+    times: [],
+  });
+  const isPlannedGroupDone = useCallback(
+    (time: number) => doneSubGroups.gameId === liveGameId && doneSubGroups.times.includes(time),
+    [doneSubGroups, liveGameId],
+  );
+  const markPlannedSubDone = useCallback(() => {
+    const time = plannedSubGroup?.timeSeconds;
+    if (time === undefined) return;
+    setDoneSubGroups((prev) => {
+      const times = prev.gameId === liveGameId ? prev.times : [];
+      return times.includes(time) ? prev : { gameId: liveGameId, times: [...times, time] };
+    });
+  }, [plannedSubGroup?.timeSeconds, liveGameId]);
+  // Option B: the plan colours the big clock like the interval timer does. Off
+  // in extra time, like the block itself.
+  const plannedAlertLevel = inExtraTime
+    ? 'none'
+    : plannedClockAlertLevel(plannedPrompts, tmTime, isPlannedGroupDone);
   const modalContext = useModalContextOptional();
   const setIsPlaytimePlannerOpen = modalContext?.setIsPlaytimePlannerOpen;
   const openPlanner = useCallback(() => setIsPlaytimePlannerOpen?.(true), [setIsPlaytimePlannerOpen]);
@@ -417,6 +444,9 @@ export function FieldContainer({
           gameType={gameSessionState.gameType}
           plannedSubGroup={plannedSubGroup}
           plannedSubsEarlier={plannedSubsEarlier}
+          plannedAlertLevel={plannedAlertLevel}
+          plannedSubDone={plannedSubGroup ? isPlannedGroupDone(plannedSubGroup.timeSeconds) : false}
+          onPlannedSubDone={plannedSubGroup ? markPlannedSubDone : undefined}
           onToggleGoalLogModal={quickGoal}
           // Basic layout: no "Nollaa vaihtoajastin" (D13) - the plan's
           // reminders are the basic coach's sub timing.

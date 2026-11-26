@@ -121,7 +121,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const [records, setRecords] = useState<Record<string, TeamRecord>>({});
     // How many of each item's games are PLAYED (the report is offered from one).
     const [playedCounts, setPlayedCounts] = useState<Record<string, number>>({});
-    // "Turnauksen raportti" / "Sarjaraportti" over one item's played games.
+    // the competition "Raportti" over one item's played games.
     // `text` is the item's saved reportText, updated at once on Save (the
     // lists refresh only after the store write).
     const [report, setReport] = useState<{ id: string; name: string; inputs: DayReportGameInput[]; text?: string } | null>(null);
@@ -271,8 +271,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             });
     };
     const reportLabel = kind === 'season'
-        ? t('competitionReport.seasonTitle', 'League report')
-        : t('competitionReport.tournamentTitle', 'Tournament report');
+        ? t('competitionReport.seasonTitle', 'Report')
+        : t('competitionReport.tournamentTitle', 'Report');
 
     const handleEditClick = (item: Season | Tournament, type: 'season' | 'tournament') => {
         if (type === 'season') {

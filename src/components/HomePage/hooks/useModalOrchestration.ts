@@ -253,6 +253,9 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     // isSettingsModalOpen/settingsInitialTab not needed - SettingsModal renders
     // in ClubModalsHost (L.0b); the setter stays for openSettingsModal below.
     setIsSettingsModalOpen,
+    // Roster renders in ClubModalsHost (L.2); the setter stays for the
+    // finish screen's "missing shirt numbers" hand-off below.
+    setIsRosterModalOpen,
     // L.2: set by the lifted roster modal's stats shortcut; read by GameStats.
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
@@ -469,6 +472,13 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
         setGameSettingsInitialSection(section);
         setIsGameStatsModalOpen(false);
         setIsGameSettingsModalOpen(true);
+      },
+      // The finish screen's "shirt numbers missing" hint: leave the stats
+      // modal first (same layer - see wrapUpToAppSettings) and open the roster,
+      // where numbers are edited.
+      wrapUpToRoster: () => {
+        setIsGameStatsModalOpen(false);
+        setIsRosterModalOpen(true);
       },
       wrapUpToAssessments: () => {
         setIsGameStatsModalOpen(false);

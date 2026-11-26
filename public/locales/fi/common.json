@@ -32,7 +32,10 @@
     "captain": "C",
     "unknownPlayer": "tuntematon",
     "extraTime": "jatkoaika",
-    "shootout": "Rangaistuspotkukilpailu"
+    "shootout": "Rangaistuspotkukilpailu",
+    "missingNumbers_one": "{{count}} pelaajalta puuttuu pelinumero – Taso tarvitsee numerot",
+    "missingNumbers_other": "{{count}} pelaajalta puuttuu pelinumero – Taso tarvitsee numerot",
+    "missingNumbersFix": "Lisää numerot"
   },
   "evidence": {
     "button": "Jaa pelaajakooste",
@@ -615,6 +618,7 @@
     "assessPlayersButton": "Arvioi pelaajat",
     "plannedSubTitle": "Seuraava vaihto",
     "plannedSubAtBreak": "tauolla",
+    "plannedSubDone": "Tehty ✓",
     "plannedSubsEarlier_one": "+{{count}} aiemmin",
     "plannedSubsEarlier_other": "+{{count}} aiemmin",
     "plannedSubsOn": "Kentälle",
@@ -772,6 +776,7 @@
     "seriesTitle": "Sarjakohtaiset säännöt",
     "seriesHelp": "Pelaajamäärä, peliaika ja kentän koko määritellään sarjoittain, eikä sovellus tiedä missä sarjassa joukkueesi pelaa - MatchOps ei ole yhteydessä Palloliiton järjestelmään. Etsi sarjasi listasta ja avaa Info > Säännöt.",
     "seriesRules": "Selaa sarjoja (Tulospalvelu)",
+    "juniorSeriesNote": "Juniorien pienpeleissä sovelletaan sarjan omia sääntöjä (esim. aluepaitsio). Katso sarjasi säännöt.",
     "rulebooksTitle": "Lajisäännöt",
     "lookupTitle": "Etsi sääntö",
     "sportFootball": "Jalkapallo",
@@ -2185,7 +2190,6 @@
     "goals": "Maalit",
     "noGames": "Ei ottelutietoja saatavilla.",
     "perGame": "/ ottelu",
-    "perGameShort": "ott.",
     "averages": "Keskiarvot",
     "goalsPerGame": "M/ottelu",
     "assistsPerGame": "S/ottelu",
@@ -4436,8 +4440,8 @@
     "saveError": "Päivän raporttia ei saatu tallennettua. Yritä uudelleen."
   },
   "competitionReport": {
-    "tournamentTitle": "Turnauksen raportti",
-    "seasonTitle": "Sarjaraportti",
+    "tournamentTitle": "Raportti",
+    "seasonTitle": "Raportti",
     "textHeading": "Raportin teksti",
     "textPlaceholderTournament": "Miten turnaus meni?",
     "textPlaceholderSeason": "Miten sarja on mennyt?",

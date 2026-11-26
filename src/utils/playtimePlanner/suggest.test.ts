@@ -232,22 +232,60 @@ describe('suggestFairShareLineup with a bench bigger than one round of subs', ()
 
   /**
    * @critical - the onboarding plan's acceptance case: 16 players, 8v8,
-   * 2 x 25. Sub moments 12:30 and half time; every outfield player 12:30-25:00.
+   * 2 x 25. Sub moments rounded to the clock: 10:00 and half time; every
+   * outfield player 10:00-25:00.
    */
-  it('16 in 8v8: subs at 12:30 and 25:00, outfield minutes 12:30 to 25:00', () => {
+  it('16 in 8v8: subs at 10:00 and 25:00, outfield minutes 10:00 to 25:00', () => {
     const formationId = '8v8-2-1-2-1-1';
     const result = suggestFairShareLineup(
       plan([game('g1', { formationId, numberOfPeriods: 2, periodMinutes: 25 })], 16),
     );
     const g = result.games[0];
-    expect(subTimes(g)).toEqual([750, 1500]);
+    expect(subTimes(g)).toEqual([600, 1500]);
     const gk = g.startingSlots.find((a) => a.slotId === gkSlotIdOf(formationId))!.playerId!;
     const mins = minutesOf(result);
     expect(mins.get(gk)).toBe(50 * 60);
     for (const [id, s] of mins) {
       if (id === gk) continue;
-      expect(s).toBeGreaterThanOrEqual(750);
+      expect(s).toBeGreaterThanOrEqual(600);
       expect(s).toBeLessThanOrEqual(1500);
+    }
+  });
+
+  /**
+   * Owner rule: suggested sub moments are coach-friendly clock times - whole
+   * minutes, on the 5-minute grid when it fits, half time always included in a
+   * two-period game, ties away from the middle of the game.
+   */
+  it.each([
+    { name: '2 x 20, k = 3', numberOfPeriods: 2, periodMinutes: 20, players: 14, expected: [600, 1200, 1800] },
+    { name: '2 x 20, k = 2', numberOfPeriods: 2, periodMinutes: 20, players: 12, expected: [600, 1200] },
+    { name: '2 x 25, k = 3 (symmetric tie)', numberOfPeriods: 2, periodMinutes: 25, players: 14, expected: [600, 1500, 2400] },
+    { name: '1 x 25, k = 2', numberOfPeriods: 1, periodMinutes: 25, players: 12, expected: [600, 900] },
+    // 5-minute grid would skew the windows (5/15/25): whole minutes instead.
+    { name: '2 x 15, k = 3', numberOfPeriods: 2, periodMinutes: 15, players: 14, expected: [420, 900, 1380] },
+    { name: '2 x 8, k = 3', numberOfPeriods: 2, periodMinutes: 8, players: 14, expected: [240, 480, 720] },
+    // Period breaks stay put in a three-period game.
+    { name: '3 x 12, k = 2', numberOfPeriods: 3, periodMinutes: 12, players: 12, expected: [720, 1440] },
+  ])('round sub moments: $name', ({ numberOfPeriods, periodMinutes, players, expected }) => {
+    const result = suggestFairShareLineup(plan([game('g1', { numberOfPeriods, periodMinutes })], players));
+    expect(subTimes(result.games[0])).toEqual(expected);
+    expect([...minutesOf(result).values()].every((s) => s > 0)).toBe(true);
+  });
+
+  /** @edge-case - every realistic game length gives whole-minute moments incl. half time. */
+  it('every realistic game length gives whole-minute moments, half time included', () => {
+    for (const numberOfPeriods of [1, 2, 3]) {
+      for (let periodMinutes = 4; periodMinutes <= 45; periodMinutes++) {
+        for (const players of [10, 12, 14, 17]) {
+          const result = suggestFairShareLineup(plan([game('g1', { numberOfPeriods, periodMinutes })], players));
+          const times = subTimes(result.games[0]);
+          const total = numberOfPeriods * periodMinutes * 60;
+          expect(times.every((t) => t % 60 === 0 && t > 0 && t < total)).toBe(true);
+          if (numberOfPeriods === 2) expect(times).toContain(periodMinutes * 60);
+          expect([...minutesOf(result).values()].every((s) => s > 0)).toBe(true);
+        }
+      }
     }
   });
 

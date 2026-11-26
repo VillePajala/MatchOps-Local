@@ -58,22 +58,108 @@ const subRankOf = (label: string): number => {
 
 
 /**
- * Times of the sub moments when the bench needs `k` rounds (k >= 2). Evenly
- * spread, and a two-period game always keeps half time as one of them:
- * 2 x 25 gives 12:30 + 25:00 for k = 2 and 12:30, 25:00, 37:30 for k = 3.
+ * Times of the sub moments when the bench needs `k` rounds (k >= 2).
+ *
+ * The even split comes first: k + 1 equal parts, and in a two-period game half
+ * time is always one of the moments (even k would straddle it, so k + 2 parts
+ * and the first k are kept). Those exact times (12:30, 37:30 ...) are awkward
+ * to coach by, so they are then rounded to times a coach can read off the
+ * clock:
+ *
+ *  1. A moment that falls exactly on a period break (half time, the breaks of
+ *     a three-period game) stays there.
+ *  2. The other moments go to the 5-minute grid point closest to their even
+ *     time - but only when every moment lands within a quarter of the even
+ *     spacing (otherwise the grid would skew the windows, e.g. 2 x 8 min).
+ *     Equal distance goes AWAY from the middle of the game, so 2 x 25 with
+ *     k = 3 is the symmetric 10:00 / 25:00 / 40:00.
+ *  3. Otherwise whole minutes, closest to the even time (same tie rule):
+ *     2 x 15, k = 3 -> 7:00 / 15:00 / 23:00.
+ *  4. Only a game too short for k distinct whole minutes keeps the exact
+ *     seconds (2 x 1 min -> 0:30, 1:00).
+ *
+ * The moments are always strictly increasing and inside the game. The rounding
+ * can make a window a minute or two longer or shorter than the even split; the
+ * minutes accumulator in `suggestFairShareLineup` sees the real windows, so the
+ * balancing across games still evens it out.
+ *
+ * Examples: 2 x 20 k = 3 -> 10:00, 20:00, 30:00; 2 x 25 k = 2 -> 10:00, 25:00;
+ * 1 x 25 k = 2 -> 10:00, 15:00.
+ *
  * Returns null only when the game is shorter than k + 2 seconds (a 0-minute
- * game - real games are whole minutes, so k distinct seconds always fit). The
- * caller then keeps the one-round path; such a game has no minutes to share.
+ * game). The caller then keeps the one-round path; such a game has no minutes
+ * to share.
  */
 function subWindowTimes(game: PlanGame, k: number): number[] | null {
   const total = gameTotalSeconds(game);
-  // Odd k: k + 1 equal parts, so the middle moment lands on half time. Even k
-  // would straddle it, so use k + 2 parts and keep the first k - the
-  // (k/2 + 1)-th of those is half time.
   const parts = game.numberOfPeriods === 2 && k % 2 === 0 ? k + 2 : k + 1;
-  const times = Array.from({ length: k }, (_, j) => Math.round((total * (j + 1)) / parts));
+  const ideal = Array.from({ length: k }, (_, j) => (total * (j + 1)) / parts);
+
+  const periodSec = Math.max(0, game.periodMinutes) * 60;
+  const isBreak = (t: number) =>
+    game.numberOfPeriods > 1 && periodSec > 0 && Number.isInteger(t / periodSec) && t > 0 && t < total;
+  const pinned = ideal.map((t) => (isBreak(t) ? t : null));
+  const mid = total / 2;
+  const spacing = total / parts;
+
+  const fiveMin = snapToGrid(ideal, pinned, total, mid, 300);
+  if (fiveMin && fiveMin.every((t, j) => Math.abs(t - ideal[j]) <= spacing / 4)) return fiveMin;
+  const minutes = snapToGrid(ideal, pinned, total, mid, 60);
+  if (minutes) return minutes;
+
+  const times = ideal.map((t) => Math.round(t));
   const distinct = times.every((t, i) => t > 0 && t < total && (i === 0 || t > times[i - 1]));
   return distinct ? times : null;
+}
+
+/**
+ * Pick k strictly increasing times, each a multiple of `grid` seconds inside
+ * the game (pinned moments stay where they are), minimising the total distance
+ * to the ideal times; equal distance prefers the point farther from `mid`.
+ * Small DP over (moment, grid point) - k and the grid are tiny. Null when k
+ * distinct points do not fit.
+ */
+function snapToGrid(
+  ideal: number[],
+  pinned: (number | null)[],
+  total: number,
+  mid: number,
+  grid: number,
+): number[] | null {
+  const gridPoints: number[] = [];
+  for (let t = grid; t < total; t += grid) gridPoints.push(t);
+  type Cost = { dev: number; inward: number };
+  const better = (a: Cost, b: Cost) => a.dev < b.dev - 1e-9 || (Math.abs(a.dev - b.dev) <= 1e-9 && a.inward < b.inward);
+  const candidatesOf = (j: number): number[] => (pinned[j] !== null ? [pinned[j] as number] : gridPoints);
+  const costOf = (j: number, t: number): Cost => {
+    const dev = Math.abs(t - ideal[j]);
+    // "Inward" = this point is closer to the middle of the game than the ideal.
+    const inward = Math.abs(t - mid) < Math.abs(ideal[j] - mid) ? 1 : 0;
+    return { dev, inward };
+  };
+
+  // best[j]: map candidate time -> { cost, prev } for sequences ending at moment j.
+  let prevLayer = new Map<number, { cost: Cost; path: number[] }>();
+  for (const t of candidatesOf(0)) prevLayer.set(t, { cost: costOf(0, t), path: [t] });
+  for (let j = 1; j < ideal.length; j++) {
+    const layer = new Map<number, { cost: Cost; path: number[] }>();
+    for (const t of candidatesOf(j)) {
+      let best: { cost: Cost; path: number[] } | null = null;
+      for (const [pt, entry] of prevLayer) {
+        if (pt >= t) continue;
+        const c = costOf(j, t);
+        const cost = { dev: entry.cost.dev + c.dev, inward: entry.cost.inward + c.inward };
+        if (!best || better(cost, best.cost)) best = { cost, path: [...entry.path, t] };
+      }
+      if (best) layer.set(t, best);
+    }
+    prevLayer = layer;
+  }
+  let result: { cost: Cost; path: number[] } | null = null;
+  for (const entry of prevLayer.values()) {
+    if (!result || better(entry.cost, result.cost)) result = entry;
+  }
+  return result ? result.path : null;
 }
 
 export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
@@ -169,8 +255,8 @@ export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
       // The bench is bigger than one round: spread it over several sub moments
       // so every attending player gets time. The later moments each take a full
       // round and the remainder comes on at the first one - that keeps minutes
-      // closest together (16 in 8v8, 2 x 25: one sub at 12:30, seven at half
-      // time, every outfield player 12:30-25:00). Each sub replaces whoever has
+      // closest together (16 in 8v8, 2 x 25: one sub at 10:00, seven at half
+      // time, every outfield player 10:00-25:00). Each sub replaces whoever has
       // played most in this game so far, higher-running positions first on a
       // tie; the GK is never a target.
       //

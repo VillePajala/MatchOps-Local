@@ -1,8 +1,12 @@
 import {
   COMPACT_ENTRY_THRESHOLD,
   chainCardLayout,
+  estimateChainCardWidthPx,
+  chainCardFit,
+  type ChainFieldItem,
   maxChainRows,
   roomBelowPx,
+  roomBesidePx,
   type ChainCardMetrics,
 } from './chainLayout';
 
@@ -27,23 +31,60 @@ describe('chainCardLayout', () => {
   it('keeps chains of up to two changes full when there is room', () => {
     expect(COMPACT_ENTRY_THRESHOLD).toBe(2);
     for (const n of [0, 1, 2]) {
-      expect(chainCardLayout(n)).toEqual({ compact: false, shownEntries: n, hiddenCount: 0 });
+      expect(chainCardLayout(n)).toEqual({ compact: false, shownEntries: n, hiddenCount: 0, columns: 1 });
     }
   });
 
   it('goes compact above two changes, showing the next one and counting the rest', () => {
-    expect(chainCardLayout(3)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 2 });
-    expect(chainCardLayout(5)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 4 });
+    expect(chainCardLayout(3)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 2, columns: 1 });
+    expect(chainCardLayout(5)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 4, columns: 1 });
   });
 
   /** @edge-case - a short chain in a tight formation must not collide either. */
   it('goes compact for a two-change chain when its three rows do not fit', () => {
-    expect(chainCardLayout(2, 3)).toEqual({ compact: false, shownEntries: 2, hiddenCount: 0 });
-    expect(chainCardLayout(2, 2)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 1 });
+    expect(chainCardLayout(2, 3)).toEqual({ compact: false, shownEntries: 2, hiddenCount: 0, columns: 1 });
+    expect(chainCardLayout(2, 2)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 1, columns: 1 });
   });
 
   it('never makes a single change compact - there would be nothing behind the badge', () => {
-    expect(chainCardLayout(1, 1)).toEqual({ compact: false, shownEntries: 1, hiddenCount: 0 });
+    expect(chainCardLayout(1, 1)).toEqual({ compact: false, shownEntries: 1, hiddenCount: 0, columns: 1 });
+  });
+});
+
+describe('chainCardLayout on the match field (compactAbove: null)', () => {
+  const MATCH = { compactAbove: null } as const;
+
+  /** @critical - owner: the match field shows the FULL chain, not "+N". */
+  it('keeps a long chain full when it fits in one column', () => {
+    expect(chainCardLayout(5, 6, MATCH)).toEqual({ compact: false, shownEntries: 5, hiddenCount: 0, columns: 1 });
+    expect(chainCardLayout(5, Infinity, MATCH).compact).toBe(false);
+  });
+
+  it('runs it in two columns when one column is too tall and the caller says the width is free', () => {
+    expect(chainCardLayout(4, 3, { ...MATCH, twoColumnsFit: true })).toEqual({
+      compact: false,
+      shownEntries: 4,
+      hiddenCount: 0,
+      columns: 2,
+    });
+  });
+
+  /** @edge-case - the no-overlap safety: compact only as the last resort. */
+  it('falls back to compact when neither one nor two columns fit', () => {
+    expect(chainCardLayout(4, 3, MATCH)).toEqual({ compact: true, shownEntries: 1, hiddenCount: 3, columns: 1 });
+    expect(chainCardLayout(5, 3, { ...MATCH, twoColumnsFit: true }).compact).toBe(true);
+  });
+});
+
+describe('roomBesidePx', () => {
+  it('measures across to the nearest slot at a similar height', () => {
+    const slots = [
+      { relX: 0.5, relY: 0.5 },
+      { relX: 0.25, relY: 0.52 }, // 10px lower, 100px across
+      { relX: 0.45, relY: 0.9 }, // far below: not beside it
+    ];
+    expect(roomBesidePx(slots, 0, 20, METRICS)).toBe(100);
+    expect(roomBesidePx([{ relX: 0.5, relY: 0.5 }], 0, 20, METRICS)).toBe(Infinity);
   });
 });
 
@@ -114,5 +155,101 @@ describe('maxChainRows', () => {
       { relX: 0.5, relY: 0.505 },
     ];
     expect(maxChainRows(slots, 0, METRICS)).toBe(1);
+  });
+});
+
+describe('chainCardFit (side by side)', () => {
+  const FIELD = { fieldWidthPx: 400, fieldHeightPx: 500, gapPx: 4 };
+  /** A one-row card (40px tall, centred on its point) at an 8v8 LM/RM spot. */
+  const card = (relX: number, over: Partial<ChainFieldItem> = {}): ChainFieldItem => ({
+    relX,
+    relY: 0.52,
+    abovePx: 20,
+    belowPx: 20,
+    ...over,
+  });
+  /** Where a card of width w lands: anchored at relX of its width, then shifted. */
+  const span = (c: ChainFieldItem, w: number, shift: number) => {
+    const left = c.relX * FIELD.fieldWidthPx - c.relX * w + shift;
+    return { left, right: left + w };
+  };
+
+  /**
+   * Owner report: the LM and RM compact cards overlapped when both were wide.
+   * Each keeps to its side of the midpoint, moved toward its touchline.
+   * @critical
+   */
+  it('moves two wide facing cards apart so they never touch, without truncating', () => {
+    const items = [card(0.25, { naturalWidthPx: 160 }), card(0.75, { naturalWidthPx: 160 })];
+    const lm = chainCardFit(items, 0, FIELD);
+    const rm = chainCardFit(items, 1, FIELD);
+    // Lanes: 4..198 and 202..396 - 194px each, so 160 fits whole.
+    expect(lm.maxWidthPx).toBeCloseTo(194, 5);
+    expect(rm.maxWidthPx).toBeCloseTo(194, 5);
+    const a = span(items[0], 160, lm.shiftPx);
+    const b = span(items[1], 160, rm.shiftPx);
+    expect(lm.shiftPx).toBeLessThan(0); // toward its own touchline
+    expect(rm.shiftPx).toBeGreaterThan(0);
+    expect(b.left - a.right).toBeGreaterThanOrEqual(4);
+    expect(a.left).toBeGreaterThanOrEqual(4);
+    expect(b.right).toBeLessThanOrEqual(396);
+  });
+
+  it('leaves cards that already fit where they are', () => {
+    const items = [card(0.25, { naturalWidthPx: 90 }), card(0.75, { naturalWidthPx: 90 })];
+    expect(chainCardFit(items, 0, FIELD).shiftPx).toBe(0);
+    expect(chainCardFit(items, 1, FIELD).shiftPx).toBe(0);
+  });
+
+  it('caps a card wider than its whole lane (its names truncate)', () => {
+    // Four midfielders: the inner cards' lanes run midpoint to midpoint.
+    const xs = [0.15, 0.38, 0.62, 0.85];
+    const items = xs.map((x) => card(x, { naturalWidthPx: 200 }));
+    const fits = items.map((_, i) => chainCardFit(items, i, FIELD));
+    expect(fits[1].maxWidthPx).toBeCloseTo(((0.38 + 0.62) / 2 - (0.15 + 0.38) / 2) * 400 - 4, 5);
+    // Placed at their caps, no two neighbours touch.
+    const spans = items.map((c, i) => span(c, fits[i].maxWidthPx, fits[i].shiftPx));
+    for (let i = 1; i < spans.length; i++) expect(spans[i].left - spans[i - 1].right).toBeGreaterThanOrEqual(4 - 1e-9);
+  });
+
+  it('keeps clear of a plain disc beside it by the disc edge', () => {
+    // A back's card beside the goalkeeper's disc that reaches into its row.
+    const items = [card(0.25, { naturalWidthPx: 140 }), card(0.5, { fixedWidthPx: 44, relY: 0.56, abovePx: 22, belowPx: 22 })];
+    const fit = chainCardFit(items, 0, FIELD);
+    expect(fit.maxWidthPx).toBeCloseTo(200 - 22 - 4 - 4, 5);
+    expect(span(items[0], 140, fit.shiftPx).right).toBeLessThanOrEqual(200 - 22 - 4 + 1e-9);
+    expect(chainCardFit(items, 1, FIELD)).toEqual({ maxWidthPx: Infinity, shiftPx: 0 }); // discs never move
+  });
+
+  it('ignores marks in another row and cards in the same column', () => {
+    const items = [card(0.25), card(0.75, { relY: 0.82 }), card(0.25, { relY: 0.24 })];
+    expect(chainCardFit(items, 0, FIELD)).toEqual({ maxWidthPx: Infinity, shiftPx: 0 });
+  });
+
+  it('counts a tall stacked card that hangs down into the row below', () => {
+    const items = [card(0.25, { relY: 0.4, abovePx: 13, belowPx: 80 }), card(0.75)];
+    expect(chainCardFit(items, 0, FIELD).maxWidthPx).toBeLessThan(Infinity);
+  });
+});
+
+describe('estimateChainCardWidthPx', () => {
+  it('sums a one-row card and takes the widest row of a stacked one', () => {
+    const subs = [{ minute: 8, name: 'Kalle' }];
+    const row = estimateChainCardWidthPx({ starter: 'Jussi', subs, more: true, stacked: false });
+    const noMore = estimateChainCardWidthPx({ starter: 'Jussi', subs, more: false, stacked: false });
+    expect(row - noMore).toBe(37);
+    const stacked = estimateChainCardWidthPx({
+      starter: 'Jo',
+      subs: [{ minute: 8, name: 'Kalle' }, { minute: 16, name: 'Alexander' }],
+      more: false,
+      stacked: true,
+    });
+    const longest = estimateChainCardWidthPx({
+      starter: 'Jo',
+      subs: [{ minute: 16, name: 'Alexander' }],
+      more: false,
+      stacked: true,
+    });
+    expect(stacked).toBe(longest);
   });
 });

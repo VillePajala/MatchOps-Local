@@ -9,6 +9,8 @@
 import fs from 'fs';
 import path from 'path';
 import {
+  hasJuniorSeriesVariant,
+  seriesRulesUrl,
   RULES_SPORTS,
   RULES_TOPICS,
   findLaw,
@@ -221,5 +223,19 @@ describe('search', () => {
     expect(f).not.toBe(s);
     expect(f).toContain('heitto');
     expect(s).toContain('potku');
+  });
+});
+
+describe('junior series variant note', () => {
+  /** Conservative list: the restarts and offside, football only. */
+  it('marks offside and the restarts in football, nothing in futsal', () => {
+    for (const law of [8, 11, 13, 14, 15, 16]) expect(hasJuniorSeriesVariant('football', law)).toBe(true);
+    for (const law of [1, 3, 12, 17]) expect(hasJuniorSeriesVariant('football', law)).toBe(false);
+    expect(hasJuniorSeriesVariant('football', null)).toBe(false);
+    for (let law = 1; law <= 17; law++) expect(hasJuniorSeriesVariant('futsal', law)).toBe(false);
+  });
+
+  it('links to the series rules from the one link config', () => {
+    expect(seriesRulesUrl()).toBe('https://tulospalvelu.palloliitto.fi/categories');
   });
 });

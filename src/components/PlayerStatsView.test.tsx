@@ -191,6 +191,25 @@ describe('PlayerStatsView game type filtering', () => {
     expect(ga('loss')).toHaveClass('text-ink-3');
   });
 
+  /** Owner: the totals only - no "0,9/game" averages under them, here or in the shared summary. */
+  it('shows the totals without per-game averages', async () => {
+    const games = {
+      a: createGame({
+        opponentName: 'A Opp', gameDate: '2024-02-01', homeScore: 1, awayScore: 0,
+        gameEvents: [{ id: 'g1', type: 'goal', time: 60, scorerId: player.id }],
+      }),
+      b: createGame({ opponentName: 'B Opp', gameDate: '2024-02-08', homeScore: 0, awayScore: 0 }),
+    };
+    render(<PlayerStatsView {...baseProps} savedGames={games} />);
+    await screen.findByTestId('player-game-row-a');
+    expect(screen.getAllByText('Goals').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/\/game/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/0[.,]5/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('player-evidence'));
+    const box = await screen.findByRole('textbox', { name: 'Player summary' });
+    expect((box as HTMLTextAreaElement).value).not.toMatch(/0[.,]5|\/game|per game/i);
+  });
+
   it('opens the match evidence text for the player from the summary card', async () => {
     render(<PlayerStatsView {...baseProps} savedGames={buildSavedGames()} />);
     await waitFor(() => expect(screen.getByTestId('player-evidence')).toBeInTheDocument());
