@@ -230,6 +230,13 @@ function fillHole(
     filled = { ...game, subs: game.subs.map((s) => (s.id === hole.subId ? { ...s, inPlayerId: pick.id } : s)) };
   }
 
+  // The cover may already have been due to come on in this very slot when the
+  // stretch ends (the absentee's place was theirs next anyway). They now simply
+  // stay on: that change would bring a player on for themselves - drop it.
+  const stays = (s: PlanGame['subs'][number]) =>
+    s.slotId === slotId && s.timeSeconds === pick.until && s.inPlayerId === pick.id;
+  filled = { ...filled, subs: filled.subs.filter((s) => !stays(s)) };
+
   if (pick.full) return { game: filled, next: null };
   // The cover has to go elsewhere at `until`: the rest of the stretch is a new hole.
   const gap = { id: generateSubId(), slotId, timeSeconds: pick.until, inPlayerId: null };

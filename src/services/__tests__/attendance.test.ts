@@ -19,8 +19,9 @@ import { buildReapplyPatch } from '@/utils/playtimePlanner/reapply';
 import { ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
 import { swapPlayersInGame } from '@/utils/playtimePlanner/swap';
 import { toEngineGame } from '@/utils/playtimePlanner/adapter';
-import { computeSlotSegments } from '@/utils/playtimePlanner/minutes';
+import { computeSlotSegments, playerSecondsInGame } from '@/utils/playtimePlanner/minutes';
 import { TestFixtures } from '../../../tests/fixtures';
+import { DEMO_PLAN_GAME_ID, DEMO_PLAN_PLAYER_IDS as DEMO_IDS, demoPlaytimePlan as demoPlan } from '../../../tests/fixtures/plans';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import type { AppState, Player } from '@/types';
@@ -336,6 +337,42 @@ describe('planWithAbsences - keeps the coach\'s plan', () => {
     // Exactly one planned change added.
     expect(game.subs).toHaveLength(away.games[0].subs.length + 1);
     expect(noDoubleBooking(game)).toBe(true);
+  });
+});
+
+/** Who holds each slot just before `sub` (the player it would take off). */
+const holderBefore = (game: PlaytimePlan['games'][number], slotId: string, at: number): string | null => {
+  const engine = toEngineGame(game);
+  return computeSlotSegments(engine, slotId).find((seg) => seg.endSeconds === at)?.playerId ?? null;
+};
+
+/**
+ * The demo game with its RM and ST starters absent: `rm20` (due on at RM at
+ * 20') covers RM from kick-off and must simply stay on - never a change that
+ * brings him on for himself.
+ */
+describe('planWithAbsences - the demo game with two starters absent', () => {
+  /** @critical */
+  it('never plans a change that brings a player on for himself', () => {
+    const game = planWithAbsences(demoPlan(), DEMO_PLAN_GAME_ID, ['rm0', 'st0']).games[0];
+    // rm20 covers the RM stretch the absentee left and simply stays on.
+    expect(ensureStartingSlots(game).find((s) => s.slotId === 's4')?.playerId).toBe('rm20');
+    expect(game.subs.some((s) => s.slotId === 's4' && s.inPlayerId === 'rm20')).toBe(false);
+    for (const sub of game.subs) {
+      expect(sub.inPlayerId).not.toBe(holderBefore(game, sub.slotId, sub.timeSeconds));
+    }
+  });
+
+  /** @critical */
+  it('books nobody in two places, leaves no place empty, and the minutes add up to 8 x 40', () => {
+    const game = planWithAbsences(demoPlan(), DEMO_PLAN_GAME_ID, ['rm0', 'st0']).games[0];
+    expect(noDoubleBooking(game)).toBe(true);
+    const all = stretches(game);
+    expect(all.some((s) => s.endsWith('=null'))).toBe(false);
+    expect(all.some((s) => s.endsWith('=rm0') || s.endsWith('=st0'))).toBe(false);
+    const engine = toEngineGame(game);
+    const total = DEMO_IDS.reduce((sum, id) => sum + playerSecondsInGame(engine, id), 0);
+    expect(total).toBe(8 * 40 * 60);
   });
 });
 

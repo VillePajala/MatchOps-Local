@@ -298,6 +298,7 @@ export function FieldContainer({
     currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
     fieldVM.formationSnapPoints,
     fcPlayersOnField,
+    plannedSubsRefreshKey,
   );
   const hasChainView = plannedChains.length > 0;
   /**
