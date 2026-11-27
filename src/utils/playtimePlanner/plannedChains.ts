@@ -134,33 +134,49 @@ export function buildPlannedChains(
     byPosition.set(sub.positionLabel!, list);
   }
 
-  const chains: PlannedChain[] = [];
+  return occupantsByPosition(formationSnapPoints, players).map(({ positionLabel, point, player }) => ({
+    positionLabel,
+    relX: point.relX,
+    relY: point.relY,
+    starterName: player ? displayName(player) : null,
+    entries: byPosition.get(positionLabel) ?? [],
+  }));
+}
+
+/** One field position and the disc standing on it (null when nobody is). */
+export interface PositionOccupant {
+  positionLabel: string;
+  point: Point;
+  player: Player | null;
+}
+
+/**
+ * Who stands on each field position (the keeper included, the sideline column
+ * not): whoever is closest to the point, within a nudge's tolerance. Nearest
+ * wins rather than first-match, so two points in the same row can never claim
+ * the same disc. Shared by the chain view and by the plan following the
+ * players when the coach moves them (`followPlayersOnField`), so both read
+ * "who is where" the same way.
+ */
+export function occupantsByPosition(
+  formationSnapPoints: readonly Point[],
+  players: readonly Player[],
+): PositionOccupant[] {
+  const occupants: PositionOccupant[] = [];
   for (const point of formationSnapPoints) {
     if (!isChainPosition(point)) continue;
     const positionLabel = getPositionLabelForFormationPosition(point.relX, point.relY).label;
-
-    // Whoever is standing closest to this point, within a nudge's tolerance.
-    // Nearest wins rather than first-match, so two points in the same row can
-    // never claim the same disc.
-    let starter: Player | null = null;
+    let player: Player | null = null;
     let best = STARTER_TOLERANCE;
     for (const p of players) {
       if (typeof p.relX !== 'number' || typeof p.relY !== 'number') continue;
       const d = Math.hypot(p.relX - point.relX, p.relY - point.relY);
       if (d < best) {
         best = d;
-        starter = p;
+        player = p;
       }
     }
-
-    chains.push({
-      positionLabel,
-      relX: point.relX,
-      relY: point.relY,
-      starterName: starter ? displayName(starter) : null,
-      entries: byPosition.get(positionLabel) ?? [],
-    });
+    occupants.push({ positionLabel, point, player });
   }
-
-  return chains;
+  return occupants;
 }
