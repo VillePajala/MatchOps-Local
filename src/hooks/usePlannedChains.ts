@@ -9,9 +9,10 @@ import logger from '@/utils/logger';
 /**
  * The full plan for this game, one chain per position.
  *
- * Loaded
- * ONCE per game, never reacting to the match clock or to what the coach does.
- * This is the plan as written.
+ * Loaded once per game and again whenever `refreshKey` changes (the schedule
+ * was re-applied, or re-pointed because the coach moved players - the plan
+ * follows the players). Never reacts to the match clock: this is the plan as
+ * written.
  *
  * Failing to load is non-fatal - the field simply offers no chain view.
  *
@@ -22,6 +23,7 @@ export function usePlannedChains(
   gameId: string | null,
   formationSnapPoints: readonly Point[] | undefined,
   players: readonly Player[],
+  refreshKey = 0,
 ): PlannedChain[] {
   // Keyed by the game it was read for, so a stale result from the previous
   // game can never be shown for this one - and so no state is set
@@ -38,7 +40,7 @@ export function usePlannedChains(
         if (active) setLoaded({ gameId, subs: [] });
       });
     return () => { active = false; };
-  }, [gameId]);
+  }, [gameId, refreshKey]);
 
   return useMemo(() => {
     if (!gameId || loaded?.gameId !== gameId) return [];

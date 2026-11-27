@@ -19,7 +19,7 @@ import {
 } from '@/utils/appSettings';
 import { getTeams, getTeam } from '@/utils/teams';
 import { diffRemovedRosterIds } from '@/utils/rosterRemovalDiff';
-import { Player, Team } from '@/types';
+import { Player, Team, type Point } from '@/types';
 import type { GameType } from '@/types/game';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -51,7 +51,7 @@ import { debug } from '@/utils/debug';
 import { generateSubSlots, isFieldPosition } from '@/utils/formations';
 import { reapplyPlanToGame, type ReapplyResult, hasPlayEvents } from '@/utils/playtimePlanner/reapply';
 import { getMasterRoster } from '@/utils/masterRosterManager';
-import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
+import { followPlayersOnField, getGameSubs, setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
 import { mergeClubRosterIntoGamePlayers, playerIdsReferencedByGame } from '@/utils/gamePlayerList';
@@ -60,6 +60,10 @@ import { periodEndSeconds, structureFrom, type MatchStructure } from '@/utils/ma
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
+
+/** Same formation points, in the same order (a formation change is not a player move). */
+const sameSnapPoints = (a: readonly Point[], b: readonly Point[]): boolean =>
+  a.length === b.length && a.every((p, i) => p.relX === b[i].relX && p.relY === b[i].relY);
 
 const initialState: AppState = {
   playersOnField: [], // Start with no players on field
@@ -303,10 +307,29 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // definition-order cycle on the useCallback identity.
   const applyGoalieStatusRef = useRef<((playerId: string, isGoalie: boolean) => Promise<void>) | null>(null);
 
+  // --- The applied plan follows the players (owner decision A) ---
+  // Every committed field edit (a swap, a move, a drop) goes through this
+  // wrapper on its way into the undo history. Before it is recorded, the
+  // game's planned changes are re-pointed so they follow the players who moved
+  // (followPlayersOnField). `lastFieldRef` is the field as last recorded - what
+  // the edit changed FROM. Only the field interactions use the wrapper: a plan
+  // re-apply, a load or a Fair Play award never re-points the plan.
+  const lastFieldRef = useRef<Player[]>(sessionCoordination.historyState.playersOnField ?? []);
+  useEffect(() => {
+    lastFieldRef.current = sessionCoordination.historyState.playersOnField ?? [];
+  }, [sessionCoordination.historyState.playersOnField]);
+  const followPlanRef = useRef<((before: Player[], after: Player[], snapPoints?: Point[]) => void) | null>(null);
+  const saveFieldEditToHistory = useCallback((newState: Partial<AppState>) => {
+    if (newState.playersOnField) {
+      followPlanRef.current?.(lastFieldRef.current, newState.playersOnField, newState.formationSnapPoints);
+    }
+    saveStateToHistory(newState);
+  }, [saveStateToHistory]);
+
   // --- Field Coordination (Extracted to Hook) ---
   const fieldCoordination = useFieldCoordination({
     initialState,
-    saveStateToHistory,
+    saveStateToHistory: saveFieldEditToHistory,
     saveTacticalStateToHistory,
     availablePlayers,
     selectedPlayerIds: gameSessionState.selectedPlayerIds,
@@ -369,9 +392,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   ]);
 
   const handleUndo = useCallback(() => {
+    const fieldBefore = lastFieldRef.current;
     const prevState = undoHistory();
     if (prevState) {
       logger.log('Undoing...');
+      // Undoing a move is a move back: the planned changes follow the players back.
+      followPlanRef.current?.(fieldBefore, prevState.playersOnField ?? [], prevState.formationSnapPoints);
       // Apply field state (players, opponents, drawings, tactical)
       applyFieldHistoryState(prevState);
       // Apply session state (score, timer, periods, etc.)
@@ -403,9 +429,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
    * session coordination restores game session state.
    */
   const handleRedo = useCallback(() => {
+    const fieldBefore = lastFieldRef.current;
     const nextState = redoHistory();
     if (nextState) {
       logger.log('Redoing...');
+      followPlanRef.current?.(fieldBefore, nextState.playersOnField ?? [], nextState.formationSnapPoints);
       // Apply field state (players, opponents, drawings, tactical)
       applyFieldHistoryState(nextState);
       // Apply session state (score, timer, periods, etc.)
@@ -453,6 +481,44 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const processedInitialActionRef = useRef<string | null>(null);
 
   useEffect(() => { gameIdRef.current = currentGameId; }, [currentGameId]);
+
+  // The field edit -> plan follow-up (see saveFieldEditToHistory). Read at call
+  // time through refs; writes are queued so two quick swaps can never interleave
+  // their read-modify-write of the stored schedule.
+  const planFollowSessionRef = useRef({ elapsed: 0, beforeKickoff: true });
+  useEffect(() => {
+    planFollowSessionRef.current = {
+      elapsed: gameSessionState.timeElapsedInSeconds,
+      beforeKickoff: gameSessionState.gameStatus === 'notStarted' && gameSessionState.timeElapsedInSeconds === 0,
+    };
+  }, [gameSessionState.timeElapsedInSeconds, gameSessionState.gameStatus]);
+  const planFollowSnapPointsRef = useRef<Point[]>(fieldCoordination.formationSnapPoints);
+  useEffect(() => {
+    planFollowSnapPointsRef.current = fieldCoordination.formationSnapPoints;
+  }, [fieldCoordination.formationSnapPoints]);
+  const planFollowQueueRef = useRef<Promise<void>>(Promise.resolve());
+  useEffect(() => {
+    followPlanRef.current = (before, after, snapPoints) => {
+      const gameId = gameIdRef.current;
+      if (!gameId || gameId === DEFAULT_GAME_ID || before === after) return;
+      const points = planFollowSnapPointsRef.current;
+      // A change of formation is not a move: positions no longer line up.
+      if (snapPoints && !sameSnapPoints(snapPoints, points)) return;
+      const { elapsed, beforeKickoff } = planFollowSessionRef.current;
+      planFollowQueueRef.current = planFollowQueueRef.current
+        .then(async () => {
+          const subs = await getGameSubs(gameId);
+          const next = followPlayersOnField(subs, before, after, points, { elapsedSeconds: elapsed, beforeKickoff });
+          if (next === subs) return;
+          const saved = await setGameSubs(gameId, next);
+          if (saved && gameIdRef.current === gameId) setPlannedSubsRefreshKey(k => k + 1);
+        })
+        .catch((err) => {
+          logger.warn('[useGameOrchestration] could not move the planned changes with the players (non-fatal)', err);
+        });
+    };
+    return () => { followPlanRef.current = null; };
+  }, []);
 
   const {
     assessments: playerAssessments,

@@ -46,7 +46,7 @@ beforeAll(() => {
 // Mocks
 // The day-report prompts read plans, links and games; they have their own
 // suites (useDayReportPrompt / dayReportPrompts / dayReportEntryPoints).
-const mockLastDayGamePlan = jest.fn((): string | null => null);
+const mockLastDayGamePlan = jest.fn((): { planId: string; planName: string } | null => null);
 jest.mock('@/hooks/useDayReportPrompt', () => ({
   useDayReportPrompt: () => null,
   useLastDayGamePlan: (...args: unknown[]) => mockLastDayGamePlan(...(args as [])),
@@ -1314,17 +1314,17 @@ describe('GameStatsModal', () => {
       expect(within(screen.getByTestId('spine-report')).getByTestId('spine-share-report')).toBeInTheDocument();
     });
 
-    /** "Päivän viimeinen peli pelattu · Turnauspäivän raportti" (rule: dayReportPrompts.test) */
-    it('offers the day report after the report step when this was the day\'s last plan game', async () => {
-      mockLastDayGamePlan.mockReturnValue('plan1');
+    /** "Suunnitelman viimeinen peli pelattu · <plan> · Raportti" (rule: dayReportPrompts.test) */
+    it('offers the plan report after the report step when this was the plan\'s last game', async () => {
+      mockLastDayGamePlan.mockReturnValue({ planId: 'plan1', planName: 'Kevätturnaus' });
       renderComponent({ ...getDefaultProps(), onExportOneExcel: jest.fn() });
       await tabReady();
       await waitFor(() => expect(stepKeys()).toContain('spine-dayReport'));
       const keys = stepKeys();
       expect(keys.indexOf('spine-dayReport')).toBe(keys.indexOf('spine-report') + 1);
       const button = screen.getByTestId('spine-day-report');
-      expect(button).toHaveTextContent("The day's last game is played");
-      expect(button).toHaveTextContent('Tournament day report');
+      expect(button).toHaveTextContent("The plan's last game is played");
+      expect(button).toHaveTextContent('Kevätturnaus · Report');
       await act(async () => {
         fireEvent.click(button);
       });

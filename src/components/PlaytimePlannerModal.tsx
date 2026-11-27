@@ -339,7 +339,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const [subSheetTarget, setSubSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
   // "Luo kaikki pelit" sheet (create a game for every planned game without one).
   const [showCreateAll, setShowCreateAll] = useState(false);
-  // "Turnauspäivän raportti": how many of the plan's games have been played
+  // "Raportti · <plan>": how many of the plan's games have been played
   // (the entry shows from one), and the games while the report is open.
   const [playedLinkedCount, setPlayedLinkedCount] = useState(0);
   const [dayReportGames, setDayReportGames] = useState<DayReportGameInput[] | null>(null);
@@ -1122,7 +1122,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     [showToast, t],
   );
 
-  // "Turnauspäivän raportti": read the plan's games fresh (they may have been
+  // "Raportti · <plan>": read the plan's games fresh (they may have been
   // played since the planner opened) and open the report over them.
   const handleOpenDayReport = useCallback(async () => {
     const plan = activePlanRef.current;
@@ -2609,8 +2609,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         {t('planCreateGames.createAll', 'Create all games')}
                       </button>
                     )}
-                    {/* The day's report over the games made from this plan,
-                        once at least one of them has been played. */}
+                    {/* The plan's report over the games made from it, once at
+                        least one of them has been played - for ANY plan, also a
+                        one-game one (only the finish-screen and Home prompts
+                        need 2+ games; see dayReportPrompts.ts). */}
                     {playedLinkedCount > 0 && (
                       <button
                         type="button"
@@ -2618,7 +2620,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         data-testid="planner-day-report"
                         className={`${secondaryButtonStyle} w-full`}
                       >
-                        {t('planDayReport.open', 'Tournament day report')}
+                        {t('planDayReport.open', 'Report')}
                       </button>
                     )}
                   </div>

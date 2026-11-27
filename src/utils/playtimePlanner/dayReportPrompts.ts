@@ -1,11 +1,14 @@
 /**
- * When to OFFER the day report ("Turnauspäivän raportti") outside the plan.
+ * When to OFFER the plan's report ("Raportti · <plan>") outside the plan.
  *
- * The plan's own entry shows once one of its games is played. Two more places
- * offer it once the whole day is done - every game made from the plan played:
+ * The plan's own entry ("Raportti" in the planner) shows for any plan once one
+ * of its games is played. Two more places PROMPT for it once the whole plan is
+ * done - every game made from the plan played - and only when the plan has at
+ * least MIN_DAY_REPORT_GAMES games made from it (a one-game plan is covered by
+ * that game's own match report):
  *
- * - the finish screen ("Viimeistele ottelu") of the day's last game, and
- * - Home, as a row "<plan> valmis · Tee raportti" - until the day report is
+ * - the finish screen ("Viimeistele ottelu") of the plan's last game, and
+ * - Home, as a row "<plan> valmis · Tee raportti" - until the plan's report is
  *   written or a week has passed since the last game (a prompt that never
  *   goes away turns into noise).
  *
@@ -21,6 +24,12 @@ import type { PlaytimePlan } from './types';
 
 /** Home offers the report for this many days after the day's last game (day 0 = that day). */
 export const DAY_REPORT_PROMPT_DAYS = 7;
+
+/**
+ * The prompts need at least this many games made from the plan. One game is
+ * covered by its own match report; the planner entry stays for any plan.
+ */
+export const MIN_DAY_REPORT_GAMES = 2;
 
 export interface PlanDayStatus {
   /** Real games made from the plan (that still exist). */
@@ -63,6 +72,11 @@ export function planDayStatus(
   };
 }
 
+/** Whether the prompts (finish screen, Home) offer this plan's report. */
+export function promptsDayReport(status: PlanDayStatus): boolean {
+  return status.allFinished && status.linked >= MIN_DAY_REPORT_GAMES;
+}
+
 export interface DayReportPrompt {
   planId: string;
   planName: string;
@@ -71,8 +85,9 @@ export interface DayReportPrompt {
 
 /**
  * The plans Home should offer a day report for, the most recent day first:
- * not archived, every game made from it finished, no day report written yet,
- * and the last game at most DAY_REPORT_PROMPT_DAYS - 1 days ago. A day with no
+ * not archived, at least MIN_DAY_REPORT_GAMES games made from it and every one
+ * of them finished, no report written yet, and the last game at most
+ * DAY_REPORT_PROMPT_DAYS - 1 days ago. A day with no
  * game date is never offered (the week cannot be counted).
  */
 export function findDayReportPrompts(
@@ -85,7 +100,7 @@ export function findDayReportPrompts(
   for (const plan of plans) {
     if (plan.archived || plan.dayReport?.trim()) continue;
     const status = planDayStatus(plan, links, games);
-    if (!status.allFinished || !status.lastGameDate) continue;
+    if (!promptsDayReport(status) || !status.lastGameDate) continue;
     // A date ahead of today (a mis-dated game) is not a finished day.
     if (status.lastGameDate > today) continue;
     if (daysBetween(status.lastGameDate, today) >= DAY_REPORT_PROMPT_DAYS) continue;

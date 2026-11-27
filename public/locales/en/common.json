@@ -3853,7 +3853,7 @@
       "switchError": "Could not open that plan."
     },
     "chainSheet": {
-      "title": "{{position}} · substitutions",
+      "region": "{{position}}: substitutions",
       "start": "Start",
       "total": "{{minutes}} min in total"
     },
@@ -4390,8 +4390,9 @@
     "created": "Created"
   },
   "planDayReport": {
-    "open": "Tournament day report",
-    "title": "Tournament day report",
+    "open": "Report",
+    "title": "Report · {{name}}",
+    "finishOpen": "{{name}} · Report",
     "loadError": "Could not load the games. Try again.",
     "gameCount_one": "{{count}} game",
     "gameCount_other": "{{count}} games",
@@ -4403,13 +4404,13 @@
     "playerColumn": "Player",
     "gameColumn": "G{{n}}",
     "goalsAssistsColumn": "G+A",
-    "playersHint": "G1, G2 … = the games in the order above · – = not in that game · G+A = goals + assists over the day",
-    "textHeading": "Day report",
-    "textPlaceholder": "How did the day go?",
-    "noText": "Nothing written yet. Press here to write the day report.",
+    "playersHint": "G1, G2 … = the games in the order above · – = not in that game · G+A = goals + assists in total",
+    "textHeading": "Report text",
+    "textPlaceholder": "How did the games go?",
+    "noText": "Nothing written yet. Press here to write the report.",
     "gameReportsHeading": "The games' own reports",
     "noGameReport": "No match report written for this game.",
-    "saved": "Day report saved.",
+    "saved": "Report saved.",
     "aiDraft": "Draft a summary with AI",
     "aiDraftWithCost": "Draft a summary with AI (~${{usd}})",
     "aiScope_one": "Sends the result and match report of {{count}} game to your own AI provider. Player names are replaced with codes. The draft goes into the text above - nothing is saved until you press Save.",
@@ -4419,11 +4420,11 @@
     "aiInserted": "Draft added to the text. Check it and save.",
     "aiTooLarge": "These games have more text than one request can carry.",
     "share": "Share report",
-    "shareTitle": "Share day report",
+    "shareTitle": "Share report",
     "gameOrdinal": "{{n}}",
     "sharePlayersHeading": "Players (position in game {{games}} · goals+assists):",
     "discardTitle": "Discard changes?",
-    "discardMessage": "The day report text you wrote has not been saved.",
+    "discardMessage": "The report text you wrote has not been saved.",
     "discardConfirm": "Discard",
     "keepEditing": "Keep writing",
     "sections": {
@@ -4434,10 +4435,10 @@
       "mentions": "Special mentions",
       "next": "Next step"
     },
-    "lastGameDone": "The day's last game is played",
+    "lastGameDone": "The plan's last game is played",
     "homeDone": "{{name}} done",
     "homeAction": "Write the report",
-    "saveError": "Could not save the day report. Try again."
+    "saveError": "Could not save the report. Try again."
   },
   "competitionReport": {
     "tournamentTitle": "Report",

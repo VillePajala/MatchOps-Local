@@ -1,6 +1,21 @@
 {
-  "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch.",
+  "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user. KEEP THEM SHORT: one or two sentences per bullet, a handful of bullets. They render in an in-app banner read on a phone by a coach, not a developer. The entry is one RELEASE, not one commit - later work on the same branch EDITS these lines rather than appending to them, or the entry grows with the work instead of with what changed for the user. Two exceptions to the prompt: a PR that touches nothing in the app (docs, CI, tests, tooling - see scripts/vercel-ignore-build.mjs) does not deploy and needs no entry; a PR that changes the app but nothing a coach can see (deps, refactors) adds an entry with \"internal\": true, which ships without the update banner and applies on the next launch. STYLE (owner, 2026-11-26): at most 3-4 bullets; each starts with a short label of what it is, then a colon and one short benefit line (the banner renders plain text, no Markdown: e.g. \"Kello varoittaa vaihdosta: oranssi minuuttia ennen, punainen kun on aika.\") in the coach's words; no internal or technical terms (e.g. \"+N\", chains, keskiarvot, component names) - details belong in the guide; group several small fixes into ONE bullet. When a release is not a big deal, a single plain bullet is enough: FI \"Pieniä korjauksia ja parannuksia.\" / EN \"Small fixes and improvements.\" (or \"Korjauksia\" / \"Bug fixes\" for fix-only releases).",
   "releases": [
+    {
+      "date": "2026-11-27",
+      "en": ["Plan report: named after the plan, offered once the plan's games are played."],
+      "fi": ["Suunnitelman raportti: nimetty suunnitelman mukaan ja tarjotaan, kun sen pelit on pelattu."]
+    },
+    {
+      "date": "2026-11-27",
+      "en": ["Match field: when you swap players' places, their planned changes follow them.", "Small fixes and improvements."],
+      "fi": ["Kenttä: kun vaihdat pelaajien paikkoja, suunnitellut vaihdot seuraavat pelaajaa.", "Pieniä korjauksia ja parannuksia."]
+    },
+    {
+      "date": "2026-11-26",
+      "en": ["Planner: a long substitution chain now opens on the field, right where the position is."],
+      "fi": ["Suunnittelu: pitkä vaihtoketju aukeaa kentälle paikoilleen."]
+    },
     {
       "date": "2026-11-26",
       "en": ["\"Substitutions and minutes\" on the match field shows every position's whole chain again. Only a chain that would cover the next position is shown compact with \"+N\". The planner keeps the compact cards, and two cards side by side no longer overlap.", "Suggested sub times are now round clock times, e.g. 10:00, 20:00 and 30:00, with half time always one of them.", "With a plan, the large clock turns orange a minute before the next planned change and red when it is due. \"Done ✓\" on the Next change block turns it back at once.", "Match sheet: a player without a shirt number shows \"–\", and Finish this game says how many numbers are missing.", "Player stats show the totals without per-game averages. Tournament and league reports are now called just \"Report\". Rule search notes when junior small-sided games follow the league's own rules."],

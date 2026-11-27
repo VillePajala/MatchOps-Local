@@ -820,11 +820,14 @@ describe('SoccerField Component - Interaction Testing', () => {
       expect(more).toHaveAttribute('aria-haspopup', 'dialog');
       expect(more.getAttribute('aria-label')).toMatch(/ST/);
       fireEvent.click(more);
-      const dialog = getByRole('dialog');
+      const dialog = getByRole('dialog', { name: 'ST: substitutions' });
+      // In place on the field (not a sheet portaled out of it), the field dimmed behind.
+      expect(getByTestId('soccer-field')).toContainElement(dialog);
+      expect(getByTestId('plan-chain-backdrop').style.backgroundColor).not.toBe('');
       for (const text of ['Kalle', "2'", 'Eino', "7'", 'Sampo', "12'", 'Rafael', "17'", 'Kai']) {
         expect(dialog).toHaveTextContent(text);
       }
-      fireEvent.click(getByTestId('plan-chain-sheet-backdrop'));
+      fireEvent.click(getByTestId('plan-chain-backdrop'));
       expect(queryByRole('dialog')).not.toBeInTheDocument();
     });
 
