@@ -14,7 +14,9 @@
  * game straight away, so leaving at any moment leaves the two in step.
  *
  * Copy rule: facts only (who starts, minutes, changes) - never a claim about
- * fairness or that everyone plays.
+ * fairness or that everyone plays. The totals chips and the pitch carry the
+ * planner's own fairness colours (the same cumulative read the full planner
+ * shows), so the two screens read alike; the colour is the only signal.
  *
  * Reusable on purpose: Home's "Näytä suunnitelma" will open this same screen.
  */
@@ -39,7 +41,8 @@ import { getPresetById } from '@/config/formationPresets';
 import { changePlanGameLength, reshufflePlan, syncPairedGame } from '@/services/nextGamePair';
 import { formatShortGameDay } from '@/utils/nextGameDates';
 import type { AppState } from '@/types';
-import PlanFieldView from '@/components/PlanFieldView';
+import PlanFieldView, { type PlanPlayerMinutes } from '@/components/PlanFieldView';
+import { fairnessCell } from '@/utils/playtimePlanner/colors';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { lineupMatchesPlan } from '@/services/attendance';
 import { isGamePlayed } from '@/utils/playtimePlanner/reapply';
@@ -247,17 +250,23 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
     return ensureStartingSlots(planGame).find((s) => s.slotId === gkSlot.slotId)?.playerId ?? null;
   }, [planGame]);
 
-  const minutesRows = useMemo(() => {
-    if (!plan) return [];
+  // The planner's own fairness read (cumulative planned minutes across the
+  // whole plan + fair-share ratio): one engine run colours both the totals
+  // chips and the pitch discs, exactly as the full planner does.
+  const { minutesRows, minutesByPlayer } = useMemo(() => {
+    const byPlayer: Record<string, PlanPlayerMinutes> = {};
+    if (!plan) return { minutesRows: [], minutesByPlayer: byPlayer };
     const engine = computePlanMinutes(toEnginePlan(plan));
     const absent = new Set(planGame?.absentIds ?? []);
-    return engine.players
+    for (const m of engine.players) byPlayer[m.playerId] = { minutes: Math.round(m.totalSeconds / 60), ratio: m.ratio };
+    const rows = engine.players
       .filter((m) => !absent.has(m.playerId))
       .map((m) => ({
         id: m.playerId,
         name: nameById.get(m.playerId) ?? m.playerId,
-        minutes: Math.round(m.totalSeconds / 60),
+        ...byPlayer[m.playerId],
       }));
+    return { minutesRows: rows, minutesByPlayer: byPlayer };
   }, [plan, planGame, nameById]);
 
   const subTimes = useMemo(() => {
@@ -490,10 +499,11 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
             {minutesRows.map((row) => (
               <li
                 key={row.id}
-                className="s1-list flex items-center justify-between gap-1 px-2.5 min-h-10 rounded-xl text-[13px]"
+                className="flex items-center justify-between gap-1 px-2.5 min-h-10 rounded-xl text-[13px] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]"
+                style={{ backgroundColor: fairnessCell(row.ratio), textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
               >
                 <span className="truncate font-semibold">{row.name}</span>
-                <span className="shrink-0 tabular-nums text-ink-2">{row.minutes}&#39;</span>
+                <span className="shrink-0 tabular-nums text-white/90">{row.minutes}&#39;</span>
               </li>
             ))}
           </ul>
@@ -502,6 +512,7 @@ const PlanQuickView: React.FC<PlanQuickViewProps> = ({ planId, gameId, userId, o
         <PlanFieldView
           game={planGame}
           players={plan.players}
+          minutesByPlayer={minutesByPlayer}
           onAssign={handleAssign}
           onSwapPlayers={handleSwap}
           onSetSubPlayer={handleSetSubPlayer}
