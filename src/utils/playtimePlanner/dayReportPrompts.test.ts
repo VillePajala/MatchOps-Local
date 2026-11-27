@@ -1,10 +1,17 @@
 /**
- * When the day report is offered outside the planner: the finish screen of
- * the day's last game, and Home until the report is written or a week passes.
+ * When the plan's report is offered outside the planner: the finish screen of
+ * the plan's last game, and Home until the report is written or a week passes -
+ * only for a plan with 2+ games made from it.
  */
 import type { AppState } from '@/types/game';
 import { TestFixtures } from '../../../tests/fixtures';
-import { DAY_REPORT_PROMPT_DAYS, findDayReportPrompts, planDayStatus } from './dayReportPrompts';
+import {
+  DAY_REPORT_PROMPT_DAYS,
+  MIN_DAY_REPORT_GAMES,
+  findDayReportPrompts,
+  planDayStatus,
+  promptsDayReport,
+} from './dayReportPrompts';
 import type { PlanLinksCollection } from './planLinks';
 import type { PlaytimePlan } from './types';
 
@@ -81,6 +88,14 @@ describe('planDayStatus', () => {
   });
 });
 
+describe('promptsDayReport', () => {
+  it('needs every game finished and at least two of them', () => {
+    expect(promptsDayReport({ linked: 2, finished: 2, allFinished: true })).toBe(true);
+    expect(promptsDayReport({ linked: 1, finished: 1, allFinished: true })).toBe(false);
+    expect(promptsDayReport({ linked: 3, finished: 2, allFinished: false })).toBe(false);
+  });
+});
+
 describe('findDayReportPrompts (Home)', () => {
   const links = linksFor('p', ['game_1_x', 'game_2_x']);
   const games = { game_1_x: finished('2026-12-11'), game_2_x: finished('2026-12-12') };
@@ -113,9 +128,23 @@ describe('findDayReportPrompts (Home)', () => {
     expect(findDayReportPrompts([plan('p')], links, undated, TODAY)).toEqual([]);
   });
 
+  /** @critical a one-game plan gets no prompt: that game's match report covers it */
+  it('is not offered for a plan with only one game made from it', () => {
+    expect(MIN_DAY_REPORT_GAMES).toBe(2);
+    const oneLink = linksFor('p', ['game_1_x']);
+    const oneGame = { game_1_x: finished('2026-12-12') };
+    expect(findDayReportPrompts([plan('p')], oneLink, oneGame, TODAY)).toEqual([]);
+    // Three finished games: offered, with the plan's name.
+    const threeLinks = linksFor('p', ['game_1_x', 'game_2_x', 'game_3_x']);
+    const threeGames = { ...games, game_3_x: finished('2026-12-12') };
+    expect(findDayReportPrompts([plan('p', { name: 'Kevätviikonloppu' })], threeLinks, threeGames, TODAY)).toEqual([
+      { planId: 'p', planName: 'Kevätviikonloppu', lastGameDate: '2026-12-12' },
+    ]);
+  });
+
   it('puts the most recent day first', () => {
-    const allLinks = { ...links, ...linksFor('q', ['game_3_x']) };
-    const allGames = { ...games, game_3_x: finished('2026-12-13') };
+    const allLinks = { ...links, ...linksFor('q', ['game_3_x', 'game_4_x']) };
+    const allGames = { ...games, game_3_x: finished('2026-12-13'), game_4_x: finished('2026-12-13') };
     expect(findDayReportPrompts([plan('p'), plan('q')], allLinks, allGames, TODAY).map((x) => x.planId)).toEqual([
       'q',
       'p',

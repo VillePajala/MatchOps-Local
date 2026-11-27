@@ -3,6 +3,11 @@
   "releases": [
     {
       "date": "2026-11-27",
+      "en": ["Plan report: named after the plan, offered once the plan's games are played."],
+      "fi": ["Suunnitelman raportti: nimetty suunnitelman mukaan ja tarjotaan, kun sen pelit on pelattu."]
+    },
+    {
+      "date": "2026-11-27",
       "en": ["Match field: when you swap players' places, their planned changes follow them.", "Small fixes and improvements."],
       "fi": ["Kenttä: kun vaihdat pelaajien paikkoja, suunnitellut vaihdot seuraavat pelaajaa.", "Pieniä korjauksia ja parannuksia."]
     },

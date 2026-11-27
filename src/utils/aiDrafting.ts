@@ -795,7 +795,7 @@ export async function groupPlayerNotes({
 }
 
 
-// ── Day report (Turnauspäivän raportti) ──────────────────────────────────────
+// ── Plan report (Raportti · <plan>) ──────────────────────────────────────────
 
 /** Rough cost of a day-summary request, same formula as a match draft. */
 export function estimateDaySummaryUsd(packet: DayPacket): number {
@@ -821,7 +821,7 @@ export function buildDaySummaryInstructions(packet: DayPacket): string {
       ? ['You draft a short report of one youth football league season so far - its games in date order -', 'for the coach who was there.']
       : scope === 'tournament'
         ? ['You draft a short report of one youth football tournament - a few short games, over one or', 'more days - for the coach who was there.']
-        : ['You draft a short report of one youth football day - usually a tournament of a few short', 'games played back to back - for the coach who was there.'];
+        : ['You draft a short report of a few youth football games the coach planned together - often a', 'tournament day or a weekend of games - for the coach who was there.'];
   return [
     ...opening,
     `Write in ${packet.language}. Plain prose, no markdown, no headings inside a section's text.`,

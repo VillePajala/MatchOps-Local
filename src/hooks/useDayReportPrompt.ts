@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The day report's prompts outside the planner: Home's ("Joulufutis 12.12. valmis · Tee raportti"),
+ * The plan report's prompts outside the planner: Home's ("Joulufutis 12.12. valmis · Tee raportti"),
  * shared by both layouts. The most recent plan whose games are all finished
  * and whose day report is not written yet, for a week after its last game
  * (findDayReportPrompts holds the rule).
@@ -12,7 +12,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { getSavedGames } from '@/utils/savedGames';
 import { getPlan, getPlans } from '@/utils/playtimePlanner/storage';
 import { getAllPlanLinks, getPlanLink } from '@/utils/playtimePlanner/planLinks';
-import { findDayReportPrompts, planDayStatus, type DayReportPrompt } from '@/utils/playtimePlanner/dayReportPrompts';
+import { findDayReportPrompts, planDayStatus, promptsDayReport, type DayReportPrompt } from '@/utils/playtimePlanner/dayReportPrompts';
 import { isDayGamePlayed } from '@/utils/playtimePlanner/dayReport';
 import type { AppState } from '@/types/game';
 import { todayIso } from '@/utils/todayIso';
@@ -49,22 +49,29 @@ export function useDayReportPrompt(enabled: boolean, refreshKey: unknown): DayRe
   return enabled ? prompt : null;
 }
 
+/** The plan whose report the finish screen offers. */
+export interface LastPlanGame {
+  planId: string;
+  planName: string;
+}
+
 /**
- * The finish screen's "Päivän viimeinen peli pelattu · Turnauspäivän
- * raportti": the plan the open game was made from, when every game made from
- * that plan is now finished - this was the day's last game. The open game
- * counts as it is on screen (`currentGame`) and counts once it is played at
- * all: the coach finishing it is what ends it.
+ * The finish screen's "Suunnitelman viimeinen peli pelattu · <plan> · Raportti":
+ * the plan the open game was made from, when the plan has 2+ games made from
+ * it and every one is now finished - this was the plan's last game
+ * (promptsDayReport holds the rule). The open game counts as it is on screen
+ * (`currentGame`) and counts once it is played at all: the coach finishing it
+ * is what ends it.
  *
- * Returns the plan id, or null.
+ * Returns the plan, or null.
  */
 export function useLastDayGamePlan(
   currentGameId: string | null | undefined,
   currentGame: AppState | undefined,
   enabled: boolean,
-): string | null {
+): LastPlanGame | null {
   const { userId } = useDataStore();
-  const [result, setResult] = useState<{ forGameId: string; planId: string | null } | null>(null);
+  const [result, setResult] = useState<{ forGameId: string; plan: LastPlanGame | null } | null>(null);
   // Re-checked when the game's played-ness can change, not on every keystroke;
   // the game itself is read through a ref at lookup time.
   const playedNow = currentGame ? isDayGamePlayed(currentGame) : false;
@@ -82,17 +89,22 @@ export function useLastDayGamePlan(
         const link = await getPlanLink(currentGameId);
         const plan = link ? await getPlan(link.planId) : null;
         if (!plan || plan.archived) {
-          if (!cancelled) setResult({ forGameId: currentGameId, planId: null });
+          if (!cancelled) setResult({ forGameId: currentGameId, plan: null });
           return;
         }
         const [links, games] = await Promise.all([getAllPlanLinks(), getSavedGames(userId)]);
         const onScreen = currentGameRef.current;
         const merged = onScreen ? { ...games, [currentGameId]: onScreen } : games;
         const status = planDayStatus(plan, links, merged, currentGameId);
-        if (!cancelled) setResult({ forGameId: currentGameId, planId: status.allFinished ? plan.id : null });
+        if (!cancelled) {
+          setResult({
+            forGameId: currentGameId,
+            plan: promptsDayReport(status) ? { planId: plan.id, planName: plan.name.trim() } : null,
+          });
+        }
       } catch (error) {
         logger.warn('[useLastDayGamePlan] lookup failed', { error });
-        if (!cancelled) setResult({ forGameId: currentGameId, planId: null });
+        if (!cancelled) setResult({ forGameId: currentGameId, plan: null });
       }
     })();
     return () => {
@@ -100,5 +112,5 @@ export function useLastDayGamePlan(
     };
   }, [active, currentGameId, userId]);
 
-  return active && result?.forGameId === currentGameId ? result.planId : null;
+  return active && result?.forGameId === currentGameId ? result.plan : null;
 }
