@@ -1923,6 +1923,7 @@ export type TranslationKey =
   | 'planDayReport.discardConfirm'
   | 'planDayReport.discardMessage'
   | 'planDayReport.discardTitle'
+  | 'planDayReport.finishOpen'
   | 'planDayReport.gameColumn'
   | 'planDayReport.gameCount_one'
   | 'planDayReport.gameCount_other'

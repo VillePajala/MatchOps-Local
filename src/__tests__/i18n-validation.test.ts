@@ -784,7 +784,8 @@ describe('Translation File Validation', () => {
       // Timer sub clarity: timerOverlay.confirmSubButton -> resetSubTimerButton, +plannedSwapOne/Two/Many, showSubTimer, makePlanForGame. 3864.
       // Compact chain cards: +2 playtimePlanner.lineup.chainShowAll_one/_other, +3 playtimePlanner.chainSheet.*. 3869.
       // Demo findings batch: +taso.missingNumbers_one/_other/Fix, +timerOverlay.plannedSubDone, +rulesDirectory.juniorSeriesNote, -playerStats.perGameShort. 3873.
-      expect(enKeys.length).toBe(3873);
+      // Plan report named by the plan: +planDayReport.finishOpen. 3874.
+      expect(enKeys.length).toBe(3874);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -1023,7 +1024,8 @@ describe('Translation File Validation', () => {
       // Timer sub clarity: timerOverlay.confirmSubButton -> resetSubTimerButton, +plannedSwapOne/Two/Many, showSubTimer, makePlanForGame. 3864.
       // Compact chain cards: +2 playtimePlanner.lineup.chainShowAll_one/_other, +3 playtimePlanner.chainSheet.*. 3869.
       // Demo findings batch: +taso.missingNumbers_one/_other/Fix, +timerOverlay.plannedSubDone, +rulesDirectory.juniorSeriesNote, -playerStats.perGameShort. 3873.
-      expect(fiKeys.length).toBe(3873);
+      // Plan report named by the plan: +planDayReport.finishOpen. 3874.
+      expect(fiKeys.length).toBe(3874);
     });
   });
 });

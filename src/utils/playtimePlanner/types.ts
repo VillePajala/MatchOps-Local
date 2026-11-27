@@ -78,7 +78,7 @@ export interface PlaytimePlan {
   /** Archived plans are hidden from the manager list behind a toggle. */
   archived?: boolean;
   /**
-   * The coach's own text for the day report ("Turnauspäivän raportti") over
+   * The coach's own text for the day report ("Raportti · <plan>") over
    * the games made from this plan. Stored on the plan so it syncs with it
    * (the cloud row keeps the whole plan as JSON, so no migration). Absent until
    * written.

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The day report ("Turnauspäivän raportti") opened from OUTSIDE the planner:
+ * The day report ("Raportti · <plan>") opened from OUTSIDE the planner:
  * the finish screen of the day's last game and Home's "<plan> valmis · Tee
  * raportti" row. Loads the plan, its games and the roster itself, and saves the
  * text on the plan exactly as the planner does (`dayReport`, synced with it).
@@ -98,7 +98,7 @@ const PlanDayReportLauncher: React.FC<PlanDayReportLauncherProps> = ({ planId, g
         })
         .catch((error) => {
           logger.error('[PlanDayReportLauncher] Failed to save the day report', error);
-          showToast(t('planDayReport.saveError', 'Could not save the day report. Try again.'), 'error');
+          showToast(t('planDayReport.saveError', 'Could not save the report. Try again.'), 'error');
         });
     },
     [loaded, onSaved, showToast, t],

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * "Turnauspäivän raportti" - one report over the games made from a plan - and
+ * "Raportti · <plan>" - one report over the games made from a plan - and
  * the same view over a competition, titled just "Raportti" (owner
  * 2026-11-26; the competition's name sits right below): a tournament's games
  * in the same game-by-game layout, or a league in TOTALS (results, record,
@@ -199,7 +199,7 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
     onSave(draft.trim() ? draft : '');
     setEditing(false);
     showToast(
-      kind === 'day' ? t('planDayReport.saved', 'Day report saved.') : t('competitionReport.saved', 'Report saved.'),
+      kind === 'day' ? t('planDayReport.saved', 'Report saved.') : t('competitionReport.saved', 'Report saved.'),
       'success',
     );
   };
@@ -296,15 +296,15 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
       ? t('competitionReport.seasonTitle', 'Report')
       : kind === 'tournament'
         ? t('competitionReport.tournamentTitle', 'Report')
-        : t('planDayReport.title', 'Tournament day report');
+        : t('planDayReport.title', 'Report · {{name}}', { name: report.planName });
   const textHeading =
-    kind === 'day' ? t('planDayReport.textHeading', 'Day report') : t('competitionReport.textHeading', 'Report text');
+    kind === 'day' ? t('planDayReport.textHeading', 'Report text') : t('competitionReport.textHeading', 'Report text');
   const textPlaceholder =
     kind === 'season'
       ? t('competitionReport.textPlaceholderSeason', 'How has the league gone?')
       : kind === 'tournament'
         ? t('competitionReport.textPlaceholderTournament', 'How did the tournament go?')
-        : t('planDayReport.textPlaceholder', 'How did the day go?');
+        : t('planDayReport.textPlaceholder', 'How did the games go?');
 
   const resultLetter = (r: 'W' | 'D' | 'L') =>
     r === 'W' ? tr('export.winShort', 'W') : r === 'D' ? tr('export.tieShort', 'D') : tr('export.lossShort', 'L');
@@ -498,7 +498,7 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
               <p className={`${subtextStyle} mt-2 text-[13px]`}>
                 {t(
                   'planDayReport.playersHint',
-                  'G1, G2 … = the games in the order above · – = not in that game · G+A = goals + assists over the day',
+                  'G1, G2 … = the games in the order above · – = not in that game · G+A = goals + assists in total',
                 )}
               </p>
             </section>
@@ -619,7 +619,7 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
                   {saved || (
                     <span className="italic text-ink-3">
                       {kind === 'day'
-                        ? t('planDayReport.noText', 'Nothing written yet. Press here to write the day report.')
+                        ? t('planDayReport.noText', 'Nothing written yet. Press here to write the report.')
                         : t('competitionReport.noText', 'Nothing written yet. Press here to write the report.')}
                     </span>
                   )}
@@ -649,7 +649,7 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
             ? t('competitionReport.shareTitleSeason', 'Share league report')
             : kind === 'tournament'
               ? t('competitionReport.shareTitleTournament', 'Share tournament report')
-              : t('planDayReport.shareTitle', 'Share day report')
+              : t('planDayReport.shareTitle', 'Share report')
         }
         subtitle={t('recap.subtitle', 'Ready to paste into the team chat. Edit if you like.')}
       />
@@ -658,7 +658,7 @@ const PlanDayReportModal: React.FC<PlanDayReportModalProps> = ({
         title={t('planDayReport.discardTitle', 'Discard changes?')}
         message={
           kind === 'day'
-            ? t('planDayReport.discardMessage', 'The day report text you wrote has not been saved.')
+            ? t('planDayReport.discardMessage', 'The report text you wrote has not been saved.')
             : t('competitionReport.discardMessage', 'The report text you wrote has not been saved.')
         }
         confirmLabel={t('planDayReport.discardConfirm', 'Discard')}

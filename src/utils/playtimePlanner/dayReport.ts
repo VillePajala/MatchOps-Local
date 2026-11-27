@@ -1,5 +1,5 @@
 /**
- * "Turnauspäivän raportti" - one report over every game made from a plan.
+ * "Raportti · <plan>" - one report over every game made from a plan.
  *
  * A plan is often one tournament day: three or four short games, played back
  * to back. Each game already has its own result, events and match report; this

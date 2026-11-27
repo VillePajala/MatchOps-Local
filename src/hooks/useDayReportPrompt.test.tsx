@@ -83,11 +83,22 @@ describe('useLastDayGamePlan (finish screen)', () => {
     // Storage still has game 2 unplayed; on screen it has been played.
     mockGetSavedGames.mockResolvedValue({ game_1_x: done(), game_2_x: notStarted() });
     const { result } = renderHook(() => useLastDayGamePlan('game_2_x', done({ gameStatus: 'periodEnd' }), true));
-    await waitFor(() => expect(result.current).toBe('p'));
+    await waitFor(() => expect(result.current).toEqual({ planId: 'p', planName: 'Joulufutis 12.12.' }));
   });
 
   it('stays null while another of the plan\'s games is unplayed', async () => {
     mockGetSavedGames.mockResolvedValue({ game_1_x: notStarted(), game_2_x: done() });
+    const { result } = renderHook(() => useLastDayGamePlan('game_2_x', done(), true));
+    await waitFor(() => expect(mockGetSavedGames).toHaveBeenCalled());
+    expect(result.current).toBeNull();
+  });
+
+  /** @critical a one-game plan: no finish-screen prompt (the match report covers it) */
+  it('stays null for a plan with only one game made from it', async () => {
+    const oneLink = { game_2_x: { planId: 'p', planGameId: 'b' } };
+    mockGetAllPlanLinks.mockResolvedValue(oneLink);
+    mockGetPlanLink.mockImplementation(async (id: string) => oneLink[id as keyof typeof oneLink] ?? null);
+    mockGetSavedGames.mockResolvedValue({ game_2_x: done() });
     const { result } = renderHook(() => useLastDayGamePlan('game_2_x', done(), true));
     await waitFor(() => expect(mockGetSavedGames).toHaveBeenCalled());
     expect(result.current).toBeNull();

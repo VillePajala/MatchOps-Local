@@ -765,9 +765,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         : undefined,
     [savedGame, gameNotes, localGameEvents, playerPositions],
   );
-  // "Päivän viimeinen peli pelattu · Turnauspäivän raportti": this game was
+  // "Suunnitelman viimeinen peli pelattu · <plan> · Raportti": this game was
   // made from a plan and was the last of that plan's games to be played.
-  const lastDayPlanId = useLastDayGamePlan(currentGameId, currentGame, isOpen && activeTab === 'currentGame');
+  const lastPlanGame = useLastDayGamePlan(currentGameId, currentGame, isOpen && activeTab === 'currentGame');
   const [dayReportPlanId, setDayReportPlanId] = useState<string | null>(null);
   const lastEvent = useMemo(
     () => localGameEvents.reduce<GameEvent | undefined>((latest, e) => (!latest || e.time > latest.time ? e : latest), undefined),
@@ -1316,21 +1316,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         </>
       ),
     });
-    // The day's last game made from a plan: the day report, one tap away.
-    if (lastDayPlanId) {
+    // The last game of a plan with 2+ games: the plan's report, one tap away.
+    if (lastPlanGame) {
       spineSteps.push({
         key: 'dayReport',
         content: (
           <button
             type="button"
-            onClick={() => setDayReportPlanId(lastDayPlanId)}
+            onClick={() => setDayReportPlanId(lastPlanGame.planId)}
             data-testid="spine-day-report"
             className={`${secondaryButtonStyle} w-full flex-col gap-0.5! py-2.5! h-auto!`}
           >
             <span className="text-[13px] font-normal text-ink-2">
-              {t('planDayReport.lastGameDone', "The day's last game is played")}
+              {t('planDayReport.lastGameDone', "The plan's last game is played")}
             </span>
-            <span>{t('planDayReport.open', 'Tournament day report')}</span>
+            <span>{t('planDayReport.finishOpen', '{{name}} · Report', { name: lastPlanGame.planName })}</span>
           </button>
         ),
       });

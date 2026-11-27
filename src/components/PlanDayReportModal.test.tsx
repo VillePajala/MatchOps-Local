@@ -132,6 +132,8 @@ describe('PlanDayReportModal', () => {
   it('shows the record, a row per game and the players table', () => {
     renderModal();
     expect(screen.getByTestId('day-report-name')).toHaveTextContent('Joulufutis 12.12.');
+    // Named by the plan, not "tournament day".
+    expect(screen.getByRole('dialog')).toHaveAccessibleName('Report · Joulufutis 12.12.');
     expect(screen.getByTestId('day-report-subtitle')).toHaveTextContent('Kotkat P11 · Hakalan halli · 2 games · 1W 1D 0L');
     expect(screen.getByTestId('day-report-game-1')).toHaveTextContent('Kallion Kiri');
     expect(screen.getByTestId('day-report-game-1')).toHaveTextContent('2–1');
@@ -241,7 +243,7 @@ describe('PlanDayReportModal', () => {
       await act(async () => {
         fireEvent.click(screen.getByTestId('day-report-share'));
       });
-      const box = screen.getByRole('textbox', { name: 'Share day report' }) as HTMLTextAreaElement;
+      const box = screen.getByRole('textbox', { name: 'Share report' }) as HTMLTextAreaElement;
       expect(box.value).toBe(
         [
           '⚽ Kotkat P11 · Joulufutis 12.12. (Hakalan halli)',

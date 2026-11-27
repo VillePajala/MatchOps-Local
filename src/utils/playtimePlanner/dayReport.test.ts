@@ -1,5 +1,5 @@
 /**
- * Day report ("Turnauspäivän raportti") building: record, per-game rows,
+ * Day report ("Raportti · <plan>") building: record, per-game rows,
  * per-game positions, day totals and the exact share text.
  */
 import type { AppState, GameEvent } from '@/types/game';

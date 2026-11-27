@@ -1,5 +1,5 @@
 /**
- * Planner -> "Turnauspäivän raportti": the entry shows once one of the plan's
+ * Planner -> "Raportti" (the plan report): the entry shows once one of the plan's
  * games is played, opens the report over the plan's games, and the day text
  * is saved with the plan.
  */
@@ -159,7 +159,7 @@ const openPlanSettings = async (props: Partial<React.ComponentProps<typeof Playt
   });
 };
 
-describe('planner: tournament day report', () => {
+describe('planner: plan report', () => {
   it('offers no day report while none of the plan\'s games is played', async () => {
     await openPlanSettings();
     await waitFor(() => expect(screen.getByTestId('planner-created-summary')).toHaveTextContent('2/3 games created'));
@@ -171,7 +171,7 @@ describe('planner: tournament day report', () => {
     mockGames.game_1_a = { ...(mockGames.game_1_a as object), gameStatus: 'gameEnd', homeScore: 3, awayScore: 1 };
     await openPlanSettings();
     const entry = await screen.findByTestId('planner-day-report');
-    expect(entry).toHaveTextContent('Tournament day report');
+    expect(entry).toHaveTextContent(/^Report$/);
     await act(async () => {
       fireEvent.click(entry);
     });
